@@ -4,7 +4,7 @@ use crate::game_data::{items_data::items::*, units_data::*};
 const SIVIR_Q_N_TARGETS: f32 = 1.0;
 /// Percentage of the time the q return hit its targets.
 const SIVIR_Q_RETURN_PERCENT: f32 = 0.66;
-/// Number of targets hit ny sivir ricochets (adds to the basic attack that launched the ricochet).
+/// Number of targets hit by sivir ricochets (adds to the basic attack that launched the ricochet).
 const SIVIR_W_N_RICOCHETS: f32 = 1.0;
 
 fn sivir_init_spells(champ: &mut Unit) {
