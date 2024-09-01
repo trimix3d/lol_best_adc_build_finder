@@ -1,5 +1,6 @@
 use super::game_data::*;
 
+use indicatif::{ProgressBar, ProgressStyle};
 use items_data::{items::NULL_ITEM, *};
 use runes_data::{RuneShard, RunesPage};
 use units_data::*;
@@ -10,7 +11,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use std::iter::zip;
 use std::num::{NonZero, NonZeroU8};
-use std::time::Instant;
+use std::time::Duration;
 
 /// Meaningless to go above this value, also computation times may become very long.
 pub const MAX_FIGHT_DURATION: f32 = 3600.;
@@ -700,7 +701,7 @@ impl BuildsGenerationSettings {
     }
 }
 
-pub fn normalize_judgment_weights(
+pub fn get_normalized_judgment_weights(
     (dps_value_weight, defense_weight, ms_weight): (f32, f32, f32),
 ) -> (f32, f32, f32) {
     let sum: f32 = dps_value_weight + defense_weight + ms_weight;
@@ -975,13 +976,27 @@ pub fn find_best_builds(
     //check input arguments
     settings.check_settings()?;
 
-    //normalize judgment weights
-    let normalized_judgment_weights: (f32, f32, f32) =
-        normalize_judgment_weights(settings.judgment_weights);
-
     //backup original champion configuration
     let original_lvl: NonZeroU8 = champ.lvl;
     let original_build: Build = champ.build;
+
+    //get number of available threads
+    let n_threads: NonZero<usize> =
+        std::thread::available_parallelism().expect("failed to get amount of available threads");
+
+    //start progress bar
+    let progress_bar: ProgressBar = ProgressBar::new(settings.n_items as u64)
+        .with_style(
+            ProgressStyle::with_template(
+                "{msg}\n[{elapsed_precise}] {bar} {pos}/{len} items {spinner}",
+            )
+            .expect("failed to create progress bar style"),
+        )
+        .with_message(format!(
+            "calculating best builds for {}...",
+            champ.properties.name
+        ));
+    progress_bar.enable_steady_tick(Duration::from_millis(200));
 
     //create target dummy
     let lvl: u8 = 6; //use lvl 6 for the empty build scores
@@ -1017,14 +1032,9 @@ pub fn find_best_builds(
     empty_build.ms[0] = empty_build_point.ms;
     //no need to change other fields
 
-    let n_threads: NonZero<usize> =
-        std::thread::available_parallelism().expect("failed to get amount of available threads");
-
-    //begin time measurement
-    println!("calculating best builds for {}...", champ.properties.name);
-    let start_time = Instant::now();
-
-    //initialize best builds
+    //initialize best builds generation
+    let normalized_judgment_weights: (f32, f32, f32) =
+        get_normalized_judgment_weights(settings.judgment_weights);
     let legendary_items_pool_with_boots_maybe: &[&Item] =
         if (settings.boots_slot == 0) && (settings.allow_boots_if_no_slot) {
             &[&settings.legendary_items_pool[..], &settings.boots_pool[..]].concat()
@@ -1033,6 +1043,7 @@ pub fn find_best_builds(
         }; //treat boots as legendary items if no slot specified
     let discard_percent: f32 = 1. - settings.search_threshold;
     let mut best_builds: Vec<BuildContainer> = vec![empty_build];
+    //start iterating on each item slot
     for item_idx in 0..settings.n_items {
         let item_slot: usize = item_idx + 1;
 
@@ -1151,13 +1162,16 @@ pub fn find_best_builds(
             container.defense[item_slot] = scores.defense;
             container.ms[item_slot] = scores.ms;
         }
+
+        //update progress bar
+        progress_bar.inc(1);
     }
-    //end time measurement
+    //finish progress bar
+    progress_bar.finish();
     println!(
-        "found {} optimized builds for {} in {:?}",
+        "found {} optimized builds for {}",
         best_builds.len(),
-        champ.properties.name,
-        start_time.elapsed()
+        champ.properties.name
     );
 
     //restore original champion configuration

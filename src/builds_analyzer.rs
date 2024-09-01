@@ -1,7 +1,7 @@
 use crate::game_data::STARTING_GOLDS;
 
 use super::{
-    build_optimizer::{normalize_judgment_weights, BuildContainer},
+    build_optimizer::{get_normalized_judgment_weights, BuildContainer},
     game_data::items_data::{BuildHash, ItemUtils},
 };
 
@@ -16,7 +16,7 @@ pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights:
         .max_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
         .unwrap_or(STARTING_GOLDS);
     let normalized_judgement_weights: (f32, f32, f32) =
-        normalize_judgment_weights(judgment_weights);
+        get_normalized_judgment_weights(judgment_weights);
 
     let mut average_scores: FxHashMap<BuildHash, f32> =
         FxHashMap::with_capacity_and_hasher(builds_ref.len(), FxBuildHasher);
@@ -54,7 +54,7 @@ pub fn print_builds_scores(
         .max_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
         .unwrap_or(STARTING_GOLDS);
     let normalized_judgement_weights: (f32, f32, f32) =
-        normalize_judgment_weights(judgment_weights);
+        get_normalized_judgment_weights(judgment_weights);
 
     //print builds
     let n_to_print: usize = usize::min(n_to_print, builds_ref.len());
