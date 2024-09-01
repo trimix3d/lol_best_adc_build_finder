@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use std::iter::zip;
-use std::num::{NonZero, NonZeroIsize, NonZeroU8};
+use std::num::{NonZero, NonZeroU8};
 use std::time::Instant;
 
 /// Meaningless to go above this value, also computation times may become very long.
