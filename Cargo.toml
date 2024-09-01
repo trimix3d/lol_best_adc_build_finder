@@ -1,0 +1,45 @@
+[package]
+name = "lol_best_adc_build_finder_14_17"
+version = "14.17.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lints.clippy]
+cast_precision_loss = "warn"
+cast_lossless = "warn"
+doc_markdown = "warn"
+from_iter_instead_of_collect = "warn"
+manual_assert = "warn"
+manual_let_else = "warn"
+must_use_candidate = "warn"
+needless_pass_by_value = "warn"
+redundant_closure_for_method_calls = "warn"
+semicolon_if_nothing_returned = "warn"
+single_match_else = "warn"
+
+[profile.release]
+opt-level = 3
+debug = false
+strip = "debuginfo"
+debug-assertions = false
+overflow-checks = false
+lto = "fat"
+incremental = false
+codegen-units = 1
+
+# use with flamegraph with the command :
+# cargo flamegraph --profile profiling
+[profile.profiling]
+inherits = "release"
+debug = "full"
+strip = "none"
+panic = "unwind"
+
+[dependencies]
+constcat = "0.5.0"
+enum-map = "2.7.3"
+enumset = "1.1.3"
+indexmap = "2.2.6"
+rayon = "1.10.0"
+rustc-hash = "2.0.0"
