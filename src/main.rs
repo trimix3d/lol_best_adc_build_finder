@@ -96,5 +96,6 @@ fn champion_test_ground() {
 
 fn main() {
     //champion_test_ground();
+    println!("test");
     cli::launch_interface();
 }
