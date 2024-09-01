@@ -801,7 +801,7 @@ fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usiz
 /// f32 because only used in f32 calculations.
 const N_PARETO_SCORES: f32 = 7.;
 struct ParetoSpacePoint {
-    utils: EnumSet<ItemUtils>,
+    utils: EnumSet<ItemUtils>, //represents 3 scores
     golds: f32,
     dps: f32,
     defense: f32,
