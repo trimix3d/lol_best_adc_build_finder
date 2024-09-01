@@ -9,7 +9,7 @@ use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use std::iter::zip;
-use std::num::NonZeroU8;
+use std::num::{NonZero, NonZeroU8};
 use std::time::Instant;
 
 /// Meaningless to go above this value, also computation times may become very long.
@@ -787,6 +787,15 @@ fn generate_build_layer(
     Some(new_builds)
 }
 
+/// Get the size of the chunks needed to process a given amount of elements in parallel with the specified amount of workers.
+/// The chunk size will be choosen so that the number of elements per chunk is the most evenly distributed possible.
+fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usize>) -> usize {
+    usize::max(
+        1,
+        (n_elements + (thread_count.get() - 1)) / thread_count.get(),
+    )
+}
+
 /// Number of pareto scores to consider. Must be consistent with the number of elements in the `ParetoPoint` type.
 /// f32 because only used in f32 calculations.
 const N_PARETO_SCORES: f32 = 7.;
@@ -904,7 +913,7 @@ fn pareto_compare_chunk_to_ref_point(
 fn pareto_front_multithread(
     points: &mut Vec<ParetoSpacePoint>,
     discard_percent: f32,
-    n_threads: usize,
+    n_threads: NonZero<usize>,
 ) -> Vec<bool> {
     let input_len: usize = points.len();
     let mut pareto_mask: Vec<bool> = Vec::with_capacity(input_len);
@@ -915,7 +924,7 @@ fn pareto_front_multithread(
         let current_point: &ParetoSpacePoint = &points[idx];
 
         //update pareto mask, divide points into chunks to process them in parralel
-        let chunk_size: usize = usize::max(1, points.len() / n_threads);
+        let chunk_size: usize = get_chunksize_from_thread_count(points.len(), n_threads);
         pareto_mask.clear();
         pareto_mask = points
             .par_chunks(chunk_size)
@@ -1008,9 +1017,8 @@ pub fn find_best_builds(
     empty_build.ms[0] = empty_build_point.ms;
     //no need to change other fields
 
-    let n_threads: usize = std::thread::available_parallelism()
-        .expect("failed to get amount of available threads")
-        .get();
+    let n_threads: NonZero<usize> =
+        std::thread::available_parallelism().expect("failed to get amount of available threads");
 
     //begin time measurement
     println!("calculating best builds for {}...", champ.properties.name);
@@ -1075,7 +1083,7 @@ pub fn find_best_builds(
         }
 
         //divide builds into chunks to process them in parralel
-        let chunk_size: usize = usize::max(1, best_builds.len() / n_threads);
+        let chunk_size: usize = get_chunksize_from_thread_count(best_builds.len(), n_threads);
         let mut pareto_space_points: Vec<ParetoSpacePoint> = best_builds
             .par_chunks(chunk_size)
             .flat_map_iter(|chunk| {
