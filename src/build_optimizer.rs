@@ -1,11 +1,11 @@
 use super::game_data::*;
 
-use indicatif::{ProgressBar, ProgressStyle};
 use items_data::{items::NULL_ITEM, *};
 use runes_data::{RuneShard, RunesPage};
 use units_data::*;
 
 use enumset::{enum_set, EnumSet};
+use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
