@@ -369,13 +369,6 @@ fn has_duplicates(slice: &[&'static Item]) -> Option<usize> {
     None
 }
 
-fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usize>) -> usize {
-    usize::max(
-        1,
-        (n_elements + (thread_count.get() - 1)) / thread_count.get(),
-    )
-}
-
 /// Returns the average of the curve formed by the given points.
 /// values is a slice over values for y.
 /// golds is a slice over associated values for x (must be in increasing order and same length as values),
@@ -792,6 +785,15 @@ fn generate_build_layer(
         return None;
     }
     Some(new_builds)
+}
+
+/// Get the size of the chunks needed to process a given amount of elements in parallel with the specified amount of workers.
+/// The chunk size will be choosen so that the number of elements per chunk is the most evenly distributed possible.
+fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usize>) -> usize {
+    usize::max(
+        1,
+        (n_elements + (thread_count.get() - 1)) / thread_count.get(),
+    )
 }
 
 /// Number of pareto scores to consider. Must be consistent with the number of elements in the `ParetoPoint` type.
