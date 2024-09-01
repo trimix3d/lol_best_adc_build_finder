@@ -915,7 +915,7 @@ fn pareto_front_multithread(
         let current_point: &ParetoSpacePoint = &points[idx];
 
         //update pareto mask, divide points into chunks to process them in parralel
-        let chunk_size: usize = usize::max(1, points.len() / n_threads);
+        let chunk_size: usize = usize::max(1, (points.len() + n_threads - 1) / n_threads);
         pareto_mask.clear();
         pareto_mask = points
             .par_chunks(chunk_size)
@@ -1075,7 +1075,7 @@ pub fn find_best_builds(
         }
 
         //divide builds into chunks to process them in parralel
-        let chunk_size: usize = usize::max(1, best_builds.len() / n_threads);
+        let chunk_size: usize = usize::max(1, (best_builds.len() + n_threads - 1) / n_threads);
         let mut pareto_space_points: Vec<ParetoSpacePoint> = best_builds
             .par_chunks(chunk_size)
             .flat_map_iter(|chunk| {
