@@ -14,6 +14,7 @@ For simplicity, the version number of each release is the same as the correspond
 
 This is a project i do during my free time. I try to document the code to the maximum, but it gets tedious (>﹏<). Also, no guarantees that i will update it forever.
 
+
 # How to run
 
 You have 2 options:
@@ -29,6 +30,7 @@ If your OS/CPU architecture is not included in the release or if you want to com
 1. You need [Rust](https://www.rust-lang.org/tools/install) installed.
 2. Download and extract the source code of the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) / git pull the repository.
 3. Go in the directory containing the source code (on the same level as the `src` folder and `cargo.toml` file) and build the executable with the command ```cargo build --release```. The executable will be located in a newly created folder `target\release\`.
+
 
 # How it works in more details
 
@@ -78,6 +80,7 @@ After selecting a champion, the builds generation process works as the following
 4. Repeat the process, building on top of the current build list until reaching the requested number of items.
 
 I have simplified some things so it's easier to get the global picture. You can see how it works in detail in the code.
+
 
 # About the results
 
