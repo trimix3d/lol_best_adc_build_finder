@@ -6,6 +6,8 @@ use units_data::{capped_ms, DmgSource, RawDmg, Unit, UnitStats, MAX_UNIT_LVL};
 
 use enumset::{enum_set, EnumSet};
 
+// This is the file containing every items stats + passive effects
+
 //items parameters:
 /// Average number of targets affected by the unmake passive.
 const ABYSSAL_MASK_UNMAKE_AVG_TARGETS_IN_RANGE: f32 = 1.;
