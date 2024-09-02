@@ -428,9 +428,9 @@ const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
     "\n\n4) percentage of AD damage taken: ",
     AD_TAKEN_PERCENT_HELP_MSG,
     "\n\n5) judgment weights: 3 values, one for DPS, one for defense and one for mobility.\n\
-    The DPS weight is used to measure the importance of the champion's DPS when calculating the gold value of a build.\n\
-    The defense weight is used to measure the importance of the champion's defensive stats, heals and hields when calculating the gold value of a build.\n\
-    The mobility weight is used to measure the importance of the champion's mobility when calculating the gold value of a build.\n\
+    The DPS weight is used to measure the importance of the champion's DPS in the score given to a build.\n\
+    The defense weight is used to measure the importance of the champion's defensive stats, heals and hields in the score given to a build.\n\
+    The mobility weight is used to measure the importance of the champion's mobility in the score given to a build.\n\
     The absolute value of these weight is not relevant, what's important is their value relative to each other.\n\
     i.e. if the DPS weight has 2x the value of the defense weight, increasing the DPS will be 2x more important than increasing the defense in the eyes of the optimizer",
     "\n\n6) number of items per build: ",

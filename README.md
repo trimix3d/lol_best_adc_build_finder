@@ -5,7 +5,7 @@ Upon running the program, you will be prompted to choose the champion for which 
 
 If needed, you can customize some settings related to the builds generation and the fights simulations (target tankiness, fight duration, force a specified item in the generated builds, and more).
 
-I tried make the interface the most comprehensive possible and if i've done my work correctly, you should be able to use it by yourself without further explanation. If at any point you are lost in the interface, type `help` to show help info on the current context.
+I tried make the interface as comprehensive as possible and if i've done my work correctly, you should be able to use it by yourself without further explanations. If at any point you are lost in the interface, type `help` to show help info on the current context.
 
 For simplicity, the version number of this program follows the patch number of League of Legends.
 
