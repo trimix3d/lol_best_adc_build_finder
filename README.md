@@ -1,4 +1,5 @@
 # LoL best ADC build finder
+
 A command line program that can automatically find the best combinations of items for ADCs in League of Legends.
 
 Upon running the program, you will be prompted to choose the champion for which you want to find the best builds. It will generate multiple combinations of items for this champion and test each one by simulating fights against a target dummy (taking into account champions/items effects, ...). The combinations that gives the best results are then shown to you.
@@ -12,18 +13,23 @@ I tried make the interface as comprehensive as possible and if i've done my work
 For simplicity, the version number of each release is the same as the corresponding League of Legends patch number.
 
 # How to run
+
 You have 2 options:
 
 ### 1) Download the lastest release
+
 Go to the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) and download the executable (compatible only with windows on x86_64 CPUs), then run it.
 
 ### 2) Compile from source
+
 If your OS/CPU architecture is not included in the release or if you want to compile the program yourself:
+
 1. You need [Rust](https://www.rust-lang.org/tools/install) installed.
 2. Download and extract the source code of the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) / git pull the repository.
 3. Go in the directory containing the source code (on the same level as the `src` folder and `cargo.toml` file) and build the executable with the command ```cargo build --release```. The executable will be located in a newly created folder `target\release\`.
 
 # How it works in more details
+
 The project is separated in different modules:
 - game_data
 
@@ -32,7 +38,9 @@ The project is separated in different modules:
 Generating every possible combinations of n-items gives an absurd number of builds to try and this is impossible to process in reasonable time. That's why I use another approach based on the assumption that a good build made of n-items must also be a good build at n-1 items and so on. This allows to drastically reduce the number of combinations.
 
 After selecting a champion, the builds generation process works as the following, starting with a list containing one empty build at the beginning:
+
 1. Select the first free slot (first slot for an empty build, second slot for a build with 1 item, etc).
+
 2. For every build in the list, create copies with 1 additionnal item (from a predetermined pool for the champion) at the free slot for each.
     For exemple, if the current list of builds is:
     ```
@@ -47,20 +55,25 @@ After selecting a champion, the builds generation process works as the following
      {statikk_shyv , bloodthirster},
      {statikk_shyv , infinity_edge}]
     ```
+
 2. Simulate a fight with every build in the list and save the corresponding results.
 
     The results saved are the price of the build, the dps on the target, the tankiness of the build, the average move speed during the simulation and some other stuff.
     A single score number for each build is also calculated from the build price, dps, tankiness and average move speed.
+
 3. Filter the builds from the list to keep only the better ones (within a certain configurable margin).
+
     The filtering is made of two parts:
 
     1. Keep builds that have a score within a predefined margin of the best score found.
     2. Keep builds that are part of the [pareto front](https://en.wikipedia.org/wiki/Pareto_front), the quantities to optimize being the build price, dps,tankiness, average move speed and utility of the build.
+
 4. Repeat the process, building on top of the current build list until reaching the requested number of items.
 
 I have simplified some things so it's easier to get the global picture. You can see how it works in detail in the code.
 
 # About the results
+
 I think it gives good results overall, even if in some cases you need to play around and fine tune the settings to avoid getting questionable builds.
 It is really good at finding builds that gives the best pure damage output, a bit less good at finding builds with more utility that may be better in practice. That's why you need to analyze to results with common sense and experiment a bit.
 
