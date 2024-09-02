@@ -30,7 +30,7 @@ After selecting a champion, the builds generation process works as the following
 1. Select the first free slot (first slot for an empty build, second slot for a build with 1 item, etc).
 2. For every build in the list, create copies with 1 additionnal item (from a predetermined pool for the champion) at the free slot for each.
 > For exemple, if the current list of builds is: [{kraken_slayer},</br>
-> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{statikk_shyv }]</br>
+> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;{statikk_shyv }]</br>
 > And the items in the pool are bloodthirster and infinity_edge.</br>
 > The list of builds will become: [{kraken_slayer, bloodthirster},</br>
 > &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;{kraken_slayer, infinity_edge},</br>
