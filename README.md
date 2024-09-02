@@ -33,9 +33,9 @@ After selecting a champion, the builds generation process works as the following
 > &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{statikk_shyv }]</br>
 > And the items in the pool are bloodthirster and infinity_edge.</br>
 > The list of builds will become: [{kraken_slayer, bloodthirster},</br>
-> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{kraken_slayer, infinity_edge},</br>
-> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{statikk_shyv , bloodthirster},</br>
-> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{statikk_shyv , infinity_edge}]</br>
+> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{kraken_slayer, infinity_edge},</br>
+> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{statikk_shyv , bloodthirster},</br>
+> &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;{statikk_shyv , infinity_edge}]</br>
 > ```
 >     This is an indented line in a quote block.
 > ```
