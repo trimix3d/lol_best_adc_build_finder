@@ -862,7 +862,7 @@ fn change_support_item_slot(settings: &mut BuildsGenerationSettings) -> Result<(
 }
 
 const ALLOW_BOOTS_IF_NO_SLOT_HELP_MSG: &str =
-    "If boots are allowed when the boots slot is not specified (set to 0)";
+    "If boots are allowed in the build when the boots slot is not specified (set to 0)";
 
 const ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG: &str =
     "If manaflow items are allowed in first slot (overrides items pools if set to false)";
