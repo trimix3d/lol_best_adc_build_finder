@@ -5,7 +5,6 @@ The release versions number follows the patch number of League of Legends.
 
 # How to run
 You have 2 options:
-
 ### 1) Download the lastest release
 Go to the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) and download the executable (compatible only with windows on x86_64 CPUs), then run it.
 
