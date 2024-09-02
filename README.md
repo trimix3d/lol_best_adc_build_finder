@@ -33,7 +33,7 @@ If your OS/CPU architecture is not included in the release or if you want to com
 # How it works in more details
 
 The project is separated in different modules:
-- `game_data`: provides an API to create, manage champions, simulate fights against a target dummy and record the results.
+- `game_data`: provides an API to manage champions, simulate fights against a target dummy and record the results.
 - `build_optimizer`: generate the best combinations of items by using `game_data` to simulate them.
 - `builds_analyzer`: tools for analyzing and displaying the output of `build_optimizer`. In the future i have plans to expand this module (making a tier list of differents champions based on their best builds performance?, ...).
 - `cli`: command line interface to let the user interact with all of this.
