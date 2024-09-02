@@ -3,7 +3,9 @@ A command line program that can automatically find the best items combinations f
 
 Upon running the program, you will be prompted to choose the champion for which you want to find the best builds. It will generate multiple combinations of items for this champion and test each one by simulating fights against a target dummy (taking into account champions/items effects, ...). The combinations that gives the best results are then shown to you.
 
-You can customize some settings related to the build generation if needed.
+You can customize some settings related to the build generation and the fights simulation if needed (squishy/tanky target, fight duration, force an item in the generated builds, ...).
+
+I tried to be the most comprehensive possible and if i've done my work correctly, you should be able to use the program by yourself without help. If at any point you are lost in the interface, type `help` to show help info on the current context.
 
 For simplicity, the version number of this program follows the patch number of League of Legends.
 
