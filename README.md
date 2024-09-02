@@ -36,6 +36,18 @@ After selecting a champion, the builds generation process works as the following
 > &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;{kraken_slayer, infinity_edge},</br>
 > &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;{statikk_shyv , bloodthirster},</br>
 > &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;{statikk_shyv , infinity_edge}]</br>
+
+aaa
+> ```
+> For exemple, if the current list of builds is: [{kraken_slayer},
+>                                                 {statikk_shyv }]
+> And the items in the pool are bloodthirster and infinity_edge.
+> The list of builds will become: [{kraken_slayer, bloodthirster},
+>                                  {kraken_slayer, infinity_edge},
+>                                  {statikk_shyv , bloodthirster},
+>                                  {statikk_shyv , infinity_edge}]
+> ```
+
 > ```
 >     This is an indented line in a quote block.
 > ```
