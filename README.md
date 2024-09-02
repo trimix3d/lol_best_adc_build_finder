@@ -53,9 +53,9 @@ After selecting a champion, the builds generation process works as the following
     A single score number for each build is also calculated from the build price, dps, tankiness and average move speed.
 3. Filter the builds from the list to keep only the better ones (within a certain configurable margin).
     The filtering is made of two parts:
-    
+
     1. Keep builds that have a score within a predefined margin of the best score found.
-    2. Keep builds that are part of the [pareto front](https://en.wikipedia.org/wiki/Pareto_front), the quantities to optimize being the build price, dps,     tankiness, average move speed and utility of the build.
+    2. Keep builds that are part of the [pareto front](https://en.wikipedia.org/wiki/Pareto_front), the quantities to optimize being the build price, dps,tankiness, average move speed and utility of the build.
 4. Repeat the process, building on top of the current build list until reaching the requested number of items.
 
 I have simplified some things so it's easier to get the global picture. You can see how it works in detail in the code.
