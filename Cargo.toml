@@ -18,6 +18,13 @@ redundant_closure_for_method_calls = "warn"
 semicolon_if_nothing_returned = "warn"
 single_match_else = "warn"
 
+# build with: cargo build --release --target=<target>
+# common targets: - x86_64-pc-windows-msvc
+#                 - x86_64-apple-darwin
+#                 - x86_64-unknown-linux-gnu
+#                 - aarch64-pc-windows-msvc
+#                 - aarch64-apple-darwin
+#                 - aarch64-unknown-linux-gnu
 [profile.release]
 opt-level = 3
 debug = false
