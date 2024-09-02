@@ -4,11 +4,12 @@ A command line program that can automatically find the best items combinations f
 The release versions number follows the patch number of League of Legends.
 
 # How to run
+You have 2 options:
 
-## Download the lastest release
+## 1) Download the lastest release
 Go to the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) and download the executable (only if you are on windows with x86_64 CPU), then run it.
 
-## Compile from source
+## 2) Compile from source
 If your OS/CPU architecture is not included in the release or if you want to compile the program yourself:
 1. You need [Rust](https://www.rust-lang.org/tools/install) installed.
 2. Download and extract the source code in [releases](https://github.com/trimix3d/lol_best_adc_build_finder/releases)/git pull the repository.
