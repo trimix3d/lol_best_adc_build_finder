@@ -61,7 +61,7 @@ pub fn print_builds_scores(
     println!(
         "showing the {n_to_print} best builds (out of {}):\n\
          score | !h/s | surv | other | build\n\
-         -----------------------------------------------",
+         ---------------------------------------------------",
         builds_ref.len()
     );
     for container in &builds_ref[0..n_to_print] {

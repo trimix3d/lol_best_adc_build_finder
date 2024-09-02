@@ -18,11 +18,11 @@ const DEFAULT_N_PRINTED_BUILDS: usize = 20;
 //todo: tier list and save it in file
 pub fn launch_interface() {
     println!(
-        "-----------------------------------------------\n\
-         ---\\ best ADC build finder - patch {:2}.{:2} \\-----\n\
-         ----\\ Champions implemented: {:3}          \\----\n\
-         -----\\ Items in database: {:3}              \\---\n\
-         -----------------------------------------------",
+        "---------------------------------------------------\n\
+         ---\\ LoL best ADC build finder - patch {:2}.{:2} \\-----\n\
+         ----\\ Champions implemented: {:3}              \\----\n\
+         -----\\ Items in database: {:3}                  \\---\n\
+         ---------------------------------------------------",
         PATCH_NUMBER_MAJOR,
         PATCH_NUMBER_MINOR,
         Unit::ALL_CHAMPIONS.len(),
