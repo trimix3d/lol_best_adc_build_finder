@@ -13,9 +13,9 @@ use std::iter::zip;
 use std::num::{NonZero, NonZeroU8};
 use std::time::Duration;
 
-/// Meaningless to go above this value, also computation times may become very long.
+/// Meaningless to go above this value (in seconds), also computation times may become very long.
 pub const MAX_FIGHT_DURATION: f32 = 3600.;
-/// Value under which results may become inaccurate and that is not recommended to use.
+/// Value (in seconds) under which results may become inaccurate and that is not recommended to use.
 pub const LOW_FIGHT_DURATION_VALUE_WARNING: f32 = 2.;
 /// Value under which results may become inaccurate and that is not recommended to use.
 pub const LOW_SEARCH_THRESHOLD_VALUE_WARNING: f32 = 0.15;
@@ -31,6 +31,9 @@ const OPTIMIZER_DUMMY_RUNES_PAGE: RunesPage = RunesPage {
 };
 
 const OPTIMIZER_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no spell (except passing validity checks when creating the dummy)
+
+#[allow(clippy::cast_precision_loss)]
+const MAX_UNIT_LVL_F32: f32 = MAX_UNIT_LVL as f32; //`MAX_UNIT_LVL` is well whithin f32's range to avoid precision loss
 
 /// Using Ahri stats for squishy dummy.
 const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
@@ -301,62 +304,6 @@ pub const TARGET_OPTIONS: [&UnitProperties; 3] = [
     &TANKY_OPTIMIZER_DUMMY_PROPERTIES,
 ];
 
-/// Amount of experience gained farming for the average legendary item.
-/// We approximate that the gold income is only from cs golds and passive golds generation.
-const XP_PER_LEGENDARY_ITEM: f32 = AVG_XP_PER_CS * AVG_LEGENDARY_ITEM_COST * CS_PER_MIN
-    / (AVG_GOLDS_PER_CS * CS_PER_MIN + PASSIVE_GOLDS_GEN_PER_MIN);
-/// Amount of experience gained farming for the average boots item.
-/// We approximate that the gold income is only from cs golds and passive golds generation.
-const XP_PER_BOOTS_ITEM: f32 = AVG_XP_PER_CS * AVG_BOOTS_COST * CS_PER_MIN
-    / (AVG_GOLDS_PER_CS * CS_PER_MIN + PASSIVE_GOLDS_GEN_PER_MIN);
-/// Amount of experience gained farming for the average support item.
-/// We approximate that the gold income is only from cs golds and passive golds generation.
-const XP_PER_SUPPORT_ITEM: f32 = AVG_XP_PER_CS * AVG_SUPPORT_ITEM_COST * CS_PER_MIN
-    / (AVG_GOLDS_PER_CS * CS_PER_MIN + PASSIVE_GOLDS_GEN_PER_MIN);
-
-/// Amount of cumulative xp required to reach the given lvl.
-const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [
-    280.,   //needed to reach lvl 2
-    660.,   //needed to reach lvl 3
-    1140.,  //needed to reach lvl 4
-    1720.,  //needed to reach lvl 5
-    2400.,  //needed to reach lvl 6
-    3180.,  //needed to reach lvl 7
-    4060.,  //needed to reach lvl 8
-    5040.,  //needed to reach lvl 9
-    6120.,  //needed to reach lvl 10
-    7300.,  //needed to reach lvl 11
-    8580.,  //needed to reach lvl 12
-    9960.,  //needed to reach lvl 13
-    11440., //needed to reach lvl 14
-    13020., //needed to reach lvl 15
-    14700., //needed to reach lvl 16
-    16480., //needed to reach lvl 17
-    18360., //needed to reach lvl 18
-];
-
-/// From number of items, returns the associated unit lvl.
-fn lvl_from_number_of_items(item_slot: usize, boots_slot: usize, support_item_slot: usize) -> u8 {
-    let mut cum_xp: f32 = 0.;
-    for i in 1..=item_slot {
-        if i == boots_slot {
-            cum_xp += XP_PER_BOOTS_ITEM;
-        } else if i == support_item_slot {
-            cum_xp += XP_PER_SUPPORT_ITEM;
-        } else {
-            cum_xp += XP_PER_LEGENDARY_ITEM;
-        }
-    }
-
-    let mut lvl: u8 = MIN_UNIT_LVL; //lvl cannot be below MIN_UNIT_LVL, so start at this value
-    while usize::from(lvl - 1) < MAX_UNIT_LVL - 1
-        && cum_xp >= CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL[usize::from(lvl - 1)]
-    {
-        lvl += 1;
-    }
-    lvl
-}
-
 /// Sorts a clone of the slice and compares adjacent elements to find if there is duplicates.
 /// Return the index of the first duplicate found, if any.
 fn has_duplicates(slice: &[&'static Item]) -> Option<usize> {
@@ -492,6 +439,23 @@ impl Default for BuildsGenerationSettings {
 
 impl BuildsGenerationSettings {
     pub fn default_by_champion(properties_ref: &UnitProperties) -> Self {
+        /*
+        '⠀⣞⢽⢪⢣⢣⢣⢫⡺⡵⣝⡮⣗⢷⢽⢽⢽⣮⡷⡽⣜⣜⢮⢺⣜⢷⢽⢝⡽⣝
+         ⠸⡸⠜⠕⠕⠁⢁⢇⢏⢽⢺⣪⡳⡝⣎⣏⢯⢞⡿⣟⣷⣳⢯⡷⣽⢽⢯⣳⣫⠇
+         ⠀⠀⢀⢀⢄⢬⢪⡪⡎⣆⡈⠚⠜⠕⠇⠗⠝⢕⢯⢫⣞⣯⣿⣻⡽⣏⢗⣗⠏⠀
+         ⠀⠪⡪⡪⣪⢪⢺⢸⢢⢓⢆⢤⢀⠀⠀⠀⠀⠈⢊⢞⡾⣿⡯⣏⢮⠷⠁⠀⠀
+         ⠀⠀⠀⠈⠊⠆⡃⠕⢕⢇⢇⢇⢇⢇⢏⢎⢎⢆⢄⠀⢑⣽⣿⢝⠲⠉⠀⠀⠀⠀
+         ⠀⠀⠀⠀⠀⡿⠂⠠⠀⡇⢇⠕⢈⣀⠀⠁⠡⠣⡣⡫⣂⣿⠯⢪⠰⠂⠀⠀⠀⠀
+         ⠀⠀⠀⠀⡦⡙⡂⢀⢤⢣⠣⡈⣾⡃⠠⠄⠀⡄⢱⣌⣶⢏⢊⠂⠀⠀⠀⠀⠀⠀
+         ⠀⠀⠀⠀⢝⡲⣜⡮⡏⢎⢌⢂⠙⠢⠐⢀⢘⢵⣽⣿⡿⠁⠁⠀⠀⠀⠀⠀⠀⠀
+         ⠀⠀⠀⠀⠨⣺⡺⡕⡕⡱⡑⡆⡕⡅⡕⡜⡼⢽⡻⠏⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+         ⠀⠀⠀⠀⣼⣳⣫⣾⣵⣗⡵⡱⡡⢣⢑⢕⢜⢕⡝⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+         ⠀⠀⠀⣴⣿⣾⣿⣿⣿⡿⡽⡑⢌⠪⡢⡣⣣⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+         ⠀⠀⠀⡟⡾⣿⢿⢿⢵⣽⣾⣼⣘⢸⢸⣞⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+         ⠀⠀⠀⠀⠁⠇⠡⠩⡫⢿⣝⡻⡮⣒⢽⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+        No switches?
+        match doesn't work :,(
+        */
         #[allow(clippy::if_same_then_else)]
         if *properties_ref == Unit::ASHE_PROPERTIES {
             BuildsGenerationSettings {

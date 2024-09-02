@@ -17,14 +17,10 @@ use std::num::NonZeroU8;
 //units constants
 /// Maximum lvl value of a Unit.
 pub const MAX_UNIT_LVL: usize = 18;
-#[allow(clippy::cast_precision_loss)]
-pub const MAX_UNIT_LVL_F32: f32 = MAX_UNIT_LVL as f32; //`MAX_UNIT_LVL` is well whithin f32's range to avoid precision loss
 /// Minimum lvl value of a Unit in the program (can't be below lvl 6 because we want all spells to be available).
 pub const MIN_UNIT_LVL: u8 = 6;
 /// Maximum number of items an Unit can hold.
 pub const MAX_UNIT_ITEMS: usize = 6;
-#[allow(clippy::cast_precision_loss)]
-pub const MAX_UNIT_ITEMS_F32: f32 = MAX_UNIT_ITEMS as f32; //`MAX_UNIT_ITEMS` is well whithin f32's range to avoid precision loss
 
 /// From base and growth stat, returns final stat value at the given lvl.
 /// <https://leagueoflegends.fandom.com/wiki/Champion_statistic#Growth_statistic_per_level>
@@ -396,14 +392,15 @@ pub struct SkillOrder {
 }
 
 impl Default for SkillOrder {
+    /// Returns classic skill order with q->w->e lvl-up priority.
     fn default() -> Self {
         SkillOrder::const_default()
     }
 }
 
 impl SkillOrder {
-    /// Provides a default valid value for `SkillOrder` usable in compile time constants (unlike `Default::default()` which is not const).
     /// Returns classic skill order with q->w->e lvl-up priority.
+    /// Provides a default valid value for `SkillOrder` usable in compile time constants (unlike `Default::default()` which is not const).
     #[must_use]
     pub const fn const_default() -> SkillOrder {
         SkillOrder {
@@ -619,6 +616,8 @@ impl Unit {
     /// Default maximum attack speed limit for an Unit.
     pub const DEFAULT_AS_LIMIT: f32 = 2.5;
 
+    /// Creates a new Unit with the given properties, runes, skill order, lvl and build.
+    /// Return an Err with a corresponding error message if the Unit could not be created because of an invalid argument.
     pub fn new(
         properties_ref: &'static UnitProperties,
         runes_page: RunesPage,
@@ -722,6 +721,8 @@ impl Unit {
         Ok(new_unit)
     }
 
+    /// Creates a new Unit with the given properties, lvl and build.
+    /// The default runes and skill order from the given properties are used.
     pub fn from_defaults(
         properties_ref: &'static UnitProperties,
         lvl: u8,
@@ -1270,6 +1271,7 @@ impl Unit {
         dmg
     }
 
+    /// Performs a basic attack and returns dmg done.
     pub fn basic_attack(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
         self.actions_log.push((self.time, "basic attack"));
@@ -1296,6 +1298,7 @@ impl Unit {
         (self.properties.basic_attack)(self, target_stats)
     }
 
+    /// cast q and returns dmg done.
     pub fn q(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
         self.actions_log.push((self.time, "Q"));
@@ -1319,6 +1322,7 @@ impl Unit {
         (self.properties.q.cast)(self, target_stats)
     }
 
+    /// cast w and returns dmg done.
     pub fn w(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
         self.actions_log.push((self.time, "W"));
@@ -1342,6 +1346,7 @@ impl Unit {
         (self.properties.w.cast)(self, target_stats)
     }
 
+    /// cast e and returns dmg done.
     pub fn e(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
         self.actions_log.push((self.time, "E"));
@@ -1365,6 +1370,7 @@ impl Unit {
         (self.properties.e.cast)(self, target_stats)
     }
 
+    /// cast r and returns dmg done.
     pub fn r(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
         self.actions_log.push((self.time, "R"));
@@ -1388,7 +1394,7 @@ impl Unit {
         (self.properties.r.cast)(self, target_stats)
     }
 
-    /// Same as r except the dmg, units travelled, etc. during the r are all reduced
+    /// Same as casting r except the dmg, units travelled, etc. during the r are all reduced
     /// according to the availability formula (to account for the r cooldown).
     /// Useless to use for ultimates that only adds a buff.
     pub fn weighted_r(&mut self, target_stats: &UnitStats) -> f32 {
@@ -1451,7 +1457,7 @@ impl Unit {
     }
 }
 
-/// For performance reasons, we use a `null_basic_attack` function (that should never be called) instead of an Option, for units that do not have one.
+/// For performance reasons, we use a `null_basic_attack` function (that should never be called and will panic if so) instead of an Option, for units that do not have one.
 ///
 /// This is to avoid checking an Option everytime a `basic_attack` is called, since the majority of basic attacks aren't null
 /// and the user should know in advance if said unit `basic_attack` is null or not.
@@ -1473,7 +1479,7 @@ fn null_spell_cast(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     unreachable!("null_spell_cast was called");
 }
 
-/// For performance reasons, we use a `null_simulate_fight` function (that should never be called) instead of an Option, for units that do not have one.
+/// For performance reasons, we use a `null_simulate_fight` function (that should never be called and will panic if so) instead of an Option, for units that do not have one.
 ///
 /// This is to avoid checking an Option everytime a `simulate_fight` is called, since the majority of `simulate_fight` aren't null
 /// and the user should know in advance if said unit `simulate_fight` is null or not.

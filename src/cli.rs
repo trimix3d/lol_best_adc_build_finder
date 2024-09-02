@@ -12,10 +12,9 @@ use std::io::{self, Write};
 use std::iter::Iterator;
 use std::ops::RangeBounds;
 
-const NO_HELP_MSG: &str = "No help message available.";
+/// Number of builds to be printed by default when displaying results.
 const DEFAULT_N_PRINTED_BUILDS: usize = 20;
 
-//todo: tier list and save it in file
 pub fn launch_interface() {
     println!(
         "---------------------------------------------------\n\
@@ -53,7 +52,7 @@ pub fn launch_interface() {
             &greetings_msg,
             "enter the champion for which you want to find the best builds",
             "please enter a valid champion name (among those available)",
-            NO_HELP_MSG,
+            "No help message available.",
             champion_names.iter().copied(),
             false, //safety of a later expect() depends on this argument to be false
         ) {
@@ -218,6 +217,7 @@ fn get_user_choice<'a>(
     )
 }
 
+/// Prompts the user to enter a positive integer and returns it.
 /// This will return None only if `allow_no_input` is true and the user enters no input.
 fn get_user_usize(
     greetings_msg: &str,
@@ -256,6 +256,7 @@ fn get_user_usize(
     }
 }
 
+/// Prompts the user to enter a (float) number and returns it.
 /// This will return None only if `allow_no_input` is true and the user enters no input.
 fn get_user_f32(
     greetings_msg: &str,
@@ -290,6 +291,7 @@ fn sanitize_item_name(name: &str) -> String {
         .to_lowercase()
 }
 
+/// Prompts the user to enter an item name and returns the corresponding item.
 fn get_user_item(input_line: &str) -> Result<&'static Item, UserCommand> {
     //ensure to match lowercase inputs with lowercase strings
     let item_names: Vec<(String, String)> = ALL_ITEMS
@@ -334,7 +336,8 @@ fn get_user_item(input_line: &str) -> Result<&'static Item, UserCommand> {
     }
 }
 
-/// This function never returns `Err(UserCommand::back)`.
+/// Handle the whole build generation with the user.
+/// This function never returns `Err(UserCommand::back)` because cannot go further back.
 fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result<(), UserCommand> {
     //create champion
     let mut champ: Unit =
@@ -397,7 +400,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
                     match get_user_usize(
                         "",
                         "enter the number of builds to show",
-                        NO_HELP_MSG,
+                        "No help message available.",
                         1..,
                         false, //safety of a later expect() depends on this argument to be false
                     ) {
@@ -449,6 +452,7 @@ const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
     SEARCH_THRESHOLD_HELP_MSG
 );
 
+/// Show the build generation settings, prompt the user for any change and returns the settings when done.
 fn confirm_builds_generation_settings(
     settings_ref: &mut BuildsGenerationSettings,
     champ: &mut Unit,

@@ -7,6 +7,8 @@ use super::{
 
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
+//todo: tier list and save it in file
+
 /// Sort the provided pareto builds by their average score.
 pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights: (f32, f32, f32)) {
     let n_items: usize = builds_ref[0].build.item_count(); //assumes all builds have the same length

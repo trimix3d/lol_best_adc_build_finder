@@ -1,6 +1,6 @@
 pub mod items;
 
-use super::units_data::{RawDmg, Unit, UnitStats, MAX_UNIT_ITEMS, MAX_UNIT_ITEMS_F32};
+use super::units_data::{RawDmg, Unit, UnitStats, MAX_UNIT_ITEMS};
 
 use constcat::concat_slices;
 use enumset::{EnumSet, EnumSetType};
@@ -172,13 +172,13 @@ pub struct Item {
     /// Returns the static part of on basic attack hit raw dmg of the item.
     /// On basic attack hit is divided in two parts:
     /// - static: dmg that applies on all targets unconditionally
-    /// (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
+    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
     /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
     pub on_basic_attack_hit_static: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
     /// Returns the dynamic part of on basic attack hit raw dmg of the item.
     /// On basic attack hit is divided in two parts:
     /// - static: dmg that applies on all targets unconditionally
-    /// (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
+    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
     /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
     pub on_basic_attack_hit_dynamic: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
 
@@ -317,6 +317,9 @@ pub const ALL_ITEMS: &[&Item] = concat_slices!(
 pub const AVG_LEGENDARY_ITEM_COST: f32 = 2960.;
 pub const AVG_BOOTS_COST: f32 = 1100.;
 pub const AVG_SUPPORT_ITEM_COST: f32 = 0.;
+
+#[allow(clippy::cast_precision_loss)]
+const MAX_UNIT_ITEMS_F32: f32 = MAX_UNIT_ITEMS as f32; //`MAX_UNIT_ITEMS` is well whithin f32's range to avoid precision loss
 
 /// Assumes 1 build slot for boots and the remaining slots for legendary items.
 pub const AVG_ITEM_COST_WITH_BOOTS: f32 =

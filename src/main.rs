@@ -11,7 +11,7 @@ use runes_data::{RuneShard, RunesPage};
 #[allow(dead_code)]
 /// Test ground for validating champions implementations.
 fn champion_test_ground() {
-    //target dummy
+    //target dummy properties
     const TARGET_DUMMY_RUNES_PAGE: RunesPage = RunesPage {
         shard1: RuneShard::Left,
         shard2: RuneShard::Left,
@@ -84,14 +84,21 @@ fn champion_test_ground() {
         &Unit::ASHE_PROPERTIES,
         6,
         Build([
-            &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM,
+            &KRAKEN_SLAYER,
+            &NULL_ITEM,
+            &NULL_ITEM,
+            &NULL_ITEM,
+            &NULL_ITEM,
+            &NULL_ITEM,
         ]),
     )
     .expect("failed to create unit");
 
+    //champion actions
     println!("{}", champ);
     println!("{}", champ.basic_attack(&target_dummy.stats));
     champ.walk(champ.basic_attack_cd);
+    println!("{}", champ.q(&target_dummy.stats));
 }
 
 fn main() {
