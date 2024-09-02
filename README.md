@@ -7,7 +7,7 @@ If needed, you can customize some settings related to the builds generation and 
 
 Displaying the list of generated builds takes some space and can look weird if your window is not wide enough. For this reason, i recommend using fullscreen or widening the default window size.
 
-I tried make the interface as comprehensive as possible and if i've done my work correctly, you should be able to use it by yourself without further explanations. If at any point you are lost in the interface, type `help` to show help info on the current context.
+I tried make the interface as comprehensive as possible and if i've done my work correctly, you should be able to use it by yourself without further explanations. If at any point you are lost in the interface, type `help` to show help info on the current context. You can also navigate back between the menus by typing `back` and go to the home page at any point by typing `home`.
 
 For simplicity, the version number of this program follows the patch number of League of Legends.
 
