@@ -5,6 +5,7 @@ The release versions number follows the patch number of League of Legends.
 
 # How to run
 You have 2 options:
+
 ### 1) Download the lastest release
 Go to the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) and download the executable (compatible only with windows on x86_64 CPUs), then run it.
 
@@ -12,7 +13,7 @@ Go to the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finde
 If your OS/CPU architecture is not included in the release or if you want to compile the program yourself:
 1. You need [Rust](https://www.rust-lang.org/tools/install) installed.
 2. Download and extract the source code of the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) / git pull the repository.
-3. Go in the directory containing the source code (on the same level as the `src` folder and `cargo.toml` file) and build the executable with the command: ```cargo build --release```
+3. Go in the directory containing the source code (on the same level as the `src` folder and `cargo.toml` file) and build the executable with the command: ```cargo build --release```. The executable will be located in a newly created folder target\release
 
 # How it works
 WIP
