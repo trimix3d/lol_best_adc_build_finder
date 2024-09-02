@@ -25,3 +25,9 @@ If your OS/CPU architecture is not included in the release or if you want to com
 
 # How it works in more details
 WIP
+
+# About the results
+I think it gives good results overall, even if in some cases you need to play around and fine tune the settings to avoid getting questionable builds.
+It is really good at finding builds that gives the best pure damage output, a bit less good at finding builds with more utility that may be better in practice. That's why you need to analyze to results with common sense and experiment a bit.
+
+If you have ideas about improving the program, feel free to share them :)
