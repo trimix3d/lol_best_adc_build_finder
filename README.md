@@ -9,7 +9,7 @@ Displaying the list of generated builds takes some space and can look weird if y
 
 I tried make the interface as comprehensive as possible and if i've done my work correctly, you should be able to use it by yourself without further explanations. If at any point you are lost in the interface, type `help` to show help info on the current context. You can also navigate back to a menu by typing `back` and go to the home page at any point by typing `home`. Type `exit` to exit the program.
 
-For simplicity, the version number of this program follows the patch number of League of Legends.
+For simplicity, the version number of each release is the same as the corresponding patch number of League of Legends.
 
 # How to run
 You have 2 options:
