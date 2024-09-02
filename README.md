@@ -1,8 +1,10 @@
 ### LoL best ADC build finder
 A command line program that can automatically find the best items combinations for an ADC in LoL.
+
 The release versions number follows the patch number of League of Legends.
 
 ### How to run
+
 ## Download the lastest release
 Go to the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) and download the executable (only if you are on windows with x86_64 CPU), then run it.
 
