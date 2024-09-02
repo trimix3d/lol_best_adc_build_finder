@@ -58,8 +58,13 @@ After selecting a champion, the builds generation process works as the following
 
 2. Simulate a fight with every build in the list and save the corresponding results.
 
-    The results saved are the price of the build, the dps on the target, the tankiness of the build, the average move speed during the simulation and some other stuff.
-    A single score number for each build is also calculated from the build price, dps, tankiness and average move speed.
+    The results saved are:
+    - price of the build
+    - dps on the target
+    - tankiness of the build
+    - average move speed during the simulation
+    - some other stuff (special items utility, etc).
+    A single score number is also calculated for each build from the price, dps, tankiness and average move speed.
 
 3. Filter the builds from the list to keep only the better ones (within a certain configurable margin).
 
