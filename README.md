@@ -33,7 +33,7 @@ After selecting a champion, the builds generation process works as the following
 >                                                 {statikk_shyv }]</br>
 > And the items in the pool are bloodthirster and infinity_edge.</br>
 > The list of builds will become: [{kraken_slayer, bloodthirster},</br>
->                                  {kraken_slayer, infinity_edge},</br>
+>       &nbsp;                           {kraken_slayer, infinity_edge},</br>
 >       &ensp;                           {statikk_shyv , bloodthirster},</br>
 >                                  {statikk_shyv , infinity_edge}]</br>
 > ```
