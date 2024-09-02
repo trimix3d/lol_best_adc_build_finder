@@ -64,7 +64,7 @@ After selecting a champion, the builds generation process works as the following
     The results saved are:
     - price of the build
     - dps on the target
-    - tankiness of the build
+    - tankiness of the build (including heals and shields)
     - average effective move speed during the simulation (this is just `units_travelled/sim_duration`, so for exemple, dashes count as an increase in effective move speed)
     - some other stuff (special items utility, etc). A single score number is also calculated for each build from the price, dps, tankiness and average move speed.
 
