@@ -1,9 +1,11 @@
 # LoL best ADC build finder
 A command line program that can automatically find the best items combinations for an ADC in LoL.
 
-It simulates fights on a target dummy (taking into account champions and items dynamic effects, ...) to compute the damage done, healing received, units moved and other types of result in order to give a corresponding score for the equiped build. By repeating this process with different builds we can find the combinations that gives the best results.
+Upon running the program, you will be prompted to choose the champion for which you want to find the best builds. It will then generate multiple combinations of items for this champion and test each of them by simulating fights against a target dummy (taking into account champions/items effects, ...). The combinations that gives the best results are then shown to you.
 
-The release versions number follows the patch number of League of Legends.
+You can customize some settings related to the build generation if needed.
+
+For simplicity, the version number of this program follows the patch number of League of Legends.
 
 # How to run
 You have 2 options:
