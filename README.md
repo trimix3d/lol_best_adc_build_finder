@@ -65,7 +65,7 @@ After selecting a champion, the builds generation process works as the following
     - price of the build
     - dps on the target
     - tankiness of the build
-    - average effective move speed during the simulation (this is just `units_travelled/sim_duration`, so dashes for exemple count as an increase in move speed)
+    - average effective move speed during the simulation (this is just `units_travelled/sim_duration`, so dashes count as an increase in move speed for exemple)
     - some other stuff (special items utility, etc). A single score number is also calculated for each build from the price, dps, tankiness and average move speed.
 
 3. Filter the builds from the list to keep only the better ones (within a certain configurable margin).
