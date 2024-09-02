@@ -332,25 +332,25 @@ impl Unit {
         on_lvl_set: None,
         init_spells: Some(ashe_init_spells),
         basic_attack: ashe_basic_attack,
-        q: Spell {
+        q: BasicSpell {
             cast: ashe_q,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: Spell {
+        w: BasicSpell {
             cast: ashe_w,
             cast_time: 0.25,
             base_cooldown_by_spell_lvl: [18., 14.5, 11., 7.5, 4., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: Spell {
+        e: BasicSpell {
             cast: ashe_e,
             cast_time: 0.25,
             base_cooldown_by_spell_lvl: [90., 80., 70., 60., 50., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: Spell {
+        r: UltimateSpell {
             cast: ashe_r,
             cast_time: 0.25,
-            base_cooldown_by_spell_lvl: [100., 80., 60., F32_TOL, F32_TOL, F32_TOL], //ultimate only uses the first 3 values
+            base_cooldown_by_spell_lvl: [100., 80., 60.],
         },
         fight_scenarios: &[(ashe_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

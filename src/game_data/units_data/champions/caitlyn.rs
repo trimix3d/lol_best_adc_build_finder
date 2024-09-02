@@ -324,25 +324,25 @@ impl Unit {
         on_lvl_set: None,
         init_spells: Some(caitlyn_init_spells),
         basic_attack: caitlyn_basic_attack,
-        q: Spell {
+        q: BasicSpell {
             cast: caitlyn_q,
             cast_time: 0.625,
             base_cooldown_by_spell_lvl: [10., 9., 8., 7., 6., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: Spell {
+        w: BasicSpell {
             cast: caitlyn_w,
             cast_time: 0.25,
             base_cooldown_by_spell_lvl: [26., 22., 18., 14., 10., F32_TOL], //recharge time
         },
-        e: Spell {
+        e: BasicSpell {
             cast: caitlyn_e,
             cast_time: 0.15,
             base_cooldown_by_spell_lvl: [16., 14., 12., 10., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: Spell {
+        r: UltimateSpell {
             cast: caitlyn_r,
             cast_time: 1. + 0.375, //lock time + cast time
-            base_cooldown_by_spell_lvl: [90., 90., 90., F32_TOL, F32_TOL, F32_TOL], //ultimate only uses the first 3 values
+            base_cooldown_by_spell_lvl: [90., 90., 90.],
         },
         fight_scenarios: &[(caitlyn_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

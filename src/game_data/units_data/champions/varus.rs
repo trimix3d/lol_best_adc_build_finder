@@ -478,25 +478,25 @@ impl Unit {
         on_lvl_set: None,
         init_spells: Some(varus_init_spells),
         basic_attack: varus_basic_attack,
-        q: Spell {
+        q: BasicSpell {
             cast: varus_q,
             cast_time: F32_TOL, //cast time done inside spell function
             base_cooldown_by_spell_lvl: [16., 15., 14., 13., 12., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: Spell {
+        w: BasicSpell {
             cast: varus_w,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [40., 40., 40., 40., 40., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: Spell {
+        e: BasicSpell {
             cast: varus_e,
             cast_time: 0.2419,
             base_cooldown_by_spell_lvl: [18., 16., 14., 12., 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: Spell {
+        r: UltimateSpell {
             cast: varus_r,
             cast_time: 0.2419,
-            base_cooldown_by_spell_lvl: [100., 80., 60., F32_TOL, F32_TOL, F32_TOL], //ultimate only uses the first 3 values
+            base_cooldown_by_spell_lvl: [100., 80., 60.],
         },
         fight_scenarios: &[
             (varus_fight_scenario_all_out, "all out"),

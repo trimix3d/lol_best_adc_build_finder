@@ -399,25 +399,25 @@ impl Unit {
         on_lvl_set: None,
         init_spells: Some(lucian_init_spells),
         basic_attack: lucian_basic_attack,
-        q: Spell {
+        q: BasicSpell {
             cast: lucian_q,
             cast_time: 0.33, //average between 0.4 and 0,25
             base_cooldown_by_spell_lvl: [9., 8., 7., 6., 5., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: Spell {
+        w: BasicSpell {
             cast: lucian_w,
             cast_time: 0.25,
             base_cooldown_by_spell_lvl: [14., 13., 12., 11., 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: Spell {
+        e: BasicSpell {
             cast: lucian_e,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [19., 17.75, 16.5, 15.25, 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: Spell {
+        r: UltimateSpell {
             cast: lucian_r,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [110., 100., 90., F32_TOL, F32_TOL, F32_TOL], //ultimate only uses the first 3 values
+            base_cooldown_by_spell_lvl: [110., 100., 90.],
         },
         fight_scenarios: &[
             (lucian_fight_scenario_all_out, "all out"),

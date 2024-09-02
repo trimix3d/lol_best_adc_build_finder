@@ -398,25 +398,25 @@ impl Unit {
         on_lvl_set: None,
         init_spells: Some(xayah_init_spells),
         basic_attack: xayah_basic_attack,
-        q: Spell {
+        q: BasicSpell {
             cast: xayah_q,
             cast_time: 0.2, //average value
             base_cooldown_by_spell_lvl: [10., 0.5, 9., 8.5, 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: Spell {
+        w: BasicSpell {
             cast: xayah_w,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [20., 19., 18., 17., 16., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: Spell {
+        e: BasicSpell {
             cast: xayah_e,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [12., 11., 10., 9., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: Spell {
+        r: UltimateSpell {
             cast: xayah_r,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [140., 120., 100., F32_TOL, F32_TOL, F32_TOL], //ultimate only uses the first 3 values
+            base_cooldown_by_spell_lvl: [140., 120., 100.],
         },
         fight_scenarios: &[(xayah_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

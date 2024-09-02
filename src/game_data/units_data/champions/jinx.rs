@@ -268,25 +268,25 @@ impl Unit {
         on_lvl_set: None,
         init_spells: None,
         basic_attack: jinx_basic_attack,
-        q: Spell {
+        q: BasicSpell {
             cast: jinx_q,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [0.9, 0.9, 0.9, 0.9, 0.9, F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: Spell {
+        w: BasicSpell {
             cast: jinx_w,
             cast_time: 0.55, //averaged value
             base_cooldown_by_spell_lvl: [8., 7., 6., 5., 4., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: Spell {
+        e: BasicSpell {
             cast: jinx_e,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [24., 20.5, 17., 13.5, 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: Spell {
+        r: UltimateSpell {
             cast: jinx_r,
             cast_time: 0.6,
-            base_cooldown_by_spell_lvl: [85., 65., 45., F32_TOL, F32_TOL, F32_TOL], //ultimate only uses the first 3 values
+            base_cooldown_by_spell_lvl: [85., 65., 45.],
         },
         fight_scenarios: &[(jinx_fight_scenario, "all out (with rocket launcher only)")],
         unit_defaults: UnitDefaults {

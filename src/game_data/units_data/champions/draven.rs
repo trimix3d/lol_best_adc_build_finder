@@ -394,25 +394,25 @@ impl Unit {
         on_lvl_set: None,
         init_spells: Some(draven_init_spells),
         basic_attack: draven_basic_attack,
-        q: Spell {
+        q: BasicSpell {
             cast: draven_q,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [12., 11., 10., 9., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: Spell {
+        w: BasicSpell {
             cast: draven_w,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [12., 12., 12., 12., 12., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: Spell {
+        e: BasicSpell {
             cast: draven_e,
             cast_time: 0.25,
             base_cooldown_by_spell_lvl: [18., 17., 16., 15., 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: Spell {
+        r: UltimateSpell {
             cast: draven_r,
             cast_time: 0.5,
-            base_cooldown_by_spell_lvl: [100., 90., 80., F32_TOL, F32_TOL, F32_TOL], //ultimate only uses the first 3 values
+            base_cooldown_by_spell_lvl: [100., 90., 80.],
         },
         fight_scenarios: &[
             (draven_fight_scenario_start_with_one_axe, "start with 1 axe"),

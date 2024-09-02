@@ -331,12 +331,21 @@ impl UnitStats {
 }
 
 #[derive(Debug)]
-pub struct Spell {
+pub struct BasicSpell {
     /// Returns spell dmg and triggers effects.
     /// Should call `Unit.dmg_on_target()` only for the return value at the end of the function !
     cast: fn(&mut Unit, &UnitStats) -> f32,
     cast_time: f32,
-    base_cooldown_by_spell_lvl: [f32; 6], //length 6 to account aphelios case, normal spells only use the first 5 values, ultimate only uses the first 3 values
+    base_cooldown_by_spell_lvl: [f32; 6], //length 6 to account aphelios case, normal spells only use the first 5 values
+}
+
+#[derive(Debug)]
+pub struct UltimateSpell {
+    /// Returns spell dmg and triggers effects.
+    /// Should call `Unit.dmg_on_target()` only for the return value at the end of the function !
+    cast: fn(&mut Unit, &UnitStats) -> f32,
+    cast_time: f32,
+    base_cooldown_by_spell_lvl: [f32; 3], //ultimate has 3 lvls
 }
 
 #[derive(Debug)]
@@ -367,10 +376,10 @@ pub struct UnitProperties {
     pub init_spells: Option<fn(&mut Unit)>,
     pub basic_attack: fn(&mut Unit, &UnitStats) -> f32, //returns basic attack dmg and triggers effects
     //no field for passive (incorporated in Unit spells instead)
-    pub q: Spell,
-    pub w: Spell,
-    pub e: Spell,
-    pub r: Spell,
+    pub q: BasicSpell,
+    pub w: BasicSpell,
+    pub e: BasicSpell,
+    pub r: UltimateSpell,
     pub fight_scenarios: &'static [FightScenario],
     pub unit_defaults: UnitDefaults,
 }
@@ -1465,14 +1474,24 @@ pub fn null_basic_attack(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     unreachable!("null_basic_attack was called");
 }
 
-/// For performance reasons, we use a `NULL_SPELL` constant (that should never be used) instead of an Option, for units that do not have one.
+/// For performance reasons, we use a `NULL_BASIC_SPELL` constant (that should never be used) instead of an Option, for units that do not have one.
 ///
 /// This is to avoid checking an Option everytime a spell is called, since the majority of spells aren't null
 /// and the user should know in advance if said unit spell is null or not.
-pub const NULL_SPELL: Spell = Spell {
+pub const NULL_BASIC_SPELL: BasicSpell = BasicSpell {
     cast: null_spell_cast,
     cast_time: F32_TOL,
     base_cooldown_by_spell_lvl: [F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL],
+};
+
+/// For performance reasons, we use a `NULL_ULTIMATE_SPELL` constant (that should never be used) instead of an Option, for units that do not have one.
+///
+/// This is to avoid checking an Option everytime a spell is called, since the majority of spells aren't null
+/// and the user should know in advance if said unit spell is null or not.
+pub const NULL_ULTIMATE_SPELL: UltimateSpell = UltimateSpell {
+    cast: null_spell_cast,
+    cast_time: F32_TOL,
+    base_cooldown_by_spell_lvl: [F32_TOL, F32_TOL, F32_TOL],
 };
 
 fn null_spell_cast(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {

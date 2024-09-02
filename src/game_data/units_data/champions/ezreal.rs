@@ -422,25 +422,25 @@ impl Unit {
         on_lvl_set: None,
         init_spells: Some(ezreal_init_spells),
         basic_attack: ezreal_basic_attack,
-        q: Spell {
+        q: BasicSpell {
             cast: ezreal_q,
             cast_time: 0.25,
             base_cooldown_by_spell_lvl: [5.5, 5.25, 5., 4.75, 4.5, F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: Spell {
+        w: BasicSpell {
             cast: ezreal_w,
             cast_time: 0.25,
             base_cooldown_by_spell_lvl: [8., 8., 8., 8., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: Spell {
+        e: BasicSpell {
             cast: ezreal_e,
             cast_time: 0.25,
             base_cooldown_by_spell_lvl: [26., 23., 20., 17., 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: Spell {
+        r: UltimateSpell {
             cast: ezreal_r,
             cast_time: 1.,
-            base_cooldown_by_spell_lvl: [120., 105., 90., F32_TOL, F32_TOL, F32_TOL], //ultimate only uses the first 3 values
+            base_cooldown_by_spell_lvl: [120., 105., 90.],
         },
         fight_scenarios: &[
             (

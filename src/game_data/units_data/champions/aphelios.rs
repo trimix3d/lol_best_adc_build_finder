@@ -546,17 +546,17 @@ impl Unit {
         on_lvl_set: Some(aphelios_on_lvl_set),
         init_spells: None,
         basic_attack: aphelios_basic_attack,
-        q: Spell {
+        q: BasicSpell {
             cast: aphelios_q,
             cast_time: 0.62,
             base_cooldown_by_spell_lvl: [8.4, 8.4, 8.4, 8.4, 8.4, 8.4], //mean cd for all weapons at lvl 9 (aphelios q_lvl gives bonus_ad and doesn't affect cd)
         },
-        w: NULL_SPELL,
-        e: NULL_SPELL,
-        r: Spell {
+        w: NULL_BASIC_SPELL,
+        e: NULL_BASIC_SPELL,
+        r: UltimateSpell {
             cast: aphelios_r,
             cast_time: 0.6,
-            base_cooldown_by_spell_lvl: [120., 110., 100., F32_TOL, F32_TOL, F32_TOL], //ultimate only uses the first 3 values
+            base_cooldown_by_spell_lvl: [120., 110., 100.],
         },
         fight_scenarios: &[(aphelios_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

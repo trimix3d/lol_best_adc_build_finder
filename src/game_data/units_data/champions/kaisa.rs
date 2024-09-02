@@ -450,25 +450,25 @@ impl Unit {
         on_lvl_set: None,
         init_spells: Some(kaisa_init_spells),
         basic_attack: kaisa_basic_attack,
-        q: Spell {
+        q: BasicSpell {
             cast: kaisa_q,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [10., 9., 8., 7., 6., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: Spell {
+        w: BasicSpell {
             cast: kaisa_w,
             cast_time: 0.4,
             base_cooldown_by_spell_lvl: [22., 20., 18., 16., 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: Spell {
+        e: BasicSpell {
             cast: kaisa_e,
             cast_time: F32_TOL, //e cast time is spend walking in the spell function
             base_cooldown_by_spell_lvl: [16., 14.5, 13., 11.5, 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: Spell {
+        r: UltimateSpell {
             cast: kaisa_r,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [130., 100., 70., F32_TOL, F32_TOL, F32_TOL], //ultimate only uses the first 3 values
+            base_cooldown_by_spell_lvl: [130., 100., 70.],
         },
         fight_scenarios: &[(kaisa_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {
