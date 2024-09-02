@@ -12,6 +12,8 @@ I tried make the interface as comprehensive as possible and if i've done my work
 
 For simplicity, the version number of each release is the same as the corresponding League of Legends patch number.
 
+This is a project i do during my free time. I try to document the code to the maximum, but it gets tedious (>﹏<). Also, no guarantees that i will update it forever.
+
 # How to run
 
 You have 2 options:
@@ -31,7 +33,10 @@ If your OS/CPU architecture is not included in the release or if you want to com
 # How it works in more details
 
 The project is separated in different modules:
-- game_data
+- `game_data`: provides an API to create, manage champions and simulate fights against a target dummy and recording the results.
+- `build_optimizer`: generate the best combinations of items by using `game_data` to simulate them.
+- `builds_analyzer`: tools for analyzing and displaying the output of `build_optimizer`. In the future i have plans to expand this module (making a tier list of differents champions based on their best builds performance?, ...).
+- `cli`: command line interface to let the user interact with all of this.
 
 ...
 
@@ -63,15 +68,14 @@ After selecting a champion, the builds generation process works as the following
     - dps on the target
     - tankiness of the build
     - average move speed during the simulation
-    - some other stuff (special items utility, etc).
-    A single score number is also calculated for each build from the price, dps, tankiness and average move speed.
+    - some other stuff (special items utility, etc). A single score number is also calculated for each build from the price, dps, tankiness and average move speed.
 
 3. Filter the builds from the list to keep only the better ones (within a certain configurable margin).
 
     The filtering is made of two parts:
 
     1. Keep builds that have a score within a predefined margin of the best score found.
-    2. Keep builds that are part of the [pareto front](https://en.wikipedia.org/wiki/Pareto_front), the quantities to optimize being the build price, dps,tankiness, average move speed and utility of the build.
+    2. Keep builds that are part of the [pareto front](https://en.wikipedia.org/wiki/Pareto_front), the quantities to optimize being the build price, dps, tankiness, average move speed and utility of the build.
 
 4. Repeat the process, building on top of the current build list until reaching the requested number of items.
 
@@ -79,7 +83,8 @@ I have simplified some things so it's easier to get the global picture. You can 
 
 # About the results
 
-I think it gives good results overall, even if in some cases you need to play around and fine tune the settings to avoid getting questionable builds.
+It gives good results overall, even if in some cases you need to play around and fine tune the settings to avoid getting questionable builds.
 It is really good at finding builds that gives the best pure damage output, a bit less good at finding builds with more utility that may be better in practice. That's why you need to analyze to results with common sense and experiment a bit.
 
 If you have ideas about improving the program, feel free to share them :)
+You can add me "trimix3d" on discord if you want to discuss about the project.
