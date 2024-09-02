@@ -48,9 +48,8 @@ After selecting a champion, the builds generation process works as the following
 >  {statikk_shyv , infinity_edge}]
 > ```
 2. Simulate a fight with every build in the list and save the corresponding results*.
-> *The results saved are the price of the build, the dps on the target, the tankiness of the build, the average move speed during the simulation and some other stuff.
->
-> A single score number for each build is also calculated from the build price, dps, tankiness and average move speed.
+- *The results saved are the price of the build, the dps on the target, the tankiness of the build, the average move speed during the simulation and some other stuff.
+A single score number for each build is also calculated from the build price, dps, tankiness and average move speed.
 3. Filter** the builds from the list to keep only the better ones (within a certain configurable margin).
 > **The filtering is made of two parts:
 >
