@@ -386,7 +386,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
                     - !h/s : if the build has anti-heal or anti-shield utility\n \
                     - surv : if the build has survivability utility (e.g. zhonyas stasis, edge of night spell shield, ...)\n \
                     - other: if the build has other utility (e.g. RFC bonus range, black cleaver armor reduction, ...)\n \
-                    - build: the build in item order (with the score at each item stage in brackets)",
+                    - build: the build in item order (with the score at each item slot in brackets)",
                     ["show more builds", "restart generation with different settings"],
                     true,
                 ) {
