@@ -29,15 +29,19 @@ Generating every possible combinations of n-items gives an absurd number of buil
 After selecting a champion, the builds generation process works as the following, starting with a list containing one empty build at the beginning:
 1. Select the first free slot (first slot for an empty build, second slot for a build with 1 item, etc).
 2. For every build in the list, create copies with 1 additionnal item (from a predetermined pool for the champion) at the free slot for each.
->>>
-For exemple, if the current list of builds is: [{kraken_slayer},
-                                                {statikk_shyv }]
-And the items in the pool are bloodthirster and infinity_edge.
-The list of builds will become: [{kraken_slayer, bloodthirster},
-                                 {kraken_slayer, infinity_edge},
-                                 {statikk_shyv , bloodthirster},
-                                 {statikk_shyv , infinity_edge}]
->>>
+> For exemple, if the current list of builds is: [{kraken_slayer},
+>
+>                                                 {statikk_shyv }]
+>
+> And the items in the pool are bloodthirster and infinity_edge.
+>
+> The list of builds will become: [{kraken_slayer, bloodthirster},
+>
+>                                  {kraken_slayer, infinity_edge},
+>
+>                                  {statikk_shyv , bloodthirster},
+>
+>                                  {statikk_shyv , infinity_edge}]
 2. Try every single item* at the free slot and get the corresponding score by simulating a fight. This gives a list of new builds with their corresponding score.
 3. Filter** the builds from this list to keep only the better ones (within a certain configurable margin).
 4. Repeat the process, building on top of the current build list until reaching the requested number of items.
