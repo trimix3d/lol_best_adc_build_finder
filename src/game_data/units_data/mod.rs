@@ -504,10 +504,12 @@ pub struct Unit {
     w_lvl: u8,
     e_lvl: u8,
     r_lvl: u8,
+    /// Stats that only comes from the Unit base stats (only change with lvl)
     pub lvl_stats: UnitStats,
     //build related
     pub build: Build,
     pub build_cost: f32,
+    /// Stats that only comes from items
     pub items_stats: UnitStats,
     //runes related
     runes_page: RunesPage,
@@ -723,7 +725,7 @@ impl Unit {
         new_unit.set_skill_order(skill_order)?;
 
         //check and set build
-        new_unit.set_build(build, false)?;
+        new_unit.set_build(build)?;
 
         //init fight so new_unit is ready for simulation
         new_unit.init_fight();
@@ -787,7 +789,7 @@ impl Unit {
         self.lvl = maybe_lvl.unwrap(); //should never panic since we check for None value above
         self.update_spells_lvls();
 
-        //update unit lvl stats (contribution that is only dependant from lvl)
+        //update unit lvl stats
         let base: &UnitStats = &self.properties.base_stats;
         let growth: &UnitStats = &self.properties.growth_stats;
         self.lvl_stats.hp = growth_stat_formula(self.lvl, base.hp, growth.hp);
@@ -845,20 +847,29 @@ impl Unit {
 
     /// Updates the Unit build, returns Ok if success or Err if failure (depending on the validity of the given build).
     /// In case of a failure, the unit is not modified.
-    ///
-    /// Since this function is critical for the speed of the program (as lots of build are tested),
-    /// the argument '`skip_checks`' controls wether or not validity checks on the given build are performed.
-    /// If '`skip_checks`' is set to true, the function will run faster,
-    /// will set the build on the unit anyway and always succeed (return Ok) but you must give a valid build.
-    /// Otherwise, this will lead to wrong results when simulating fights with the unit.
-    pub fn set_build(&mut self, build: Build, skip_checks: bool) -> Result<(), String> {
-        //these checks are relatively expensive and since this is a performance critical function we can skip them with the 'skip_checks' argument if needed
-        if !skip_checks {
-            build.check_validity()?;
-        }
+    pub fn set_build(&mut self, build: Build) -> Result<(), String> {
+        //these checks are relatively expensive, if calling this function in hot code, consider using `Unit.set_build_unchecked()` instead
+        build.check_validity()?;
         self.build = build;
 
-        //update unit items stats (contribution that is only dependant from items)
+        //update unit items stats
+        self.items_stats.put_to_zero();
+        self.build_cost = 0.;
+        for &item_ref in build.iter().filter(|&&item_ref| *item_ref != NULL_ITEM) {
+            self.items_stats.add(&item_ref.stats);
+            self.build_cost += item_ref.cost;
+        }
+
+        Ok(())
+    }
+
+    /// Updates the Unit build regardless of its validity (saving some running time by discarding checks), always returns Ok.
+    /// You must ensure that the given build is valid. Otherwise, this will lead to wrong results when simulating fights with the unit.
+    pub fn set_build_unchecked(&mut self, build: Build) -> Result<(), String> {
+        //no build validity check
+        self.build = build;
+
+        //update unit items stats
         self.items_stats.put_to_zero();
         self.build_cost = 0.;
         for &item_ref in build.iter().filter(|&&item_ref| *item_ref != NULL_ITEM) {

@@ -793,7 +793,7 @@ impl ParetoSpacePoint {
         ad_taken_percent: f32,
     ) -> Self {
         champ
-            .set_build(container.build, true)
+            .set_build_unchecked(container.build)
             .expect("failed to set build");
         let mut avg_dps: f32 = 0.;
         let mut avg_defense: f32 = 0.;
@@ -1051,7 +1051,7 @@ pub fn find_best_builds(
                 .set_lvl(original_lvl.get())
                 .expect("failed to set lvl");
             champ
-                .set_build(original_build, false)
+                .set_build(original_build)
                 .expect("failed to set build");
             champ.init_fight();
             return Err(format!("can't reach requested item slot (stopped at slot {item_slot} because not enough items in pool/too much items incompatible with each other)"));
@@ -1143,7 +1143,7 @@ pub fn find_best_builds(
         .set_lvl(original_lvl.get())
         .expect("failed to set lvl");
     champ
-        .set_build(original_build, false)
+        .set_build(original_build)
         .expect("failed to set build");
     champ.init_fight();
 
