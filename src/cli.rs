@@ -319,7 +319,7 @@ fn get_user_item(input_line: &str) -> Result<&'static Item, UserCommand> {
             return Ok(ALL_ITEMS[index]);
         } else if sanitized_input == "list" {
             //print list of items
-            println!("Legendary items in database:");
+            println!("\nLegendary items in database:");
             for item in ALL_LEGENDARY_ITEMS {
                 println!("- {item:#}");
             }
