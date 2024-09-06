@@ -82,7 +82,7 @@ enum UserCommand {
 
 /// Get the user input, returns it in a lowercase String.
 /// doesn't catch user commands (go back, exit, etc) and returns the String directly
-/// (can still returns an Err, but only when stdin is closed).
+/// (can still returns Err(UserCommand::Exit), but only when stdin is closed).
 fn get_user_raw_input(input_line: &str) -> Result<String, UserCommand> {
     print!("{input_line}: ");
     io::stdout().flush().expect("Failed to flush stdout");
@@ -118,6 +118,8 @@ fn get_user_input(input_line: &str, help_msg: &str) -> Result<String, UserComman
     }
 }
 
+/// Prompt the user to confirm the exit of the program and return the result in an Ok(bool).
+/// Returns Err(UserCommand::Exit) if stdin is closed.
 fn confirm_exit() -> Result<bool, UserCommand> {
     loop {
         let input: String = get_user_raw_input("Confirm exit? (y/n)")?;
