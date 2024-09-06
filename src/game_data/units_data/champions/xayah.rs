@@ -215,7 +215,7 @@ fn xayah_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durati
                         f32::max(0., fight_duration - champ.time),
                     ]
                     .into_iter()
-                    .min_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
+                    .min_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
                     .unwrap(),
             );
         }
@@ -438,7 +438,7 @@ mod tests {
     pub fn test_xayah_constant_parameters() {
         assert!(
             XAYAH_N_FEATHERS_BEFORE_RECALL <= 8,
-            "number of feathers before pressing Xayah E must be less or equal to 8 (got {})",
+            "Number of feathers before pressing Xayah E must be less or equal to 8 (got {})",
             XAYAH_N_FEATHERS_BEFORE_RECALL
         )
     }

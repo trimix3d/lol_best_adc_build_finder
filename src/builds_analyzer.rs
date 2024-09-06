@@ -15,7 +15,7 @@ pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights:
     let max_golds: f32 = builds_ref
         .iter()
         .map(|build| build.golds[n_items])
-        .max_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
+        .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
         .unwrap_or(STARTING_GOLDS);
     let normalized_judgement_weights: (f32, f32, f32) =
         get_normalized_judgment_weights(judgment_weights);
@@ -32,14 +32,14 @@ pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights:
             ),
         );
         //sanity check
-        assert!(old.is_none(), "duplicate found in pareto builds");
+        assert!(old.is_none(), "Duplicate found in pareto builds");
     }
 
     //sort in reverse order
     builds_ref.sort_unstable_by(|container1, container2| {
         (average_scores.get(&container2.build.get_hash()).unwrap())
             .partial_cmp(average_scores.get(&container1.build.get_hash()).unwrap())
-            .expect("failed to compare floats")
+            .expect("Failed to compare floats")
     }); //getting keys will never panic as we previously inserted every build
 }
 
@@ -53,7 +53,7 @@ pub fn print_builds_scores(
     let max_golds: f32 = builds_ref
         .iter()
         .map(|build| build.golds[n_items])
-        .max_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
+        .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
         .unwrap_or(STARTING_GOLDS);
     let normalized_judgement_weights: (f32, f32, f32) =
         get_normalized_judgment_weights(judgment_weights);
@@ -61,7 +61,7 @@ pub fn print_builds_scores(
     //print builds
     let n_to_print: usize = usize::min(n_to_print, builds_ref.len());
     println!(
-        "showing the {n_to_print} best builds (out of {}):\n\
+        "Showing the {n_to_print} best builds (out of {}):\n\
          score | !h/s | surv | other | build\n\
          ---------------------------------------------------",
         builds_ref.len()

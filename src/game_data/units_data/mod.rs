@@ -441,10 +441,10 @@ impl SkillOrder {
                 1
             };
             if (self.q[i] > 1) || (self.w[i] > 1) || (self.e[i] > 1) || (self.r[i] > 1) {
-                return Err("values in skill order must be only 1s or 0s".to_string());
+                return Err("Values in skill order must be only 1s or 0s".to_string());
             } else if self.q[i] + self.w[i] + self.e[i] + self.r[i] != lvl_ups {
                 return Err(
-                    "there should be exactly 1 skill point for each lvl, except for aphelios"
+                    "There should be exactly 1 skill point for each lvl, except for aphelios"
                         .to_string(),
                 );
             }
@@ -456,7 +456,7 @@ impl SkillOrder {
         let max_spell_lvl: u8 = if is_aphelios { 6 } else { 5 };
         if q_sum != max_spell_lvl || w_sum != max_spell_lvl || e_sum != max_spell_lvl || r_sum != 3
         {
-            return Err("wrong number of skill points distributed across spells".to_string());
+            return Err("Wrong number of skill points distributed across spells".to_string());
         }
         Ok(())
     }
@@ -465,8 +465,8 @@ impl SkillOrder {
 #[derive(Debug, Clone)]
 pub struct UnitSimulationResult {
     pub dmg_done: f32,
-    pub life_vamped: f32,   //heals obtained by basic attacking over a duration
-    pub heals_shields: f32, //"abrupt" heals and shields obtained once at a time
+    pub life_vamped: f32,   //heals obtained by basic attacks over a duration
+    pub heals_shields: f32, //"abrupt" heals and shields obtained once
     pub units_travelled: f32,
 }
 
@@ -643,7 +643,7 @@ impl Unit {
             || properties_ref.e.cast_time < F32_TOL
             || properties_ref.r.cast_time < F32_TOL
         {
-            return Err("spells cast time should be >= F32_TOL".to_string());
+            return Err("Spells cast time should be >= F32_TOL".to_string());
         }
 
         //for similar reasons cooldowns must be >= F32_TOL
@@ -691,7 +691,7 @@ impl Unit {
             }, //trash temporary value until initialized by setter function
             runes_stats: UnitStats::default(),
             skill_order: SkillOrder::default(), //temporary value until initialized by setter function (must still be a valid skill order!)
-            lvl: NonZeroU8::new(MIN_UNIT_LVL).expect("unit lvl cannot be 0"), //trash temporary value until initialized by setter function
+            lvl: NonZeroU8::new(MIN_UNIT_LVL).expect("Unit lvl cannot be 0"), //trash temporary value until initialized by setter function
             q_lvl: 0, //trash temporary value until initialized by setter function
             w_lvl: 0, //trash temporary value until initialized by setter function
             e_lvl: 0, //trash temporary value until initialized by setter function
@@ -782,7 +782,7 @@ impl Unit {
             || maybe_lvl.is_none()
         {
             return Err(format!(
-                "unit lvl must be non zero and between {MIN_UNIT_LVL} and {MAX_UNIT_LVL} (got {lvl})"
+                "Unit lvl must be non zero and between {MIN_UNIT_LVL} and {MAX_UNIT_LVL} (got {lvl})"
             ));
         }
 
@@ -962,7 +962,7 @@ impl Unit {
         //sanity check
         assert!(
             dt > 0.,
-            "cannot wait for a negative or null amount of time (got {dt})"
+            "Cannot wait for a negative or null amount of time (got {dt})"
         );
 
         //update time
@@ -1016,7 +1016,7 @@ impl Unit {
                 .temporary_buffs_durations
                 .values()
                 .chain(std::iter::once(&dt))
-                .min_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
+                .min_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
                 .unwrap(); //will never panic as we chain with once so there is at minimum 1 element
 
             //walk until next expiring buff
@@ -1482,7 +1482,7 @@ impl Unit {
 /// This is to avoid checking an Option everytime a `basic_attack` is called, since the majority of basic attacks aren't null
 /// and the user should know in advance if said unit `basic_attack` is null or not.
 pub fn null_basic_attack(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    unreachable!("null_basic_attack was called");
+    unreachable!("Null_basic_attack was called");
 }
 
 /// For performance reasons, we use a `NULL_BASIC_SPELL` constant (that should never be used) instead of an Option, for units that do not have one.
@@ -1506,7 +1506,7 @@ pub const NULL_ULTIMATE_SPELL: UltimateSpell = UltimateSpell {
 };
 
 fn null_spell_cast(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    unreachable!("null_spell_cast was called");
+    unreachable!("Null_spell_cast was called");
 }
 
 /// For performance reasons, we use a `null_simulate_fight` function (that should never be called and will panic if so) instead of an Option, for units that do not have one.
@@ -1514,5 +1514,5 @@ fn null_spell_cast(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
 /// This is to avoid checking an Option everytime a `simulate_fight` is called, since the majority of `simulate_fight` aren't null
 /// and the user should know in advance if said unit `simulate_fight` is null or not.
 pub fn null_simulate_fight(_champ: &mut Unit, _target_stats: &UnitStats, _time_limit: f32) {
-    unreachable!("null_simulate_fight was called");
+    unreachable!("Null_simulate_fight was called");
 }

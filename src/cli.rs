@@ -50,8 +50,8 @@ pub fn launch_interface() {
     loop {
         match get_user_matching_input(
             &greetings_msg,
-            "enter the champion for which you want to find the best builds",
-            "please enter a valid champion name (among those available)",
+            "Enter the champion for which you want to find the best builds",
+            "Please enter a valid champion name (among those available)",
             "No help message available.",
             champion_names.iter().copied(),
             false, //safety of a later expect() depends on this argument to be false
@@ -59,12 +59,12 @@ pub fn launch_interface() {
             Ok(index) => {
                 if let Err(UserCommand::Exit) = handle_builds_generation(
                     Unit::ALL_CHAMPIONS
-                        [index.expect("expected an input from user, but received none")],
+                        [index.expect("Expected an input from user, but received none")],
                 ) {
                     return;
                 }
             }
-            Err(UserCommand::Back) => println!("cannot go further back"),
+            Err(UserCommand::Back) => println!("Cannot go further back"),
             Err(UserCommand::Home) => (), //already home
             Err(UserCommand::Exit) => return,
         }
@@ -85,12 +85,12 @@ enum UserCommand {
 /// (can still returns an Err, but only when stdin is closed).
 fn get_user_raw_input(input_line: &str) -> Result<String, UserCommand> {
     print!("{input_line}: ");
-    io::stdout().flush().expect("failed to flush stdout");
+    io::stdout().flush().expect("Failed to flush stdout");
 
     let mut buffer: String = String::new();
     io::stdin()
         .read_line(&mut buffer)
-        .expect("failed to read user input from stdin");
+        .expect("Failed to read user input from stdin");
     //exit if stdin is closed
     if buffer.is_empty() {
         return Err(UserCommand::Exit);
@@ -120,7 +120,7 @@ fn get_user_input(input_line: &str, help_msg: &str) -> Result<String, UserComman
 
 fn confirm_exit() -> Result<bool, UserCommand> {
     loop {
-        let input: String = get_user_raw_input("confirm exit? (y/n)")?;
+        let input: String = get_user_raw_input("Confirm exit? (y/n)")?;
         match input.as_str() {
             "yes" | "y" | "" => return Ok(true),
             "no" | "n" => return Ok(false),
@@ -198,7 +198,7 @@ fn get_user_choice<'a>(
     greetings_with_choices_msg.push_str(
         choices_iter
             .next()
-            .expect("choices given to user are empty"),
+            .expect("Choices given to user are empty"),
     );
     for choice_str in choices_iter {
         counter += 1;
@@ -237,7 +237,7 @@ fn get_user_usize(
             if allow_no_input {
                 return Ok(None);
             } else {
-                println!("please enter a valid integer");
+                println!("Please enter a valid integer");
             }
         } else if let Ok(number) = input.parse::<usize>() {
             if range.contains(&number) {
@@ -275,7 +275,7 @@ fn get_user_f32(
             if allow_no_input {
                 return Ok(None);
             } else {
-                println!("please enter a valid number");
+                println!("Please enter a valid number");
             }
         } else if let Ok(number) = input.parse::<f32>() {
             return Ok(Some(number));
@@ -304,24 +304,11 @@ fn get_user_item(input_line: &str) -> Result<&'static Item, UserCommand> {
         })
         .collect();
 
-    let mut help_msg: String = String::from("Legendary items in database:");
-    for item in ALL_LEGENDARY_ITEMS {
-        help_msg.push_str("\n- ");
-        help_msg.push_str(&format!("{item:#}"));
-    }
-    help_msg.push_str("\n\nBoots in database:");
-    for item in ALL_BOOTS {
-        help_msg.push_str("\n- ");
-        help_msg.push_str(&format!("{item:#}"));
-    }
-    help_msg.push_str("\n\nSupport items in database:");
-    for item in ALL_SUPPORT_ITEMS {
-        help_msg.push_str("\n- ");
-        help_msg.push_str(&format!("{item:#}"));
-    }
-
     loop {
-        let input: String = get_user_input(input_line, &help_msg)?;
+        let input: String = get_user_input(
+            input_line,
+            "Enter an item name (type 'list' to show available items in database)",
+        )?;
         let sanitized_input: String = sanitize_item_name(&input);
 
         if sanitized_input.is_empty() {
@@ -330,6 +317,20 @@ fn get_user_item(input_line: &str) -> Result<&'static Item, UserCommand> {
             *full_name == sanitized_input || *short_name == sanitized_input
         }) {
             return Ok(ALL_ITEMS[index]);
+        } else if sanitized_input == "list" {
+            //print list of items
+            println!("Legendary items in database:");
+            for item in ALL_LEGENDARY_ITEMS {
+                println!("- {item:#}");
+            }
+            println!("\nBoots in database:");
+            for item in ALL_BOOTS {
+                println!("- {item:#}");
+            }
+            println!("\nSupport items in database:");
+            for item in ALL_SUPPORT_ITEMS {
+                println!("- {item:#}");
+            }
         } else {
             println!("'{input}' is not a recognized item (type 'list' to show available items in database)");
         }
@@ -341,7 +342,7 @@ fn get_user_item(input_line: &str) -> Result<&'static Item, UserCommand> {
 fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result<(), UserCommand> {
     //create champion
     let mut champ: Unit =
-        Unit::from_defaults(champ_properties, 6, Build::default()).expect("failed to create unit");
+        Unit::from_defaults(champ_properties, 6, Build::default()).expect("Failed to create unit");
 
     //create build generation settings
     let mut settings: BuildsGenerationSettings =
@@ -361,7 +362,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
             Ok(pareto_builds) => pareto_builds,
             Err(error_msg) => {
                 get_user_raw_input(&format!(
-                        "\nfailed to generate builds: {error_msg} (press enter to return to settings screen) "
+                        "\nFailed to generate builds: {error_msg} (press enter to return to settings screen) "
                     ))?;
                 continue;
             }
@@ -380,7 +381,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
         loop {
             let choice: usize = match get_user_choice(
                     "",
-                    "select an action (press enter to return to champion selection)",
+                    "Select an action (press enter to return to champion selection)",
                     "How to interpret the columns from left to right:\n \
                     - score: the overall score of the build (according to the judgment weights)\n \
                     - !h/s : if the build has anti-heal or anti-shield utility\n \
@@ -399,14 +400,14 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
                 1 => {
                     match get_user_usize(
                         "",
-                        "enter the number of builds to show",
+                        "Enter the number of builds to show",
                         "No help message available.",
                         1..,
                         false, //safety of a later expect() depends on this argument to be false
                     ) {
                         Ok(n) => print_builds_scores(
                             &pareto_builds,
-                            n.expect("expected an input from user, but received none"),
+                            n.expect("Expected an input from user, but received none"),
                             settings.judgment_weights,
                         ),
                         Err(UserCommand::Back) => (),
@@ -414,7 +415,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
                     }
                 }
                 2 => break,
-                _ => unreachable!("unhandled user input"),
+                _ => unreachable!("Unhandled user input"),
             }
         }
     }
@@ -531,11 +532,11 @@ fn confirm_builds_generation_settings(
 
         let choice: usize = match get_user_choice(
             format!(
-                "build generation for {} will be launched with these settings:",
+                "Build generation for {} will be launched with these settings:",
                 champ.properties.name
             )
             .as_str(),
-            "select a setting to change (press enter to confirm current settings)",
+            "Select a setting to change (press enter to confirm current settings)",
             BUILDS_GENERATION_SETTINGS_HELP_MSG,
             choices_strings.iter().map(String::as_str),
             true,
@@ -596,19 +597,19 @@ fn confirm_builds_generation_settings(
                 //reset to default settings
                 *settings_ref = BuildsGenerationSettings::default_by_champion(champ.properties);
             }
-            _ => unreachable!("unhandled user input"),
+            _ => unreachable!("Unhandled user input"),
         }
     }
 }
 
-const TARGET_HELP_MSG: &str = "This is the target that will be used to compute the champion's DPS.";
+const TARGET_HELP_MSG: &str = "The selected target will be used to compute the champion's DPS.";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_target(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
     loop {
         let choice: usize = match get_user_choice(
-            "available targets:",
-            "select a target",
+            "Available targets:",
+            "Select a target",
             TARGET_HELP_MSG,
             TARGET_OPTIONS.iter().map(|properties| properties.name),
             false,
@@ -623,7 +624,7 @@ fn change_target(settings: &mut BuildsGenerationSettings) -> Result<(), UserComm
         settings.target_properties = TARGET_OPTIONS[choice - 1];
 
         if let Err(error_msg) = settings.check_settings() {
-            println!("failed to set target: {error_msg}");
+            println!("Failed to set target: {error_msg}");
             settings.target_properties = old_target; //restore valid value
         } else {
             return Ok(());
@@ -632,16 +633,16 @@ fn change_target(settings: &mut BuildsGenerationSettings) -> Result<(), UserComm
 }
 
 const FIGHT_SCENARIO_HELP_MSG: &str = "Each generated build will go through a fight simulation according to the selected scenario to evaluate its performance.\n\
-        Hence, the builds found will perform best in this specific fight scenario.";
+        Hence, the builds found will perform best for the selected scenario.";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_fight_scenario(champ: &mut Unit) -> Result<(), UserCommand> {
     match get_user_choice(
         &format!(
-            "available fight scenarios for {} are:",
+            "Available fight scenarios for {} are:",
             champ.properties.name
         ),
-        &format!("select a fight scenario for {}", champ.properties.name),
+        &format!("Select a fight scenario for {}", champ.properties.name),
         FIGHT_SCENARIO_HELP_MSG,
         champ
             .properties
@@ -661,13 +662,13 @@ fn change_fight_scenario(champ: &mut Unit) -> Result<(), UserCommand> {
 }
 
 const FIGHT_DURATION_HELP_MSG: &str =
-    "Every build will be evaluated based on a fight simulation of this duration (in seconds).";
+    "Every build will be evaluated based on a fight simulation of the selected duration (in seconds).";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_fight_duration(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
     loop {
         let number: f32 =
-            match get_user_f32("", "enter a fight duration", FIGHT_DURATION_HELP_MSG, false) {
+            match get_user_f32("", "Enter a fight duration", FIGHT_DURATION_HELP_MSG, false) {
                 Ok(Some(number)) => number,
                 Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but just in case
                 Err(UserCommand::Back) => return Ok(()),
@@ -678,7 +679,7 @@ fn change_fight_duration(settings: &mut BuildsGenerationSettings) -> Result<(), 
         settings.fight_duration = number;
 
         if let Err(error_msg) = settings.check_settings() {
-            println!("failed to set fight duration: {error_msg}");
+            println!("Failed to set fight duration: {error_msg}");
             settings.fight_duration = old_fight_duration; //restore valid value
         } else {
             return Ok(());
@@ -687,7 +688,7 @@ fn change_fight_duration(settings: &mut BuildsGenerationSettings) -> Result<(), 
 }
 
 const AD_TAKEN_PERCENT_HELP_MSG: &str =
-    "When evaluating the defensive value of different builds, this percentage of AD dmg taken will be considered.\n\
+    "When evaluating the defensive value of different builds, the selected percentage of AD dmg taken will be considered.\n\
      The percentage of AP dmg taken is deducted from this (assuming no true dmg taken).";
 
 /// This function never returns `Err(UserCommand::back)`.
@@ -695,7 +696,7 @@ fn change_ad_taken_percent(settings: &mut BuildsGenerationSettings) -> Result<()
     loop {
         let number: f32 = match get_user_f32(
             "",
-            "enter the percentage of AD dmg taken by the champion",
+            "Enter the percentage of AD dmg taken by the champion",
             AD_TAKEN_PERCENT_HELP_MSG,
             false,
         ) {
@@ -709,7 +710,7 @@ fn change_ad_taken_percent(settings: &mut BuildsGenerationSettings) -> Result<()
         settings.ad_taken_percent = number / 100.;
 
         if let Err(error_msg) = settings.check_settings() {
-            println!("failed to set percentage of AD dmg taken: {error_msg}");
+            println!("Failed to set percentage of AD dmg taken: {error_msg}");
             settings.ad_taken_percent = old_ad_taken_percent; //restore valid value
         } else {
             return Ok(());
@@ -721,21 +722,21 @@ fn change_ad_taken_percent(settings: &mut BuildsGenerationSettings) -> Result<()
 fn get_user_judgment_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>), UserCommand> {
     //get dps weight
     let dps_weight: Option<f32> = get_user_f32("",
-        "enter the DPS weight (press enter to keep the previous value)",
+        "Enter the DPS weight (press enter to keep the previous value)",
         "The DPS weight is used to measure the importance of the champion's DPS when calculating the gold value of a build.\n\
         The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
         true)?;
 
     //get defense weight
     let defense_weight: Option<f32> = get_user_f32("",
-        "enter the defense weight (press enter to keep the previous value)",
+        "Enter the defense weight (press enter to keep the previous value)",
         "The defense weight is used to measure the importance of the champion's defensive stats, heals and hields when calculating the gold value of a build.\n\
         The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
         true)?;
 
     //get ms weight
     let ms_weight: Option<f32> = get_user_f32("",
-        "enter the mobility weight (press enter to keep the previous value)",
+        "Enter the mobility weight (press enter to keep the previous value)",
         "The mobility weight is used to measure the importance of the champion's mobility when calculating the gold value of a build.\n\
         The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
         true)?;
@@ -765,7 +766,7 @@ fn change_judgment_weights(settings: &mut BuildsGenerationSettings) -> Result<()
         }
 
         if let Err(error_msg) = settings.check_settings() {
-            println!("failed to set judgment weights: {error_msg}");
+            println!("Failed to set judgment weights: {error_msg}");
             settings.judgment_weights = old_judgment_weights; //restore valid value
         } else {
             return Ok(());
@@ -773,14 +774,14 @@ fn change_judgment_weights(settings: &mut BuildsGenerationSettings) -> Result<()
     }
 }
 
-const N_ITEMS_HELP_MSG: &str = "Generated builds will have this number of items.";
+const N_ITEMS_HELP_MSG: &str = "Generated builds will have the selected number of items.";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_n_items(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
     loop {
         let n_items: usize = match get_user_usize(
             "",
-            "enter a number of item per build",
+            "Enter a number of item per build",
             N_ITEMS_HELP_MSG,
             1..=MAX_UNIT_ITEMS,
             false,
@@ -795,7 +796,7 @@ fn change_n_items(settings: &mut BuildsGenerationSettings) -> Result<(), UserCom
         settings.n_items = n_items;
 
         if let Err(error_msg) = settings.check_settings() {
-            println!("failed to set number of items per build: {error_msg}");
+            println!("Failed to set number of items per build: {error_msg}");
             settings.n_items = old_n_items; //restore valid value
         } else {
             return Ok(());
@@ -803,7 +804,7 @@ fn change_n_items(settings: &mut BuildsGenerationSettings) -> Result<(), UserCom
     }
 }
 
-const BOOTS_SLOT_HELP_MSG: &str = "Every generated build will have boots at this slot.\n\
+const BOOTS_SLOT_HELP_MSG: &str = "Every generated build will have boots at the selected slot.\n\
 If set to 0, the slot is not specified and boots are considered like any other regular item (thus not guaranteed to be in the generated builds depending on your settings).";
 
 /// This function never returns `Err(UserCommand::back)`.
@@ -811,7 +812,7 @@ fn change_boots_slot(settings: &mut BuildsGenerationSettings) -> Result<(), User
     loop {
         let boots_slot: usize = match get_user_usize(
             "",
-            "enter a boots slot (or 0 if not specified)",
+            "Enter a boots slot (or 0 if not specified)",
             BOOTS_SLOT_HELP_MSG,
             0..=MAX_UNIT_ITEMS,
             false,
@@ -826,7 +827,7 @@ fn change_boots_slot(settings: &mut BuildsGenerationSettings) -> Result<(), User
         settings.boots_slot = boots_slot;
 
         if let Err(error_msg) = settings.check_settings() {
-            println!("failed to set boots slot: {error_msg}");
+            println!("Failed to set boots slot: {error_msg}");
             settings.boots_slot = old_boots_slot; //restore valid value
         } else {
             return Ok(());
@@ -835,14 +836,14 @@ fn change_boots_slot(settings: &mut BuildsGenerationSettings) -> Result<(), User
 }
 
 const SUPPORT_ITEM_SLOT_HELP_MSG: &str =
-    "Every generated build will have a support item at this slot (or no support item if 0).";
+    "Every generated build will have a support item at the selected slot (or no support item if 0).";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_support_item_slot(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
     loop {
         let support_item_slot: usize = match get_user_usize(
             "",
-            "enter a support item slot (or 0 if none)",
+            "Enter a support item slot (or 0 if none)",
             SUPPORT_ITEM_SLOT_HELP_MSG,
             0..=MAX_UNIT_ITEMS,
             false,
@@ -857,7 +858,7 @@ fn change_support_item_slot(settings: &mut BuildsGenerationSettings) -> Result<(
         settings.support_item_slot = support_item_slot;
 
         if let Err(error_msg) = settings.check_settings() {
-            println!("failed to set support item slot: {error_msg}");
+            println!("Failed to set support item slot: {error_msg}");
             settings.support_item_slot = old_support_item_slot; //restore valid value
         } else {
             return Ok(());
@@ -872,18 +873,18 @@ const ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG: &str =
     "If manaflow items are allowed in first slot (overrides items pools if set to false)";
 
 const MANDATORY_ITEMS_HELP_MSG: &str =
-    "Every generated build will have the specified items at the specified slots.";
+    "Every generated build will have the selected items at the specified slots.";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_mandatory_items(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
     //get item index first
     loop {
         let greeting_msg: String =
-            format!("current mandatory items are: {}", settings.mandatory_items);
+            format!("Current mandatory items are: {}", settings.mandatory_items);
 
         let item_slot:usize = match get_user_usize(
             &greeting_msg,
-            "enter an item slot where you want to impose an item (press enter to confirm current items)",
+            "Enter an item slot where you want to impose an item (press enter to confirm current items)",
             MANDATORY_ITEMS_HELP_MSG,
             1..=MAX_UNIT_ITEMS,
             true,
@@ -898,7 +899,7 @@ fn change_mandatory_items(settings: &mut BuildsGenerationSettings) -> Result<(),
         //get item and put it in mandatory items if valid
         loop {
             let item: &Item = match get_user_item(&format!(
-                "enter an item to impose at slot {item_slot} (press enter for none)"
+                "Enter an item to impose at slot {item_slot} (press enter for none)"
             )) {
                 Ok(item) => item,
                 Err(UserCommand::Back) => break,
@@ -909,7 +910,7 @@ fn change_mandatory_items(settings: &mut BuildsGenerationSettings) -> Result<(),
             settings.mandatory_items[item_idx] = item;
 
             if let Err(error_msg) = settings.check_settings() {
-                println!("failed to set mandatory items: {error_msg}");
+                println!("Failed to set mandatory items: {error_msg}");
                 settings.mandatory_items[item_idx] = old_item; //restore valid value
             } else {
                 break;
@@ -919,9 +920,9 @@ fn change_mandatory_items(settings: &mut BuildsGenerationSettings) -> Result<(),
 }
 
 const SEARCH_THRESHOLD_HELP_MSG: &str =
-    "Controls the amount of builds considered during the generation process.\n\
-     Higher value -> a higher percentage of badly performing builds are kept, may find better scaling builds but increases the computation time.\n\
-     Lower value -> a lower percentage of badly performing builds are kept, may find worse scaling builds but decreases the computation time.\n\
+    "Controls the percentage of builds to explore among the possibilities during the generation process.\n\
+     Higher value -> a higher number of badly performing builds are explored, may find better scaling builds but increases the computation time.\n\
+     Lower value -> a lower number of badly performing builds are explored, may find worse scaling builds but decreases the computation time.\n\
      A search treshold percentage between 15-25% is generally sufficient to find most of the relevant builds.";
 
 /// This function never returns `Err(UserCommand::back)`.
@@ -929,7 +930,7 @@ fn change_search_threshold(settings: &mut BuildsGenerationSettings) -> Result<()
     loop {
         let number: f32 = match get_user_f32(
             "",
-            "enter the search threshold percentage",
+            "Enter the search threshold percentage",
             SEARCH_THRESHOLD_HELP_MSG,
             false,
         ) {
@@ -943,7 +944,7 @@ fn change_search_threshold(settings: &mut BuildsGenerationSettings) -> Result<()
         settings.search_threshold = number / 100.;
 
         if let Err(error_msg) = settings.check_settings() {
-            println!("failed to set search threshold: {error_msg}");
+            println!("Failed to set search threshold: {error_msg}");
             settings.search_threshold = old_search_threshold; //restore valid value
         } else {
             return Ok(());

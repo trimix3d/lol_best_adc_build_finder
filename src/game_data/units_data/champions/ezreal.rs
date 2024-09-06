@@ -206,7 +206,7 @@ fn ezreal_fight_scenario_basic_attack_in_between_spells(
                         f32::max(0., fight_duration - champ.time),
                     ]
                     .into_iter()
-                    .min_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
+                    .min_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
                     .unwrap(),
             );
         }
@@ -239,7 +239,7 @@ fn ezreal_fight_scenario_only_spells(
                         f32::max(0., fight_duration - champ.time),
                     ]
                     .into_iter()
-                    .min_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
+                    .min_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
                     .unwrap(),
             );
         }

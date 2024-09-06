@@ -32,7 +32,7 @@ fn jinx_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 fn jinx_q(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     //does nothing (only rocket launcher is implemented)
     //panic because pressing jinx q doesn't trigger spellblade in game while it currently does in this code, so it should be forbidden
-    unreachable!("jinx q was used but the minigun is not implemented")
+    unreachable!("Jinx q was used but the minigun is not implemented")
 }
 
 const JINX_W_BASE_DMG_BY_W_LVL: [f32; 5] = [10., 60., 110., 160., 210.];
@@ -84,11 +84,10 @@ fn jinx_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_duratio
     //w once at the beggining
     champ.w(target_stats);
 
-    champ.basic_attack(target_stats);
     while champ.time < fight_duration {
         //only basic attacks
-        champ.walk(champ.basic_attack_cd + F32_TOL);
         champ.basic_attack(target_stats);
+        champ.walk(champ.basic_attack_cd + F32_TOL);
     }
     //add weighted r dmg at the end
     champ.weighted_r(target_stats);
@@ -288,7 +287,10 @@ impl Unit {
             cast_time: 0.6,
             base_cooldown_by_spell_lvl: [85., 65., 45.],
         },
-        fight_scenarios: &[(jinx_fight_scenario, "all out (with rocket launcher only)")],
+        fight_scenarios: &[(
+            jinx_fight_scenario,
+            "all out (basic attacks with rocket launcher only)",
+        )],
         unit_defaults: UnitDefaults {
             runes_pages: &JINX_DEFAULT_RUNES_PAGE,
             skill_order: &JINX_DEFAULT_SKILL_ORDER,

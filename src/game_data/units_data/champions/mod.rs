@@ -54,7 +54,7 @@ mod tests {
         //compare adjacent elements of sorted vec to find names collisions
         for window in names.windows(2) {
             if window[0] == window[1] {
-                panic!("champion name collision encountered: {:?}", window[0])
+                panic!("Champion name collision encountered: {:?}", window[0])
             }
         }
     }

@@ -77,7 +77,7 @@ fn champion_test_ground() {
 
     //creation of target dummy
     let target_dummy: Unit = Unit::from_defaults(&TARGET_DUMMY_PROPERTIES, 6, Build::default())
-        .expect("failed to create target dummy");
+        .expect("Failed to create target dummy");
 
     //creation of champion
     let mut champ: Unit = Unit::from_defaults(
@@ -92,7 +92,7 @@ fn champion_test_ground() {
             &NULL_ITEM,
         ]),
     )
-    .expect("failed to create unit");
+    .expect("Failed to create unit");
 
     //champion actions
     println!("{}", champ);

@@ -216,6 +216,28 @@ impl std::fmt::Display for Item {
     }
 }
 
+//we use the Eq trait to compare items with their id for fast comparison,
+//this imply that there should be no id collision for any item.
+//This requirement is checked at the start of the main function of the program (if i didn't delete this out of profound retardation)
+impl PartialEq for Item {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+impl Eq for Item {}
+
+//we use the Ord trait to compare items with their id for fast comparison.
+impl PartialOrd for Item {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for Item {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
 /// Lists all (non-support and non-boots) items.
 pub const ALL_LEGENDARY_ITEMS: [&Item; 74] = [
     &ABYSSAL_MASK,
@@ -329,28 +351,6 @@ pub const AVG_ITEM_COST_WITH_BOOTS_AND_SUPP_ITEM: f32 =
     ((MAX_UNIT_ITEMS_F32 - 2.) * AVG_LEGENDARY_ITEM_COST + AVG_BOOTS_COST + AVG_SUPPORT_ITEM_COST)
         / MAX_UNIT_ITEMS_F32;
 
-//we use the Eq trait to compare items with their id for fast comparison,
-//this imply that there should be no id collision for any item.
-//This requirement is checked at the start of the main function of the program (if i didn't delete this out of profound retardation)
-impl PartialEq for Item {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
-}
-impl Eq for Item {}
-
-//we use the Ord trait to compare items with their id for fast comparison.
-impl PartialOrd for Item {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-impl Ord for Item {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.id.cmp(&other.id)
-    }
-}
-
 #[derive(Copy, Clone, Debug)]
 pub struct Build(pub [&'static Item; MAX_UNIT_ITEMS]);
 
@@ -419,11 +419,11 @@ impl Build {
         ids.sort_unstable();
         for window in ids.windows(2) {
             if window[0] == window[1] && window[0] != NULL_ITEM.id {
-                return Err(format!("duplicates in build: {:?}", window[0]));
+                return Err(format!("Duplicates in build: {:?}", window[0]));
             }
         }
         if self.has_item_groups_overlap() {
-            return Err("item group overlap in build".to_string());
+            return Err("Item group overlap in build".to_string());
         }
         Ok(())
     }
@@ -468,7 +468,7 @@ mod tests {
         //compare adjacent elements of sorted vec to find id collisions
         for window in items_ids.windows(2) {
             if window[0] == window[1] {
-                panic!("item id collision encountered: {:?}", window[0])
+                panic!("Item id collision encountered: {:?}", window[0])
             }
         }
     }
@@ -482,7 +482,7 @@ mod tests {
             / (ALL_LEGENDARY_ITEMS.len() as f32);
 
         assert!(((AVG_LEGENDARY_ITEM_COST) - true_legendary_avg).abs() < 1.,
-            "constant Item::AVG_LEGENDARY_ITEM_COST of value {} is too far from the true average legendary item cost of {} (-> put its value to {:.0})",
+            "Constant Item::AVG_LEGENDARY_ITEM_COST of value {} is too far from the true average legendary item cost of {} (-> put its value to {:.0})",
             AVG_LEGENDARY_ITEM_COST,
             true_legendary_avg,
             true_legendary_avg
@@ -495,7 +495,7 @@ mod tests {
             ALL_BOOTS.iter().map(|item_ref| item_ref.cost).sum::<f32>() / (ALL_BOOTS.len() as f32);
 
         assert!(((AVG_BOOTS_COST) - true_boots_avg).abs() < 1.,
-            "constant Item::AVG_BOOTS_COST of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
+            "Constant Item::AVG_BOOTS_COST of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
             AVG_BOOTS_COST,
             true_boots_avg,
             true_boots_avg
@@ -511,7 +511,7 @@ mod tests {
             / (ALL_BOOTS.len() as f32);
 
         assert!(((AVG_SUPPORT_ITEM_COST) - true_support_avg).abs() < 1.,
-            "constant Item::AVG_SUPPORT_ITEM_COST of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
+            "Constant Item::AVG_SUPPORT_ITEM_COST of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
             AVG_SUPPORT_ITEM_COST,
             true_support_avg,
             true_support_avg

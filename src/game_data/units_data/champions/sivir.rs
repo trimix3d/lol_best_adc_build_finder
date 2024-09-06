@@ -269,7 +269,7 @@ fn sivir_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durati
                         f32::max(0., fight_duration - champ.time),
                     ]
                     .into_iter()
-                    .min_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
+                    .min_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
                     .unwrap(),
             );
         }
@@ -490,7 +490,7 @@ mod tests {
     pub fn test_sivir_constant_parameters() {
         assert!(
             SIVIR_W_N_RICOCHETS <= 9.,
-            "number of sivir's W ricochets must be less or equal to 9 (got {})",
+            "Number of sivir's W ricochets must be less or equal to 9 (got {})",
             SIVIR_W_N_RICOCHETS
         )
     }

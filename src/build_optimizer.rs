@@ -387,7 +387,7 @@ impl BuildContainer {
         //sanity check
         assert!(
             n_items != 0,
-            "number of items to compute average score from must be at least 1"
+            "Number of items to compute average score from must be at least 1"
         );
         let len: usize = n_items + 1;
         let mut scores: Vec<f32> = Vec::with_capacity(len);
@@ -522,13 +522,13 @@ impl BuildsGenerationSettings {
             || !(0.0..=MAX_FIGHT_DURATION).contains(&self.fight_duration)
         {
             return Err(format!(
-                "fight duration must be greater than 0 and under {MAX_FIGHT_DURATION} (got {})",
+                "Fight duration must be greater than 0 and under {MAX_FIGHT_DURATION} (got {})",
                 self.fight_duration
             ));
         }
         if !self.ad_taken_percent.is_finite() || !(0.0..=1.0).contains(&self.ad_taken_percent) {
             return Err(format!(
-                "proportion of ad dmg taken must be greater than 0% and under 100% (got {}%)",
+                "Percentage of ad dmg taken must be greater than 0% and under 100% (got {}%)",
                 100. * self.ad_taken_percent
             ));
         }
@@ -546,7 +546,7 @@ impl BuildsGenerationSettings {
         }
         if !self.search_threshold.is_finite() || !(0.0..=1.0).contains(&self.search_threshold) {
             return Err(format!(
-                "search threshold must be greater than 0% and under 100% (got {})",
+                "Search threshold must be greater than 0% and under 100% (got {})",
                 100. * self.search_threshold
             ));
         }
@@ -559,7 +559,7 @@ impl BuildsGenerationSettings {
         }
         if !(0..=MAX_UNIT_ITEMS).contains(&self.boots_slot) {
             return Err(format!(
-                "boots slot must be between 1 and {MAX_UNIT_ITEMS} (or 0 if none, got {})",
+                "Boots slot must be between 1 and {MAX_UNIT_ITEMS} (or 0 if none, got {})",
                 self.boots_slot
             ));
         }
@@ -572,7 +572,7 @@ impl BuildsGenerationSettings {
         if self.boots_slot != 0 {
             if self.boots_slot == self.support_item_slot {
                 return Err(format!(
-                    "cannot have boots and support item at the same slot (slot {})",
+                    "Cannot have boots and support item at the same slot (slot {})",
                     self.boots_slot
                 ));
             }
@@ -581,7 +581,7 @@ impl BuildsGenerationSettings {
             }
             if *self.mandatory_items[self.boots_slot - 1] != NULL_ITEM {
                 return Err(format!(
-                    "cannot have a mandatory item at the boots slot (slot {})",
+                    "Cannot have a mandatory item at the boots slot (slot {})",
                     self.boots_slot
                 ));
             }
@@ -590,16 +590,16 @@ impl BuildsGenerationSettings {
                 .iter()
                 .any(|item| item.item_groups.contains(ItemGroups::Boots))
             {
-                return Err("cannot have another boots in mandatory items if the boots slot is already set to something different than none".to_string());
+                return Err("Cannot have another boots in mandatory items if the boots slot is already set to something different than none".to_string());
             }
         }
         if self.support_item_slot != 0 {
             if self.support_items_pool.is_empty() {
-                return Err("support items pool is empty".to_string());
+                return Err("Support items pool is empty".to_string());
             }
             if *self.mandatory_items[self.support_item_slot - 1] != NULL_ITEM {
                 return Err(format!(
-                    "cannot have a mandatory item at the support item slot (slot {})",
+                    "Cannot have a mandatory item at the support item slot (slot {})",
                     self.support_item_slot
                 ));
             }
@@ -608,7 +608,7 @@ impl BuildsGenerationSettings {
                 .iter()
                 .any(|item| item.item_groups.contains(ItemGroups::Support))
             {
-                return Err("cannot have another support item in mandatory items if the support item slot is already set to something different than none".to_string());
+                return Err("Cannot have another support item in mandatory items if the support item slot is already set to something different than none".to_string());
             }
         }
         //this check must be done after being sure that `boots_slot` and `support_item_slot` are different
@@ -618,7 +618,7 @@ impl BuildsGenerationSettings {
             < self.n_items
         {
             return Err(format!(
-                "not enough legendary items in pool to fill {} items slots",
+                "Not enough legendary items in pool to fill {} items slots",
                 self.n_items
             ));
         }
@@ -635,23 +635,23 @@ impl BuildsGenerationSettings {
                 .iter()
                 .any(|&item_ref| *item_ref == NULL_ITEM)
         {
-            return Err("items pools cannot contain NULL_ITEM".to_string());
+            return Err("Items pools cannot contain NULL_ITEM".to_string());
         }
         if let Some(idx) = has_duplicates(&self.legendary_items_pool) {
             return Err(format!(
-                "duplicates in legendary items pool: {:#}",
+                "Duplicates in legendary items pool: {:#}",
                 self.legendary_items_pool[idx]
             ));
         }
         if let Some(idx) = has_duplicates(&self.boots_pool) {
             return Err(format!(
-                "duplicates in boots pool: {:#}",
+                "Duplicates in boots pool: {:#}",
                 self.legendary_items_pool[idx]
             ));
         }
         if let Some(idx) = has_duplicates(&self.support_items_pool) {
             return Err(format!(
-                "duplicates in support items pool: {:#}",
+                "Duplicates in support items pool: {:#}",
                 self.legendary_items_pool[idx]
             ));
         }
@@ -705,7 +705,7 @@ fn generate_build_layer(
     let max_golds: f32 = current_builds
         .iter()
         .map(|build| build.golds[layer_idx])
-        .max_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
+        .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
         .unwrap_or(STARTING_GOLDS); //needed later
 
     for container in current_builds {
@@ -794,7 +794,7 @@ impl ParetoSpacePoint {
     ) -> Self {
         champ
             .set_build_unchecked(container.build)
-            .expect("failed to set build"); //assumes builds have been cheched prior (during generating combinations)
+            .expect("Failed to set build"); //assumes builds have been cheched prior (during generating combinations)
         let mut avg_dps: f32 = 0.;
         let mut avg_defense: f32 = 0.;
         let mut avg_ms: f32 = 0.;
@@ -946,7 +946,7 @@ pub fn find_best_builds(
 
     //get number of available threads
     let n_threads: NonZero<usize> =
-        std::thread::available_parallelism().expect("failed to get amount of available threads");
+        std::thread::available_parallelism().expect("Failed to get amount of available threads");
 
     //start progress bar
     let progress_bar: ProgressBar = ProgressBar::new(settings.n_items as u64)
@@ -954,10 +954,10 @@ pub fn find_best_builds(
             ProgressStyle::with_template(
                 "{msg}\n[{elapsed_precise}] {bar} {pos}/{len} items {spinner}",
             )
-            .expect("failed to create progress bar style"),
+            .expect("Failed to create progress bar style"),
         )
         .with_message(format!(
-            "calculating best builds for {}...",
+            "Calculating best builds for {}...",
             champ.properties.name
         ));
     progress_bar.enable_steady_tick(Duration::from_millis(200));
@@ -971,10 +971,10 @@ pub fn find_best_builds(
         lvl,
         Build::default(),
     )
-    .expect("failed to create target dummy");
+    .expect("Failed to create target dummy");
 
     //create empty build base scores
-    champ.set_lvl(lvl).expect("failed to set lvl");
+    champ.set_lvl(lvl).expect("Failed to set lvl");
     let mut empty_build: BuildContainer = BuildContainer {
         build: Build::default(),
         cumulated_utils: enum_set!(),
@@ -1014,8 +1014,8 @@ pub fn find_best_builds(
         //set champion & dummy lvl
         let lvl: u8 =
             lvl_from_number_of_items(item_slot, settings.boots_slot, settings.support_item_slot);
-        champ.set_lvl(lvl).expect("failed to set lvl"); //no need to init (automatically done later when simulating fights)
-        target.set_lvl(lvl).expect("failed to set lvl");
+        champ.set_lvl(lvl).expect("Failed to set lvl"); //no need to init (automatically done later when simulating fights)
+        target.set_lvl(lvl).expect("Failed to set lvl");
         target.init_fight();
 
         //set item pool
@@ -1049,12 +1049,12 @@ pub fn find_best_builds(
             //restore original champion configuration
             champ
                 .set_lvl(original_lvl.get())
-                .expect("failed to set lvl");
+                .expect("Failed to set lvl");
             champ
                 .set_build(original_build)
-                .expect("failed to set build");
+                .expect("Failed to set build");
             champ.init_fight();
-            return Err(format!("can't reach requested item slot (stopped at slot {item_slot} because not enough items in pool/too much items incompatible with each other)"));
+            return Err(format!("Can't reach requested item slot (stopped at slot {item_slot} because not enough items in pool/too much items incompatible with each other)"));
         }
 
         //divide builds into chunks to process them in parralel
@@ -1085,7 +1085,7 @@ pub fn find_best_builds(
                     normalized_judgment_weights,
                 )
             })
-            .max_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
+            .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
             .unwrap(); //points will never be empty (generate_build_layer will return an Err first)
         let mut idx: usize = 0;
         while idx < pareto_space_points.len() {
@@ -1133,7 +1133,7 @@ pub fn find_best_builds(
     //finish progress bar
     progress_bar.finish();
     println!(
-        "found {} optimized builds for {}",
+        "Found {} optimized builds for {}",
         best_builds.len(),
         champ.properties.name
     );
@@ -1141,10 +1141,10 @@ pub fn find_best_builds(
     //restore original champion configuration
     champ
         .set_lvl(original_lvl.get())
-        .expect("failed to set lvl");
+        .expect("Failed to set lvl");
     champ
         .set_build(original_build)
-        .expect("failed to set build");
+        .expect("Failed to set build");
     champ.init_fight();
 
     //return builds
@@ -1164,7 +1164,7 @@ mod tests {
                 .check_settings()
         {
             panic!(
-                "default build generation settings (for an unspecified champion) are not valid: {}",
+                "Default build generation settings (for an unspecified champion) are not valid: {}",
                 error_msg
             )
         }
@@ -1175,7 +1175,7 @@ mod tests {
                 BuildsGenerationSettings::default_by_champion(properties).check_settings()
             {
                 panic!(
-                    "default build generation settings for '{}' are not valid: {}",
+                    "Default build generation settings for '{}' are not valid: {}",
                     properties.name, error_msg
                 )
             }

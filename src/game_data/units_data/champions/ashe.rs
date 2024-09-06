@@ -151,7 +151,7 @@ fn ashe_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_duratio
                         f32::max(0., fight_duration - champ.time),
                     ]
                     .into_iter()
-                    .min_by(|a, b| a.partial_cmp(b).expect("failed to compare floats"))
+                    .min_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
                     .unwrap(),
             );
         }
