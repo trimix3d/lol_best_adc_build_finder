@@ -101,7 +101,8 @@ fn champion_test_ground() {
     println!("{}", champ.q(&target_dummy.stats));
 }
 
-fn main() {
+fn main() -> Result<(), ()> {
     //champion_test_ground();
     cli::launch_interface();
+    Ok(())
 }
