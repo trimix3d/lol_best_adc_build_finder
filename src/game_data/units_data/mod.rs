@@ -947,9 +947,9 @@ impl Unit {
         let mut availability_coef: f32 = 1.;
         if buff_ref.cooldown != 0. {
             let real_cooldown: f32 = buff_ref.cooldown * haste_formula(haste);
-            availability_coef = effect_availability_formula(real_cooldown);
             self.temporary_buffs_cooldowns
                 .insert(buff_ref, real_cooldown);
+            availability_coef = effect_availability_formula(real_cooldown);
         }
 
         //add buff stack to the unit
