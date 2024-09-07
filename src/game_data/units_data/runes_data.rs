@@ -20,18 +20,17 @@ pub struct RunesPage {
 impl Unit {
     /// Sets the Unit runes, returns Ok if success or Err if failure (depending on the validity of the given runes page).
     /// In case of a failure, the unit is not modified.
-    /// In the current state, this function will always succeed because all possible runes pages are valid.
+    /// In the current state, this function will always succeed because all possible runes pages are valid (but it may change in the future).
     pub fn set_runes(&mut self, runes_page: RunesPage) -> Result<(), String> {
         self.runes_page = runes_page;
         Ok(())
     }
 
-    /// Updates unit runes stats (contribution that is only dependant from runes).
+    /// Updates unit runes stats (stats only coming from runes).
     ///
     /// Because of runes hp by lvl and adaptive force, runes stats actually depend on lvl and items as well.
-    /// For this reason and to avoid redundant calls, this function is only ran in `self.init_fight`.
-    /// This means runes stats are not directly up to date after setting lvl/items
-    /// (the Unit need to be initialized with `self.init_fight`).
+    /// For this reason, this function must be ran after being sure that `Unit.lvl_stats` and `Unit.items_stats` are up to date.
+    /// This also means that runes stats might become out of date after changing lvl/items.
     pub fn update_runes_stats(&mut self) {
         self.runes_stats.put_to_zero();
 

@@ -48,8 +48,8 @@ const VARUS_Q_MAX_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.50, 1.60, 1.70, 1.80, 1
 fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     const ARROW_CHARGE_WAIT_TIME: f32 = 1.25 * VARUS_Q_CHARGE_PERCENT;
 
-    //approximate slow by reducing ms_percent (current code doesn't handle slows)
-    //approximating slows by reducing ms_percent is exact only when ms_percent is not modified by other buffs during the duration of the slow.
+    //approximate self slow by reducing ms_percent (current code doesn't handle slows)
+    //approximating slows by reducing ms_percent is exact only when ms_percent is not modified by other buffs during the duration of the self slow.
     let eq_charge_ms_percent: f32 =
         (1. + champ.stats.ms_percent) * (1. - VARUS_Q_CHARGE_SLOW_PERCENT) - 1.; //equivalent ms_percent during arrow charge
     let eq_ms_percent_debuff: f32 = champ.stats.ms_percent - eq_charge_ms_percent;

@@ -215,14 +215,14 @@ impl UnitStats {
 
     /// Returns the true movement speed of the unit. It's a getter function instead of being stored like other stats
     /// because it depends on already existing stats and it could cause bugs if we update one but forget the other.
-    /// Doesn't check and will give wrong results if it receives incoherent stats values (e.g. negative slow percent, ...)
+    /// Current code doesn't handle slows.
     #[inline]
     #[must_use]
     pub fn ms(&self) -> f32 {
         capped_ms(self.ms_flat * (1. + self.ms_percent))
     }
 
-    /// Returns the average damage amplification for crit hits. i.e. if an attack that can crit does 100 dmg without crit,
+    /// Returns the average damage amplification for crit hits. i.e. if a basic attack does 100 dmg without crit,
     /// it will do on average 100 * `self.crit_formula()` when taking crits into account.
     #[inline]
     #[must_use]
@@ -850,22 +850,13 @@ impl Unit {
     pub fn set_build(&mut self, build: Build) -> Result<(), String> {
         //these checks are relatively expensive, if calling this function in hot code, consider using `Unit.set_build_unchecked()` instead
         build.check_validity()?;
-        self.build = build;
-
-        //update unit items stats
-        self.items_stats.put_to_zero();
-        self.build_cost = 0.;
-        for &item_ref in build.iter().filter(|&&item_ref| *item_ref != NULL_ITEM) {
-            self.items_stats.add(&item_ref.stats);
-            self.build_cost += item_ref.cost;
-        }
-
+        self.set_build_unchecked(build);
         Ok(())
     }
 
-    /// Updates the Unit build regardless of its validity (saving some running time by discarding checks), always returns Ok.
+    /// Updates the Unit build regardless of its validity (saving some running time by discarding checks).
     /// You must ensure that the given build is valid. Otherwise, this will lead to wrong results when simulating fights with the unit.
-    pub fn set_build_unchecked(&mut self, build: Build) -> Result<(), String> {
+    pub fn set_build_unchecked(&mut self, build: Build) {
         //no build validity check
         self.build = build;
 
@@ -876,8 +867,6 @@ impl Unit {
             self.items_stats.add(&item_ref.stats);
             self.build_cost += item_ref.cost;
         }
-
-        Ok(())
     }
 
     pub fn init_fight(&mut self) {

@@ -792,9 +792,7 @@ impl ParetoSpacePoint {
         fight_duration: f32,
         ad_taken_percent: f32,
     ) -> Self {
-        champ
-            .set_build_unchecked(container.build)
-            .expect("Failed to set build"); //assumes builds have been cheched prior (during generating combinations)
+        champ.set_build_unchecked(container.build); //assumes builds have been cheched prior (when generating combinations)
         let mut avg_dps: f32 = 0.;
         let mut avg_defense: f32 = 0.;
         let mut avg_ms: f32 = 0.;
