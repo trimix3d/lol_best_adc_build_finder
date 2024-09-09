@@ -20,19 +20,23 @@ pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights:
     let normalized_judgment_weights: (f32, f32, f32) =
         get_normalized_judgment_weights(judgment_weights);
 
+    //maybe using a hashmap is overkill to store average scores (but it allows to sanity check duplicates)
     let mut average_scores: FxHashMap<BuildHash, f32> =
         FxHashMap::with_capacity_and_hasher(builds_ref.len(), FxBuildHasher);
     for container in builds_ref.iter() {
-        average_scores
-            .insert(
-                container.build.get_hash(),
-                container.get_avg_score_with_normalized_weights(
-                    n_items,
-                    max_golds,
-                    normalized_judgment_weights,
-                ),
-            )
-            .expect("Duplicate found in pareto builds");
+        let old_score_maybe = average_scores.insert(
+            container.build.get_hash(),
+            container.get_avg_score_with_normalized_weights(
+                n_items,
+                max_golds,
+                normalized_judgment_weights,
+            ),
+        );
+        //sanity check
+        assert!(
+            old_score_maybe.is_none(),
+            "Duplicate found in pareto builds"
+        );
     }
 
     //sort in reverse order
