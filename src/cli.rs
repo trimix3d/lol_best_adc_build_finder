@@ -8,9 +8,11 @@ use units_data::*;
 use constcat::concat;
 
 use std::fmt::Debug;
-use std::io::{self, Write};
+use std::io;
 use std::iter::Iterator;
 use std::ops::RangeBounds;
+
+use io::Write;
 
 /// Number of builds to be printed by default when displaying results.
 const DEFAULT_N_PRINTED_BUILDS: usize = 20;
