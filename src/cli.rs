@@ -31,10 +31,10 @@ pub fn launch_interface() {
     );
     println!(
         "At any time, you can type:\n\
-         - 'help'/'?' to show help info on the current context.\n\
-         - 'back'/'b' to go back.\n\
-         - 'home' to return to this page.\n\
-         - 'exit' to exit the program."
+         - help/? to show help info on the current context.\n\
+         - back/b to go back.\n\
+         - home to return to this page.\n\
+         - exit to exit the program."
     );
 
     let champion_names: Vec<&str> = Unit::ALL_CHAMPIONS
