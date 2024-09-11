@@ -43,7 +43,7 @@ fn varus_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 const VARUS_Q_CHARGE_SLOW_PERCENT: f32 = 0.20;
 const VARUS_Q_MAX_CHARGE_COEF: f32 = 0.50; //bonus dmg coef when arrow is fully charged
 const VARUS_Q_MAX_BASE_DMG_BY_Q_LVL: [f32; 5] = [90., 160., 230., 300., 370.];
-const VARUS_Q_MAX_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.50, 1.60, 1.70, 1.80, 1.90];
+const VARUS_Q_MAX_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.30, 1.40, 1.50, 1.60, 1.70];
 
 fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     const ARROW_CHARGE_WAIT_TIME: f32 = 1.25 * VARUS_Q_CHARGE_PERCENT;
@@ -153,8 +153,7 @@ const VARUS_E_DMG_BY_E_LVL: [f32; 5] = [60., 100., 140., 180., 220.];
 fn varus_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index spell ratios by lvl
 
-    let ad_dmg: f32 =
-        VARUS_E_N_TARGETS * VARUS_E_DMG_BY_E_LVL[e_lvl_idx] + 1.1 * champ.stats.bonus_ad;
+    let ad_dmg: f32 = VARUS_E_N_TARGETS * VARUS_E_DMG_BY_E_LVL[e_lvl_idx] + champ.stats.bonus_ad;
     let ap_dmg: f32 = varus_consume_blight_stacks_ap_dmg(champ, target_stats); //assumes only one target has blights stacks
 
     champ.dmg_on_target(

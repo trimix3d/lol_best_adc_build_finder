@@ -244,7 +244,7 @@ impl Unit {
             armor: 4.7,
             mr: 1.3,
             base_as: 0.,
-            bonus_as: 0.01,
+            bonus_as: 0.014,
             ability_haste: 0.,
             basic_haste: 0.,
             ultimate_haste: 0.,

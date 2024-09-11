@@ -14,7 +14,7 @@ const ABYSSAL_MASK_UNMAKE_AVG_TARGETS_IN_RANGE: f32 = 1.;
 /// Percentage of dmg that is done in the passive range and profit from mr reduction.
 const ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE: f32 = 0.80;
 ///x*x, where x is the % of hp under which it crits
-const SHADOWFLAME_CINDERBLOOM_COEF: f32 = 0.35 * 0.35;
+const SHADOWFLAME_CINDERBLOOM_COEF: f32 = 0.40 * 0.40;
 /// Percentage of target missing hp to account for the average dmg calculation.
 const KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT: f32 = 0.30;
 /// Actual duration of Malignance hatefog curse on the ennemy
@@ -256,6 +256,12 @@ pub const NULL_ITEM: Item = Item {
 //todo: support items?
 
 //Abyssal mask
+fn abyssal_mask_init(champ: &mut Unit) {
+    //unmake passive
+    champ.stats.mr += ABYSSAL_MASK_UNMAKE_AVG_TARGETS_IN_RANGE * 10.;
+    champ.stats.mr_red_percent += ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE * 0.30;
+}
+
 pub const ABYSSAL_MASK: Item = Item {
     id: ItemId::AbyssalMask,
     full_name: "Abyssal_mask",
@@ -271,7 +277,7 @@ pub const ABYSSAL_MASK: Item = Item {
         ap_flat: 0.,
         ap_coef: 0.,
         armor: 0.,
-        mr: 50. + ABYSSAL_MASK_UNMAKE_AVG_TARGETS_IN_RANGE * 10.,
+        mr: 50.,
         base_as: 0.,
         bonus_as: 0.,
         ability_haste: 10.,
@@ -289,11 +295,11 @@ pub const ABYSSAL_MASK: Item = Item {
         armor_red_flat: 0.,
         armor_red_percent: 0.,
         mr_red_flat: 0.,
-        mr_red_percent: ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE * 0.30,
+        mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
     },
-    init_item: None,
+    init_item: Some(abyssal_mask_init),
     active: None,
     on_basic_spell_cast: None,
     on_ultimate_cast: None,
@@ -668,25 +674,25 @@ pub const BLADE_OF_THE_RUINED_KING: Item = Item {
 
 //Bloodthirster
 const BLOODTHIRSTER_ICHORSHIELD_MAX_SHIELD_BY_LVL: [f32; MAX_UNIT_LVL] = [
-    50.,  //lvl 1 , wiki says 50.
-    71.,  //lvl 2 , wiki says 50.
-    91.,  //lvl 3 , wiki says 50.
-    112., //lvl 4 , wiki says 50.
-    132., //lvl 5 , wiki says 50.
-    153., //lvl 6 , wiki says 50.
-    174., //lvl 7 , wiki says 50.
-    194., //lvl 8 , wiki says 50.
-    215., //lvl 9 , wiki says 85.
-    235., //lvl 10, wiki says 120.
-    256., //lvl 11, wiki says 155.
-    276., //lvl 12, wiki says 190.
-    297., //lvl 13, wiki says 225.
-    318., //lvl 14, wiki says 260.
-    338., //lvl 15, wiki says 295.
-    359., //lvl 16, wiki says 330.
-    379., //lvl 17, wiki says 365.
-    400., //lvl 18, wiki says 400.
-]; //values in wiki are wrong, these actual values are from in game (patch 14.10)
+    165., //lvl 1
+    165., //lvl 2
+    165., //lvl 3
+    165., //lvl 4
+    165., //lvl 5
+    165., //lvl 6
+    165., //lvl 7
+    165., //lvl 8
+    180., //lvl 9
+    195., //lvl 10
+    210., //lvl 11
+    225., //lvl 12
+    240., //lvl 13
+    255., //lvl 14
+    270., //lvl 15
+    285., //lvl 16
+    300., //lvl 17
+    315., //lvl 18
+];
 fn bloodthirster_init(champ: &mut Unit) {
     //ichorshield passive
     champ.sim_results.heals_shields +=
@@ -727,7 +733,7 @@ pub const BLOODTHIRSTER: Item = Item {
         armor_red_percent: 0.,
         mr_red_flat: 0.,
         mr_red_percent: 0.,
-        life_steal: 0.18,
+        life_steal: 0.15,
         omnivamp: 0.,
     },
     init_item: Some(bloodthirster_init),
@@ -1956,16 +1962,16 @@ const IMMORTAL_SHIELDBOW_LIFELINE_SHIELD_BY_LVL: [f32; MAX_UNIT_LVL] = [
     320., //lvl 6
     320., //lvl 7
     320., //lvl 8
-    360., //lvl 9
-    400., //lvl 10
-    440., //lvl 11
-    480., //lvl 12
-    520., //lvl 13
-    560., //lvl 14
-    600., //lvl 15
-    640., //lvl 16
-    680., //lvl 17
-    720., //lvl 18
+    344., //lvl 9
+    368., //lvl 10
+    392., //lvl 11
+    416., //lvl 12
+    440., //lvl 13
+    464., //lvl 14
+    488., //lvl 15
+    512., //lvl 16
+    536., //lvl 17
+    560., //lvl 18
 ];
 fn immortal_shieldbow_init(champ: &mut Unit) {
     //lifeline passive
@@ -2570,7 +2576,7 @@ pub const LUDENS_COMPANION: Item = Item {
     id: ItemId::LudensCompanion,
     full_name: "Ludens_companion",
     short_name: "Ludens",
-    cost: 2900.,
+    cost: 2850.,
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
@@ -2578,13 +2584,13 @@ pub const LUDENS_COMPANION: Item = Item {
         mana: 600.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 95.,
+        ap_flat: 100.,
         ap_coef: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 25.,
+        ability_haste: 20.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -4177,7 +4183,7 @@ pub const SHADOWFLAME: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 120.,
+        ap_flat: 115.,
         ap_coef: 0.,
         armor: 0.,
         mr: 0.,
@@ -4193,7 +4199,7 @@ pub const SHADOWFLAME: Item = Item {
         ms_percent: 0.,
         lethality: 0.,
         armor_pen_percent: 0.,
-        magic_pen_flat: 12.,
+        magic_pen_flat: 15.,
         magic_pen_percent: 0.,
         armor_red_flat: 0.,
         armor_red_percent: 0.,
@@ -4461,11 +4467,7 @@ fn stormsurge_stormraider(champ: &mut Unit, _target_stats: &UnitStats) -> (f32, 
         let avalability_coef: f32 = effect_availability_formula(
             STORMSURGE_STORMRAIDER_MS_COOLDOWN * haste_formula(champ.stats.item_haste),
         );
-        return (
-            0.,
-            avalability_coef * 0.90 * (140. + 0.20 * champ.stats.ap()),
-            0.,
-        ); //ranged value
+        return (0., avalability_coef * (140. + 0.20 * champ.stats.ap()), 0.);
     }
     (0., 0., 0.)
 }
@@ -4495,10 +4497,10 @@ pub const STORMSURGE: Item = Item {
         crit_chance: 0.,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.08,
+        ms_percent: 0.05,
         lethality: 0.,
         armor_pen_percent: 0.,
-        magic_pen_flat: 10.,
+        magic_pen_flat: 15.,
         magic_pen_percent: 0.,
         armor_red_flat: 0.,
         armor_red_percent: 0.,
@@ -5911,7 +5913,7 @@ pub const SORCERERS_SHOES: Item = Item {
         item_haste: 0.,
         crit_chance: 0.,
         crit_dmg: 0.,
-        ms_flat: 0.,
+        ms_flat: 45.,
         ms_percent: 0.,
         lethality: 0.,
         armor_pen_percent: 0.,
