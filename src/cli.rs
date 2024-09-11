@@ -63,7 +63,7 @@ pub fn launch_interface() {
                     Unit::ALL_CHAMPIONS
                         [index.expect("Expected an input from user, but received none")],
                 ) {
-                    return;
+                    break;
                 }
             }
             Err(UserCommand::Back) => println!("Cannot go further back"),
