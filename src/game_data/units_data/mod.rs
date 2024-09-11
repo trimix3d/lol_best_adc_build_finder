@@ -129,15 +129,15 @@ pub struct UnitStats {
 
 impl Default for UnitStats {
     fn default() -> Self {
-        UnitStats::const_default()
+        Self::const_default()
     }
 }
 
 impl UnitStats {
     /// Provides a default value for `UnitStats` usable in compile time constants (unlike `Default::default()` which is not const).
     #[must_use]
-    pub const fn const_default() -> UnitStats {
-        UnitStats {
+    pub const fn const_default() -> Self {
+        Self {
             hp: 0.,
             mana: 0.,
             base_ad: 0.,
@@ -230,7 +230,7 @@ impl UnitStats {
         1. + self.crit_chance * (self.crit_dmg - 1.)
     }
 
-    fn add(&mut self, other_ref: &UnitStats) {
+    fn add(&mut self, other_ref: &Self) {
         self.hp += other_ref.hp;
         self.mana += other_ref.mana;
         self.base_ad += other_ref.base_ad;
@@ -263,7 +263,7 @@ impl UnitStats {
         self.crit_chance = f32::min(1., self.crit_chance); //cr capped at 100%
     }
 
-    fn store_add(&mut self, ref_a: &UnitStats, ref_b: &UnitStats) {
+    fn store_add(&mut self, ref_a: &Self, ref_b: &Self) {
         self.hp = ref_a.hp + ref_b.hp;
         self.mana = ref_a.mana + ref_b.mana;
         self.base_ad = ref_a.base_ad + ref_b.base_ad;
@@ -403,7 +403,7 @@ pub struct SkillOrder {
 impl Default for SkillOrder {
     /// Returns classic skill order with q->w->e lvl-up priority.
     fn default() -> Self {
-        SkillOrder::const_default()
+        Self::const_default()
     }
 }
 
@@ -411,8 +411,8 @@ impl SkillOrder {
     /// Returns classic skill order with q->w->e lvl-up priority.
     /// Provides a default valid value for `SkillOrder` usable in compile time constants (unlike `Default::default()` which is not const).
     #[must_use]
-    pub const fn const_default() -> SkillOrder {
-        SkillOrder {
+    pub const fn const_default() -> Self {
+        Self {
             //lvls:
             //  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18
             q: [1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -635,7 +635,7 @@ impl Unit {
         skill_order: SkillOrder,
         lvl: u8,
         build: Build,
-    ) -> Result<Unit, String> {
+    ) -> Result<Self, String> {
         //perform some checks before creating the Unit
         //we don't want two different spells happening at the same time so cast time must be >= F32_TOL
         if properties_ref.q.cast_time < F32_TOL
@@ -681,7 +681,7 @@ impl Unit {
         }
 
         //create the unit
-        let mut new_unit: Unit = Unit {
+        let mut new_unit: Self = Self {
             properties: properties_ref,
             stats: UnitStats::default(),
             runes_page: RunesPage {
@@ -738,8 +738,8 @@ impl Unit {
         properties_ref: &'static UnitProperties,
         lvl: u8,
         build: Build,
-    ) -> Result<Unit, String> {
-        Unit::new(
+    ) -> Result<Self, String> {
+        Self::new(
             properties_ref,
             properties_ref.unit_defaults.runes_pages.clone(),
             properties_ref.unit_defaults.skill_order.clone(),
