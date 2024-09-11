@@ -4,7 +4,7 @@ use crate::game_data::{items_data::items::*, units_data::*};
 /// Percentage of target missing hp when second skin 5 stacks procs.
 /// The missing hp taken for the calculation is the value AFTER the ad dmg from the basic attack hits,
 const KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT: f32 = 0.55;
-const KAISA_W_HIT_PERCENT: f32 = 0.75;
+const KAISA_W_HIT_PERCENT: f32 = 0.85;
 
 fn kaisa_init_spells(champ: &mut Unit) {
     champ.buffs_stacks[BuffStackId::KaisaSecondSkinStacks] = 0;
