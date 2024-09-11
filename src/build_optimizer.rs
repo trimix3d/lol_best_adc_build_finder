@@ -423,7 +423,7 @@ impl Default for BuildsGenerationSettings {
             fight_duration: 8.,
             ad_taken_percent: 0.60,
             judgment_weights: (1., 0.25, 0.5),
-            n_items: 5,
+            n_items: 4,
             boots_slot: 2,
             allow_boots_if_no_slot: true,
             support_item_slot: 0,
