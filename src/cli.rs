@@ -250,7 +250,7 @@ fn get_user_usize(
                     return Ok(Some(number));
                 } else {
                     println!(
-                        "{} is outside of range: ({:?}, {:?})",
+                        "{} is outside of range: ({:?}; {:?})",
                         number,
                         range.start_bound(),
                         range.end_bound()
