@@ -68,7 +68,7 @@ pub fn launch_interface() {
             }
             Err(UserCommand::Back) => println!("Cannot go further back"),
             Err(UserCommand::Home) => (), //already home
-            Err(UserCommand::Exit) => return,
+            Err(UserCommand::Exit) => break,
         }
     }
 }
@@ -243,19 +243,21 @@ fn get_user_usize(
             } else {
                 println!("Please enter a valid integer");
             }
-        } else if let Ok(number) = input.parse::<usize>() {
-            if range.contains(&number) {
-                return Ok(Some(number));
-            } else {
-                println!(
-                    "{} is outside of range: ({:?}, {:?})",
-                    number,
-                    range.start_bound(),
-                    range.end_bound()
-                );
+        }
+        match input.parse::<usize>() {
+            Ok(number) => {
+                if range.contains(&number) {
+                    return Ok(Some(number));
+                } else {
+                    println!(
+                        "{} is outside of range: ({:?}, {:?})",
+                        number,
+                        range.start_bound(),
+                        range.end_bound()
+                    );
+                }
             }
-        } else {
-            println!("'{input}' is not a valid integer");
+            Err(error) => println!("'{input}' is not a valid integer: {}", error),
         }
     }
 }
@@ -281,10 +283,10 @@ fn get_user_f32(
             } else {
                 println!("Please enter a valid number");
             }
-        } else if let Ok(number) = input.parse::<f32>() {
-            return Ok(Some(number));
-        } else {
-            println!("'{input}' is not a valid number");
+        }
+        match input.parse::<f32>() {
+            Ok(number) => return Ok(Some(number)),
+            Err(error) => println!("'{input}' is not a valid number: {}", error),
         }
     }
 }
