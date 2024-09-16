@@ -7,6 +7,7 @@ use enumset::{EnumSet, EnumSetType};
 
 use core::cmp::Ordering;
 use core::fmt;
+use core::ops::{Deref, DerefMut};
 
 use items::*;
 
@@ -355,14 +356,14 @@ pub const AVG_ITEM_COST_WITH_BOOTS_AND_SUPP_ITEM: f32 =
 #[derive(Copy, Clone, Debug)]
 pub struct Build(pub [&'static Item; MAX_UNIT_ITEMS]);
 
-impl core::ops::Deref for Build {
+impl Deref for Build {
     type Target = [&'static Item; MAX_UNIT_ITEMS];
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
-impl core::ops::DerefMut for Build {
+impl DerefMut for Build {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
