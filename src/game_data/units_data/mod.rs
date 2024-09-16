@@ -12,7 +12,9 @@ use enum_map::EnumMap;
 use indexmap::IndexMap;
 use runes_data::{RuneShard, RunesPage};
 use rustc_hash::FxBuildHasher;
-use std::num::NonZeroU8;
+
+use core::fmt;
+use core::num::NonZeroU8;
 
 //units constants
 /// Maximum lvl value of a Unit.
@@ -533,8 +535,8 @@ pub struct Unit {
     pub actions_log: Vec<(f32, &'static str)>,
 }
 
-impl std::fmt::Display for Unit {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Unit {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(
             f,
             "Unit '{}', lvl {}, Q-W-E-R lvl: {}-{}-{}-{}, build: {}",
@@ -1004,7 +1006,7 @@ impl Unit {
             let min_duration: f32 = *self
                 .temporary_buffs_durations
                 .values()
-                .chain(std::iter::once(&dt))
+                .chain(core::iter::once(&dt))
                 .min_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
                 .unwrap(); //will never panic as we chain with once so there is at minimum 1 element
 

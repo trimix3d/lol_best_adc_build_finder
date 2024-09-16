@@ -2,7 +2,7 @@ use super::units_data::Unit;
 
 use enum_map::Enum;
 
-use std::hash::{Hash, Hasher};
+use core::hash::{Hash, Hasher};
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Enum)]
 pub enum BuffId {

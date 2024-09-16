@@ -5,7 +5,8 @@ use super::units_data::{RawDmg, Unit, UnitStats, MAX_UNIT_ITEMS};
 use constcat::concat_slices;
 use enumset::{EnumSet, EnumSetType};
 
-use std::cmp::Ordering;
+use core::cmp::Ordering;
+use core::fmt;
 
 use items::*;
 
@@ -200,8 +201,8 @@ pub struct Item {
 
 //no impl Default for Item because they are compile time constants and can't use non-constant functions
 
-impl std::fmt::Display for Item {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Item {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if f.alternate() {
             f.write_str(self.full_name)?;
             if self.full_name != self.short_name {
@@ -361,7 +362,7 @@ impl core::ops::Deref for Build {
         &self.0
     }
 }
-impl std::ops::DerefMut for Build {
+impl core::ops::DerefMut for Build {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
@@ -374,8 +375,8 @@ impl Default for Build {
     }
 }
 
-impl core::fmt::Display for Build {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for Build {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("[")?;
         f.write_str(self[0].short_name)?;
         for item_ref in &self[1..] {

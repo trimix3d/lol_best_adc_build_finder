@@ -7,10 +7,10 @@ use units_data::*;
 
 use constcat::concat;
 
-use std::fmt::Debug;
+use core::fmt::Debug;
+use core::iter::Iterator;
+use core::ops::RangeBounds;
 use std::io;
-use std::iter::Iterator;
-use std::ops::RangeBounds;
 
 use io::Write;
 

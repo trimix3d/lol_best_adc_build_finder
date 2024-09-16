@@ -9,9 +9,9 @@ use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
-use std::iter::zip;
-use std::num::{NonZero, NonZeroU8};
-use std::time::Duration;
+use core::iter::zip;
+use core::num::{NonZero, NonZeroU8};
+use core::time::Duration;
 
 /// Meaningless to go above this value (in seconds), also computation times may become very long.
 pub const MAX_FIGHT_DURATION: f32 = 3600.;
