@@ -1,7 +1,7 @@
 use super::{Item, ItemGroups, ItemId, ItemUtils};
 use crate::game_data::*;
 
-use buffs_data::{BuffId, BuffStackId, BuffValueId, TemporaryBuff};
+use effects_data::{EffectId, EffectStackId, EffectValueId, TemporaryEffect};
 use units_data::{capped_ms, DmgSource, RawDmg, Unit, UnitStats, MAX_UNIT_LVL};
 
 use enumset::{enum_set, EnumSet};
@@ -42,42 +42,43 @@ const SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP: f32 = 0.33;
 const SPELLBLADE_COOLDOWN: f32 = 1.5;
 const SPELLBLADE_DELAY: f32 = 10.; //stack duration
 fn spellblade_init(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 0;
-    champ.buffs_values[BuffValueId::SpellbladeLastEmpowerTime] = -(SPELLBLADE_DELAY + F32_TOL); //to allow for effect at time = 0.
-    champ.buffs_values[BuffValueId::SpellbladeLastConsumeTime] = -(SPELLBLADE_COOLDOWN + F32_TOL);
+    champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
+    champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime] = -(SPELLBLADE_DELAY + F32_TOL); //to allow for effect at time = 0.
+    champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] =
+        -(SPELLBLADE_COOLDOWN + F32_TOL);
     //to allow for effect at time = 0.
 }
 
 fn spellblade_on_spell_cast(champ: &mut Unit) {
     //if already empowered, update timer
-    if champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] == 1 {
-        champ.buffs_values[BuffValueId::SpellbladeLastEmpowerTime] = champ.time;
+    if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] == 1 {
+        champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime] = champ.time;
     }
     //if not empowered (previous condition), empower next basic attack if not on cooldown
-    else if champ.time - champ.buffs_values[BuffValueId::SpellbladeLastConsumeTime]
+    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastConsumeTime]
         > SPELLBLADE_COOLDOWN * haste_formula(champ.stats.item_haste)
     {
-        champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 1;
-        champ.buffs_values[BuffValueId::SpellbladeLastEmpowerTime] = champ.time;
+        champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 1;
+        champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime] = champ.time;
     }
 }
 
 /*
 fn template_item_spellblade_on_basic_attack_hit(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //do nothing if not empowered
-    if champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] != 1 {
+    if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
     }
     //if empowered (previous condition) but last spell cast from too long ago, reset spellblade
-    else if champ.time - champ.buffs_values[BuffValueId::SpellbladeLastEmpowerTime]
+    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
-        champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 0;
+        champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
         return (0., 0., 0.);
     }
     //if empowered and last spell cast is recent enough (previous condition), reset and trigger spellblade
-    champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 0;
-    champ.buffs_values[BuffValueId::SpellbladeLastConsumeTime] = champ.time;
+    champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
+    champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
     (
         0,
         0,
@@ -95,25 +96,25 @@ fn template_item_spellblade_on_basic_attack_hit(champ: &mut Unit, _target_stats:
 /*
 //Template item
 fn template_item_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::TemplateItemEffectStat] = 0.;
-    champ.add_temporary_buff(&TEMPLATE_BUFF, champ.stats.item_haste);
+    champ.effects_values[EffectValueId::TemplateItemEffectStat] = 0.;
+    champ.add_temporary_effect(&TEMPLATE_EFFECT, champ.stats.item_haste);
 }
 
 fn template_effect_enable(champ: &mut Unit, availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::TemplateItemEffectStat] == 0. {
+    if champ.effects_values[EffectValueId::TemplateItemEffectStat] == 0. {
         let some_stat_buff: f32 = availability_coef * some_value;
         champ.stats.some_stat += some_stat_buff;
-        champ.buffs_values[BuffValueId::TemplateItemEffectStat] = some_stat_buff;
+        champ.effects_values[EffectValueId::TemplateItemEffectStat] = some_stat_buff;
     }
 }
 
 fn template_effect_disable(champ: &mut Unit) {
-    champ.stats.some_stat -= champ.buffs_values[BuffValueId::TemplateItemEffectStat];
-    champ.buffs_values[BuffValueId::TemplateItemEffectStat] = 0.;
+    champ.stats.some_stat -= champ.effects_values[EffectValueId::TemplateItemEffectStat];
+    champ.effects_values[EffectValueId::TemplateItemEffectStat] = 0.;
 }
 
-const TEMPLATE_BUFF: TemporaryBuff = TemporaryBuff {
-    id: BuffId::TemplateItemEffect,
+const TEMPLATE_EFFECT: TemporaryEffect = TemporaryEffect {
+    id: EffectId::TemplateItemEffect,
     add_stack: template_effect_enable,
     remove_every_stack: template_effect_disable,
     duration: some_duration,
@@ -176,22 +177,22 @@ pub const TEMPLATE_ITEM: Item = Item {
 /*
 //template energized item
 fn template_energized_item_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::TemplateEnergizedItemEnergizedPassiveLastTriggerDistance] =
+    champ.effects_values[EffectValueId::TemplateEnergizedItemEnergizedPassiveLastTriggerDistance] =
         -(ENERGIZED_ATTACKS_TRAVEL_REQUIRED + F32_TOL); // to allow for effect at time == 0
 }
 
 fn template_energized_item_energized_passive(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //if not enough energy, add basic attack energy stacks
     if champ.sim_results.units_travelled
-        - champ.buffs_values[BuffValueId::TemplateEnergizedItemEnergizedPassiveLastTriggerDistance]
+        - champ.effects_values[EffectValueId::TemplateEnergizedItemEnergizedPassiveLastTriggerDistance]
         < ENERGIZED_ATTACKS_TRAVEL_REQUIRED
     {
-        champ.buffs_values[BuffValueId::TemplateEnergizedItemEnergizedPassiveLastTriggerDistance] -=
+        champ.effects_values[EffectValueId::TemplateEnergizedItemEnergizedPassiveLastTriggerDistance] -=
             ENERGIZED_ATTACKS_TRAVEL_REQUIRED * 6. / 100.; //basic attacks generate 6 energy stacks
         return (0., 0., 0.);
     }
     //if enough energy (previous condition), trigger energized attack
-    champ.buffs_values[BuffValueId::TemplateEnergizedItemEnergizedPassiveLastTriggerDistance] =
+    champ.effects_values[EffectValueId::TemplateEnergizedItemEnergizedPassiveLastTriggerDistance] =
         champ.sim_results.units_travelled;
     (0, 0, 0)
 }
@@ -426,30 +427,30 @@ pub const BANSHEES_VEIL: Item = Item {
 
 //Black cleaver
 fn black_cleaver_init(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::BlackCleaverCarveStacks] = 0;
-    champ.buffs_values[BuffValueId::BlackCleaverCarveArmorRedPercent] = 0.;
-    champ.buffs_values[BuffValueId::BlackCleaverFervorMsFlat] = 0.;
+    champ.effects_stacks[EffectStackId::BlackCleaverCarveStacks] = 0;
+    champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent] = 0.;
+    champ.effects_values[EffectValueId::BlackCleaverFervorMsFlat] = 0.;
 }
 
 const BLACK_CLEAVER_CARVE_P_ARMOR_RED_PER_STACK: f32 = 0.06;
 fn black_cleaver_carve_add_stack(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_stacks[BuffStackId::BlackCleaverCarveStacks] < 5 {
-        champ.buffs_stacks[BuffStackId::BlackCleaverCarveStacks] += 1;
+    if champ.effects_stacks[EffectStackId::BlackCleaverCarveStacks] < 5 {
+        champ.effects_stacks[EffectStackId::BlackCleaverCarveStacks] += 1;
         champ.stats.armor_red_percent += BLACK_CLEAVER_CARVE_P_ARMOR_RED_PER_STACK;
-        champ.buffs_values[BuffValueId::BlackCleaverCarveArmorRedPercent] +=
+        champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent] +=
             BLACK_CLEAVER_CARVE_P_ARMOR_RED_PER_STACK;
     }
 }
 
 fn black_cleaver_carve_remove_every_stack(champ: &mut Unit) {
     champ.stats.armor_red_percent -=
-        champ.buffs_values[BuffValueId::BlackCleaverCarveArmorRedPercent];
-    champ.buffs_values[BuffValueId::BlackCleaverCarveArmorRedPercent] = 0.;
-    champ.buffs_stacks[BuffStackId::BlackCleaverCarveStacks] = 0;
+        champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent];
+    champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent] = 0.;
+    champ.effects_stacks[EffectStackId::BlackCleaverCarveStacks] = 0;
 }
 
-const BLACK_CLEAVER_CARVE: TemporaryBuff = TemporaryBuff {
-    id: BuffId::BlackCleaverCarve,
+const BLACK_CLEAVER_CARVE: TemporaryEffect = TemporaryEffect {
+    id: EffectId::BlackCleaverCarve,
     add_stack: black_cleaver_carve_add_stack,
     remove_every_stack: black_cleaver_carve_remove_every_stack,
     duration: 6.,
@@ -457,20 +458,20 @@ const BLACK_CLEAVER_CARVE: TemporaryBuff = TemporaryBuff {
 };
 
 fn black_cleaver_fervor_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::BlackCleaverFervorMsFlat] == 0. {
+    if champ.effects_values[EffectValueId::BlackCleaverFervorMsFlat] == 0. {
         let flat_ms_buff: f32 = 20.;
         champ.stats.ms_flat += flat_ms_buff;
-        champ.buffs_values[BuffValueId::BlackCleaverFervorMsFlat] = flat_ms_buff;
+        champ.effects_values[EffectValueId::BlackCleaverFervorMsFlat] = flat_ms_buff;
     }
 }
 
 fn black_cleaver_fervor_disable(champ: &mut Unit) {
-    champ.stats.ms_flat -= champ.buffs_values[BuffValueId::BlackCleaverFervorMsFlat];
-    champ.buffs_values[BuffValueId::BlackCleaverFervorMsFlat] = 0.;
+    champ.stats.ms_flat -= champ.effects_values[EffectValueId::BlackCleaverFervorMsFlat];
+    champ.effects_values[EffectValueId::BlackCleaverFervorMsFlat] = 0.;
 }
 
-const BLACK_CLEAVER_FERVOR: TemporaryBuff = TemporaryBuff {
-    id: BuffId::BlackCleaverFervor,
+const BLACK_CLEAVER_FERVOR: TemporaryEffect = TemporaryEffect {
+    id: EffectId::BlackCleaverFervor,
     add_stack: black_cleaver_fervor_enable,
     remove_every_stack: black_cleaver_fervor_disable,
     duration: 2.,
@@ -478,8 +479,8 @@ const BLACK_CLEAVER_FERVOR: TemporaryBuff = TemporaryBuff {
 };
 
 fn black_cleaver_on_ad_hit(champ: &mut Unit) {
-    champ.add_temporary_buff(&BLACK_CLEAVER_CARVE, champ.stats.item_haste);
-    champ.add_temporary_buff(&BLACK_CLEAVER_FERVOR, champ.stats.item_haste);
+    champ.add_temporary_effect(&BLACK_CLEAVER_CARVE, champ.stats.item_haste);
+    champ.add_temporary_effect(&BLACK_CLEAVER_FERVOR, champ.stats.item_haste);
 }
 
 pub const BLACK_CLEAVER: Item = Item {
@@ -537,7 +538,7 @@ pub const BLACK_CLEAVER: Item = Item {
 //Blackfire torch
 const BLACKFIRE_TORCH_BALEFUL_BLAZE_DOT_DURATION: f32 = 3.;
 fn blackfire_torch_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::BlackfireTorchBalefulBlazeLastApplicationTime] =
+    champ.effects_values[EffectValueId::BlackfireTorchBalefulBlazeLastApplicationTime] =
         -(BLACKFIRE_TORCH_BALEFUL_BLAZE_DOT_DURATION + F32_TOL); //to allow for effect at time == 0
 }
 
@@ -548,9 +549,10 @@ fn blackfire_torch_baleful_blaze(
 ) -> RawDmg {
     let dot_time: f32 = f32::min(
         BLACKFIRE_TORCH_BALEFUL_BLAZE_DOT_DURATION,
-        champ.time - champ.buffs_values[BuffValueId::BlackfireTorchBalefulBlazeLastApplicationTime],
+        champ.time
+            - champ.effects_values[EffectValueId::BlackfireTorchBalefulBlazeLastApplicationTime],
     ); //account for DoT overlap with the previous spell hit
-    champ.buffs_values[BuffValueId::BlackfireTorchBalefulBlazeLastApplicationTime] = champ.time;
+    champ.effects_values[EffectValueId::BlackfireTorchBalefulBlazeLastApplicationTime] = champ.time;
     (
         0.,
         n_targets * dot_time * (7.5 + 0.015 * champ.stats.ap()) * (1. / 0.5),
@@ -806,7 +808,7 @@ pub const CHEMPUNK_CHAINSWORD: Item = Item {
 
 //Cosmic drive
 fn cosmic_drive_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::CosmicDriveSpellDanceMsFlat] = 0.;
+    champ.effects_values[EffectValueId::CosmicDriveSpellDanceMsFlat] = 0.;
 }
 
 const COSMIC_DRIVE_SPELLDANCE_MS_FLAT_BY_LVL: [f32; MAX_UNIT_LVL] = [
@@ -831,21 +833,21 @@ const COSMIC_DRIVE_SPELLDANCE_MS_FLAT_BY_LVL: [f32; MAX_UNIT_LVL] = [
 ];
 
 fn cosmic_drive_spelldance_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::CosmicDriveSpellDanceMsFlat] == 0. {
+    if champ.effects_values[EffectValueId::CosmicDriveSpellDanceMsFlat] == 0. {
         let flat_ms_buff: f32 =
             COSMIC_DRIVE_SPELLDANCE_MS_FLAT_BY_LVL[usize::from(champ.lvl.get() - 1)];
         champ.stats.ms_flat += flat_ms_buff;
-        champ.buffs_values[BuffValueId::CosmicDriveSpellDanceMsFlat] = flat_ms_buff;
+        champ.effects_values[EffectValueId::CosmicDriveSpellDanceMsFlat] = flat_ms_buff;
     }
 }
 
 fn cosmic_drive_spelldance_disable(champ: &mut Unit) {
-    champ.stats.ms_flat -= champ.buffs_values[BuffValueId::CosmicDriveSpellDanceMsFlat];
-    champ.buffs_values[BuffValueId::CosmicDriveSpellDanceMsFlat] = 0.;
+    champ.stats.ms_flat -= champ.effects_values[EffectValueId::CosmicDriveSpellDanceMsFlat];
+    champ.effects_values[EffectValueId::CosmicDriveSpellDanceMsFlat] = 0.;
 }
 
-const COSMIC_DRIVE_SPELLDANCE: TemporaryBuff = TemporaryBuff {
-    id: BuffId::CosmicDriveSpellDance,
+const COSMIC_DRIVE_SPELLDANCE: TemporaryEffect = TemporaryEffect {
+    id: EffectId::CosmicDriveSpellDance,
     add_stack: cosmic_drive_spelldance_enable,
     remove_every_stack: cosmic_drive_spelldance_disable,
     duration: 2.,
@@ -857,7 +859,7 @@ fn cosmic_drive_spelldance_on_spell_hit(
     _target_stats: &UnitStats,
     _n_targets: f32,
 ) -> RawDmg {
-    champ.add_temporary_buff(&COSMIC_DRIVE_SPELLDANCE, champ.stats.item_haste);
+    champ.add_temporary_effect(&COSMIC_DRIVE_SPELLDANCE, champ.stats.item_haste);
     (0., 0., 0.)
 }
 
@@ -975,13 +977,13 @@ fn dead_mans_plate_init(champ: &mut Unit) {
         (champ.lvl_stats.ms_flat + champ.items_stats.ms_flat)
             * (1. + (champ.lvl_stats.ms_percent + champ.items_stats.ms_percent)),
     ); //can't use champ.ms() as it uses champ.stats that can be modified by other items init functions
-    champ.buffs_values[BuffValueId::DeadMansPlateShipwreckerLastHitdistance] =
+    champ.effects_values[EffectValueId::DeadMansPlateShipwreckerLastHitdistance] =
         -ms * 100. / DEAD_MANS_PLATE_SHIPWRECKER_STACKS_PER_SEC; //to allow for effect at time == 0
 }
 
 fn dead_mans_plate_shipwrecker(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     let time_moving: f32 = (champ.sim_results.units_travelled
-        - champ.buffs_values[BuffValueId::DeadMansPlateShipwreckerLastHitdistance])
+        - champ.effects_values[EffectValueId::DeadMansPlateShipwreckerLastHitdistance])
         / champ.stats.ms();
 
     let stacks: f32 = f32::min(
@@ -989,7 +991,7 @@ fn dead_mans_plate_shipwrecker(champ: &mut Unit, _target_stats: &UnitStats) -> R
         DEAD_MANS_PLATE_SHIPWRECKER_STACKS_PER_SEC * time_moving,
     ); //bound stacks to 100.
 
-    champ.buffs_values[BuffValueId::DeadMansPlateShipwreckerLastHitdistance] =
+    champ.effects_values[EffectValueId::DeadMansPlateShipwreckerLastHitdistance] =
         champ.sim_results.units_travelled;
     ((stacks / 100.) * (40. + champ.stats.base_ad), 0., 0.)
 }
@@ -1104,44 +1106,43 @@ pub const DEATHS_DANCE: Item = Item {
 //Eclipse
 const ECLIPSE_EVER_RISING_MOON_COOLDOWN: f32 = 6.;
 const ECLIPSE_EVER_RISING_MOON_DELAY: f32 = 2.; //stack duration
+const ECLIPSE_EVER_RISING_MOON_MAX_STACKS: u8 = 2;
 
-//const ECLIPSE_EVER_RISING_MOON_MAX_STACKS: u8 = 2;
 fn eclipse_init(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::EclipseEverRisingMoonStacks] = 0;
-    champ.buffs_values[BuffValueId::EclipseEverRisingMoonLastStackTime] =
+    champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] = 0;
+    champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime] =
         -(ECLIPSE_EVER_RISING_MOON_DELAY + F32_TOL); //to allow for effect at time = 0.
-    champ.buffs_values[BuffValueId::EclipseEverRisingMoonLastTriggerTime] =
+    champ.effects_values[EffectValueId::EclipseEverRisingMoonLastTriggerTime] =
         -(ECLIPSE_EVER_RISING_MOON_COOLDOWN + F32_TOL); //to allow for effect at time = 0.
 }
 
 fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> RawDmg {
     //do nothing if on cooldown
-    if champ.time - champ.buffs_values[BuffValueId::EclipseEverRisingMoonLastTriggerTime]
+    if champ.time - champ.effects_values[EffectValueId::EclipseEverRisingMoonLastTriggerTime]
         <= ECLIPSE_EVER_RISING_MOON_COOLDOWN * haste_formula(champ.stats.item_haste)
     {
         return (0., 0., 0.);
     }
     //if last hit from too long ago, reset stacks and add 1
-    else if champ.time - champ.buffs_values[BuffValueId::EclipseEverRisingMoonLastStackTime]
+    else if champ.time - champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime]
         >= ECLIPSE_EVER_RISING_MOON_DELAY
     {
-        champ.buffs_stacks[BuffStackId::EclipseEverRisingMoonStacks] = 1;
-        champ.buffs_values[BuffValueId::EclipseEverRisingMoonLastStackTime] = champ.time;
+        champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] = 1;
+        champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime] = champ.time;
+        return (0., 0., 0.);
+    }
+    //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
+    else if champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks]
+        < ECLIPSE_EVER_RISING_MOON_MAX_STACKS - 1
+    {
+        champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] += 1;
+        champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime] = champ.time;
         return (0., 0., 0.);
     }
 
-    //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack (useless since max 2 stacks)
-    //else if champ.buffs_stacks[BuffStackId::EclipseEverRisingMoonStacks]
-    //    < ECLIPSE_EVER_RISING_MOON_MAX_STACKS - 1
-    //{
-    //    champ.buffs_stacks[BuffStackId::EclipseEverRisingMoonStacks] += 1;
-    //    champ.buffs_values[BuffValueId::EclipseEverRisingMoonLastStackTime] = champ.time;
-    //    return (0., 0., 0.);
-    //}
-
     //if last hit is recent enough and fully stacked (previous condition), reset stacks and trigger ever rising moon
-    champ.buffs_stacks[BuffStackId::EclipseEverRisingMoonStacks] = 0;
-    champ.buffs_values[BuffValueId::EclipseEverRisingMoonLastTriggerTime] = champ.time;
+    champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] = 0;
+    champ.effects_values[EffectValueId::EclipseEverRisingMoonLastTriggerTime] = champ.time;
     champ.sim_results.heals_shields += 80. + 0.2 * champ.stats.bonus_ad; //value for ranged champions
     (0.04 * target_stats.hp, 0., 0.)
 }
@@ -1306,31 +1307,33 @@ pub const ESSENCE_REAVER: Item = Item {
 
 //Experimental hexplate
 fn experimental_hexplate_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::ExperimentalHexplateOverdriveBonusAS] = 0.;
-    champ.buffs_values[BuffValueId::ExperimentalHexplateOverdriveMsPercent] = 0.;
+    champ.effects_values[EffectValueId::ExperimentalHexplateOverdriveBonusAS] = 0.;
+    champ.effects_values[EffectValueId::ExperimentalHexplateOverdriveMsPercent] = 0.;
 }
 
 fn experimental_hexplate_enable(champ: &mut Unit, availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::ExperimentalHexplateOverdriveBonusAS] == 0. {
+    if champ.effects_values[EffectValueId::ExperimentalHexplateOverdriveBonusAS] == 0. {
         let bonus_as_buff: f32 = 0.30 * availability_coef;
         let percent_ms_buff: f32 = 0.15 * availability_coef;
         champ.stats.bonus_as += bonus_as_buff;
         champ.stats.ms_percent += percent_ms_buff;
-        champ.buffs_values[BuffValueId::ExperimentalHexplateOverdriveBonusAS] = bonus_as_buff;
-        champ.buffs_values[BuffValueId::ExperimentalHexplateOverdriveMsPercent] = percent_ms_buff;
+        champ.effects_values[EffectValueId::ExperimentalHexplateOverdriveBonusAS] = bonus_as_buff;
+        champ.effects_values[EffectValueId::ExperimentalHexplateOverdriveMsPercent] =
+            percent_ms_buff;
     }
 }
 
 fn experimental_hexplate_disable(champ: &mut Unit) {
-    champ.stats.bonus_as -= champ.buffs_values[BuffValueId::ExperimentalHexplateOverdriveBonusAS];
+    champ.stats.bonus_as -=
+        champ.effects_values[EffectValueId::ExperimentalHexplateOverdriveBonusAS];
     champ.stats.ms_percent -=
-        champ.buffs_values[BuffValueId::ExperimentalHexplateOverdriveMsPercent];
-    champ.buffs_values[BuffValueId::ExperimentalHexplateOverdriveBonusAS] = 0.;
-    champ.buffs_values[BuffValueId::ExperimentalHexplateOverdriveMsPercent] = 0.;
+        champ.effects_values[EffectValueId::ExperimentalHexplateOverdriveMsPercent];
+    champ.effects_values[EffectValueId::ExperimentalHexplateOverdriveBonusAS] = 0.;
+    champ.effects_values[EffectValueId::ExperimentalHexplateOverdriveMsPercent] = 0.;
 }
 
-const EXPERIMENTAL_HEXPLATE_OVERDRIVE: TemporaryBuff = TemporaryBuff {
-    id: BuffId::ExperimentalHexplateOverdrive,
+const EXPERIMENTAL_HEXPLATE_OVERDRIVE: TemporaryEffect = TemporaryEffect {
+    id: EffectId::ExperimentalHexplateOverdrive,
     add_stack: experimental_hexplate_enable,
     remove_every_stack: experimental_hexplate_disable,
     duration: 8.,
@@ -1338,7 +1341,7 @@ const EXPERIMENTAL_HEXPLATE_OVERDRIVE: TemporaryBuff = TemporaryBuff {
 };
 
 fn experimental_hexplate_overdrive_on_r_cast(champ: &mut Unit) {
-    champ.add_temporary_buff(&EXPERIMENTAL_HEXPLATE_OVERDRIVE, champ.stats.item_haste);
+    champ.add_temporary_effect(&EXPERIMENTAL_HEXPLATE_OVERDRIVE, champ.stats.item_haste);
 }
 
 pub const EXPERIMENTAL_HEXPLATE: Item = Item {
@@ -1505,8 +1508,8 @@ pub const GUARDIAN_ANGEL: Item = Item {
 
 //Guinsoo's rageblade
 fn guinsoos_rageblade_init(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::GuinsoosRagebladeSeethingStrikeStacks] = 0;
-    champ.buffs_stacks[BuffStackId::GuinsoosRagebladePhantomStacks] = 0;
+    champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks] = 0;
+    champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] = 0;
 }
 
 fn guinsoos_rageblade_wrath(_champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
@@ -1516,24 +1519,24 @@ fn guinsoos_rageblade_wrath(_champ: &mut Unit, _target_stats: &UnitStats) -> Raw
 const GUINSOOS_RAGEBLADE_SEETHING_STRIKE_MAX_STACKS: u8 = 4;
 const GUINSOOS_RAGEBLADE_SEETHING_STRIKE_BONUS_AS_PER_STACK: f32 = 0.08;
 fn guinsoos_rageblade_seething_strike_add_stack(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_stacks[BuffStackId::GuinsoosRagebladeSeethingStrikeStacks]
+    if champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks]
         < GUINSOOS_RAGEBLADE_SEETHING_STRIKE_MAX_STACKS
     {
-        champ.buffs_stacks[BuffStackId::GuinsoosRagebladeSeethingStrikeStacks] += 1;
+        champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks] += 1;
         champ.stats.bonus_as += GUINSOOS_RAGEBLADE_SEETHING_STRIKE_BONUS_AS_PER_STACK;
     }
 }
 
 fn guinsoos_rageblade_seething_strike_remove_every_stack(champ: &mut Unit) {
     champ.stats.bonus_as -=
-        f32::from(champ.buffs_stacks[BuffStackId::GuinsoosRagebladeSeethingStrikeStacks])
+        f32::from(champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks])
             * GUINSOOS_RAGEBLADE_SEETHING_STRIKE_BONUS_AS_PER_STACK;
-    champ.buffs_stacks[BuffStackId::GuinsoosRagebladeSeethingStrikeStacks] = 0;
-    champ.buffs_stacks[BuffStackId::GuinsoosRagebladePhantomStacks] = 0;
+    champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks] = 0;
+    champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] = 0;
 }
 
-const GUINSOOS_RAGEBLADE_SEETHING_STRIKE: TemporaryBuff = TemporaryBuff {
-    id: BuffId::GuinsoosRagebladeSeethingStrike,
+const GUINSOOS_RAGEBLADE_SEETHING_STRIKE: TemporaryEffect = TemporaryEffect {
+    id: EffectId::GuinsoosRagebladeSeethingStrike,
     add_stack: guinsoos_rageblade_seething_strike_add_stack,
     remove_every_stack: guinsoos_rageblade_seething_strike_remove_every_stack,
     duration: 3.,
@@ -1544,23 +1547,23 @@ fn guinsoos_rageblade_seething_strike_on_basic_attack_hit(
     champ: &mut Unit,
     target_stats: &UnitStats,
 ) -> RawDmg {
-    //seething strike buff (and stacks) must be applied first, phantom stacks second
-    champ.add_temporary_buff(&GUINSOOS_RAGEBLADE_SEETHING_STRIKE, champ.stats.item_haste);
+    //seething strike effect (and stacks) must be applied first, phantom stacks second
+    champ.add_temporary_effect(&GUINSOOS_RAGEBLADE_SEETHING_STRIKE, champ.stats.item_haste);
 
     //if seething strike is not fully stacked, do nothing more
-    if champ.buffs_stacks[BuffStackId::GuinsoosRagebladeSeethingStrikeStacks]
+    if champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks]
         < GUINSOOS_RAGEBLADE_SEETHING_STRIKE_MAX_STACKS
     {
         return (0., 0., 0.);
     }
     //if seething strike is fully stacked (previous condition) but phantom stacks are not fully stacked, add 1 phantom stack
-    else if champ.buffs_stacks[BuffStackId::GuinsoosRagebladePhantomStacks] < 2 {
-        champ.buffs_stacks[BuffStackId::GuinsoosRagebladePhantomStacks] += 1;
+    else if champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] < 2 {
+        champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] += 1;
         return (0., 0., 0.);
     }
     //if seething strike is fully stacked and phantom stacks are fully stacked (previous conditions), reset and return phantom hit dmg
-    champ.buffs_stacks[BuffStackId::GuinsoosRagebladePhantomStacks] = 0;
-    champ.get_items_on_basic_attack_hit_static(target_stats)
+    champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] = 0;
+    champ.get_cum_on_basic_attack_hit_static(target_stats)
 }
 
 pub const GUINSOOS_RAGEBLADE: Item = Item {
@@ -1800,28 +1803,28 @@ pub const HUBRIS: Item = Item {
 //Hullbreaker, doesn't take into account skipper bonus dmg on structures
 const HULLBREAKER_SKIPPER_DELAY: f32 = 10.; //stack duration
 fn hullbreaker_init(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::HullbreakerSkipperStacks] = 0;
-    champ.buffs_values[BuffValueId::HullbreakerSkipperLastStackTime] =
+    champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] = 0;
+    champ.effects_values[EffectValueId::HullbreakerSkipperLastStackTime] =
         -(HULLBREAKER_SKIPPER_DELAY + F32_TOL); //to allow for effect at time = 0.
 }
 
 fn hullbreaker_skipper(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //if last hit from too long ago, reset stacks and add 1
-    if champ.time - champ.buffs_values[BuffValueId::HullbreakerSkipperLastStackTime]
+    if champ.time - champ.effects_values[EffectValueId::HullbreakerSkipperLastStackTime]
         >= HULLBREAKER_SKIPPER_DELAY
     {
-        champ.buffs_stacks[BuffStackId::HullbreakerSkipperStacks] = 1;
-        champ.buffs_values[BuffValueId::HullbreakerSkipperLastStackTime] = champ.time;
+        champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] = 1;
+        champ.effects_values[EffectValueId::HullbreakerSkipperLastStackTime] = champ.time;
         return (0., 0., 0.);
     }
     //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
-    else if champ.buffs_stacks[BuffStackId::HullbreakerSkipperStacks] < 4 {
-        champ.buffs_stacks[BuffStackId::HullbreakerSkipperStacks] += 1;
-        champ.buffs_values[BuffValueId::HullbreakerSkipperLastStackTime] = champ.time;
+    else if champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] < 4 {
+        champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] += 1;
+        champ.effects_values[EffectValueId::HullbreakerSkipperLastStackTime] = champ.time;
         return (0., 0., 0.);
     }
     //if fully stacked, (previous conditions) reset stacks and return skipper dmg
-    champ.buffs_stacks[BuffStackId::HullbreakerSkipperStacks] = 0;
+    champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] = 0;
     (0.7 * champ.stats.base_ad + 0.035 * champ.stats.hp, 0., 0.) //value for ranged champions
 }
 
@@ -1884,19 +1887,19 @@ fn iceborn_gauntlet_spellblade_on_basic_attack_hit(
     _target_stats: &UnitStats,
 ) -> RawDmg {
     //do nothing if not empowered
-    if champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] != 1 {
+    if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
     }
     //if empowered (previous condition) but last spell cast from too long ago, reset spellblade
-    else if champ.time - champ.buffs_values[BuffValueId::SpellbladeLastEmpowerTime]
+    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
-        champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 0;
+        champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
         return (0., 0., 0.);
     }
     //if empowered and last spell cast is recent enough (previous condition), reset and trigger spellblade
-    champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 0;
-    champ.buffs_values[BuffValueId::SpellbladeLastConsumeTime] = champ.time;
+    champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
+    champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
     (champ.stats.base_ad, 0., 0.)
 }
 
@@ -2206,8 +2209,8 @@ pub const KAENIC_ROOKERN: Item = Item {
 //Kraken slayer
 const KRAKEN_SLAYER_BRING_IT_DOWN_DELAY: f32 = 3.; //stack duration
 fn kraken_slayer_init(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::KrakenSlayerBringItDownStacks] = 0;
-    champ.buffs_values[BuffValueId::KrakenSlayerBringItDownLastStackTime] =
+    champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] = 0;
+    champ.effects_values[EffectValueId::KrakenSlayerBringItDownLastStackTime] =
         -(KRAKEN_SLAYER_BRING_IT_DOWN_DELAY + F32_TOL); //to allow for effect at time == 0
 }
 
@@ -2233,21 +2236,21 @@ const KRAKEN_SLAYER_BRING_IT_DOWN_AD_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
 ];
 fn kraken_slayer_bring_it_down(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //if last hit from too long ago, reset stacks and add 1
-    if champ.time - champ.buffs_values[BuffValueId::KrakenSlayerBringItDownLastStackTime]
+    if champ.time - champ.effects_values[EffectValueId::KrakenSlayerBringItDownLastStackTime]
         >= KRAKEN_SLAYER_BRING_IT_DOWN_DELAY
     {
-        champ.buffs_stacks[BuffStackId::KrakenSlayerBringItDownStacks] = 1;
-        champ.buffs_values[BuffValueId::KrakenSlayerBringItDownLastStackTime] = champ.time;
+        champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] = 1;
+        champ.effects_values[EffectValueId::KrakenSlayerBringItDownLastStackTime] = champ.time;
         return (0., 0., 0.);
     }
     //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
-    else if champ.buffs_stacks[BuffStackId::KrakenSlayerBringItDownStacks] < 2 {
-        champ.buffs_stacks[BuffStackId::KrakenSlayerBringItDownStacks] += 1;
-        champ.buffs_values[BuffValueId::KrakenSlayerBringItDownLastStackTime] = champ.time;
+    else if champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] < 2 {
+        champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] += 1;
+        champ.effects_values[EffectValueId::KrakenSlayerBringItDownLastStackTime] = champ.time;
         return (0., 0., 0.);
     }
     //if fully stacked (previous conditions), reset stacks, update coef and return bring it down dmg
-    champ.buffs_stacks[BuffStackId::KrakenSlayerBringItDownStacks] = 0;
+    champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] = 0;
     let ad_dmg: f32 = (1. + 0.5 * KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT)
         * KRAKEN_SLAYER_BRING_IT_DOWN_AD_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)];
     (0.80 * ad_dmg, 0., 0.) //value for ranged champions
@@ -2309,19 +2312,19 @@ pub const KRAKEN_SLAYER: Item = Item {
 const LIANDRYS_TORMENT_TORMENT_DOT_DURATION: f32 = 3.;
 const LIANDRYS_TORMENT_SUFFERING_DELAY: f32 = 3.; //duration after which passive deactivates
 fn liandrys_torment_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::LiandrysTormentTormentLastApplicationTime] =
+    champ.effects_values[EffectValueId::LiandrysTormentTormentLastApplicationTime] =
         -(LIANDRYS_TORMENT_TORMENT_DOT_DURATION + F32_TOL); //to allow for effect at time == 0
-    champ.buffs_values[BuffValueId::LiandrysTormentSufferingCombatStartTime] = 0.;
-    champ.buffs_values[BuffValueId::LiandrysTormentSufferingLastHitTime] =
+    champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime] = 0.;
+    champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime] =
         -(LIANDRYS_TORMENT_SUFFERING_DELAY + F32_TOL); //to allow for effect at time == 0
 }
 
 fn liandrys_torment_torment(champ: &mut Unit, target_stats: &UnitStats, n_targets: f32) -> RawDmg {
     let dot_time: f32 = f32::min(
         LIANDRYS_TORMENT_TORMENT_DOT_DURATION,
-        champ.time - champ.buffs_values[BuffValueId::LiandrysTormentTormentLastApplicationTime],
+        champ.time - champ.effects_values[EffectValueId::LiandrysTormentTormentLastApplicationTime],
     ); //account for DoT overlap with the previous spell hit
-    champ.buffs_values[BuffValueId::LiandrysTormentTormentLastApplicationTime] = champ.time;
+    champ.effects_values[EffectValueId::LiandrysTormentTormentLastApplicationTime] = champ.time;
     (
         0.,
         n_targets * dot_time * (0.01 / 0.5) * target_stats.hp,
@@ -2331,19 +2334,20 @@ fn liandrys_torment_torment(champ: &mut Unit, target_stats: &UnitStats, n_target
 
 fn liandrys_torment_suffering(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     //if last hit from too long ago, reset combat
-    if champ.time - champ.buffs_values[BuffValueId::LiandrysTormentSufferingLastHitTime]
+    if champ.time - champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime]
         >= LIANDRYS_TORMENT_SUFFERING_DELAY
     {
-        champ.buffs_values[BuffValueId::LiandrysTormentSufferingCombatStartTime] = champ.time;
-        champ.buffs_values[BuffValueId::LiandrysTormentSufferingLastHitTime] = champ.time;
+        champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime] = champ.time;
+        champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime] = champ.time;
         return 0.;
     }
     //if last hit is recent enough (previous condition), return dmg coef based on the last combat start time
-    champ.buffs_values[BuffValueId::LiandrysTormentSufferingLastHitTime] = champ.time;
+    champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime] = champ.time;
     f32::min(
         0.06,
         0.02 * f32::round(
-            champ.time - champ.buffs_values[BuffValueId::LiandrysTormentSufferingCombatStartTime],
+            champ.time
+                - champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime],
         ),
     ) //as of patch 14.06, using round is the correct way to get the value
 }
@@ -2404,36 +2408,36 @@ pub const LIANDRYS_TORMENT: Item = Item {
 const LICH_BANE_SPELLBLADE_BONUS_AS: f32 = 0.5;
 fn lich_bane_spellblade_on_spell_cast(champ: &mut Unit) {
     //if already empowered, update timer
-    if champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] == 1 {
-        champ.buffs_values[BuffValueId::SpellbladeLastEmpowerTime] = champ.time;
+    if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] == 1 {
+        champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime] = champ.time;
     }
     //if not empowered (previous condition), empower next basic attack if not on cooldown
-    else if champ.time - champ.buffs_values[BuffValueId::SpellbladeLastConsumeTime]
+    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastConsumeTime]
         > SPELLBLADE_COOLDOWN * haste_formula(champ.stats.item_haste)
     {
-        champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 1;
+        champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 1;
         champ.stats.bonus_as += LICH_BANE_SPELLBLADE_BONUS_AS;
-        champ.buffs_values[BuffValueId::SpellbladeLastEmpowerTime] = champ.time;
+        champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime] = champ.time;
     }
 }
 
 fn lich_bane_spellblade_on_basic_attack_hit(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //do nothing if not empowered
-    if champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] != 1 {
+    if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
     }
     //if empowered (previous condition) but last spell cast from too long ago, reset spellblade
-    else if champ.time - champ.buffs_values[BuffValueId::SpellbladeLastEmpowerTime]
+    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
-        champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 0;
+        champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
         champ.stats.bonus_as -= LICH_BANE_SPELLBLADE_BONUS_AS;
         return (0., 0., 0.);
     }
     //if empowered and last spell cast is recent enough (previous condition), reset and trigger spellblade
-    champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 0;
+    champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
     champ.stats.bonus_as -= LICH_BANE_SPELLBLADE_BONUS_AS;
-    champ.buffs_values[BuffValueId::SpellbladeLastConsumeTime] = champ.time;
+    champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
     (0., 0.75 * champ.stats.base_ad + 0.45 * champ.stats.ap(), 0.)
 }
 
@@ -2548,21 +2552,21 @@ pub const LORD_DOMINIKS_REGARDS: Item = Item {
 const LUDENS_COMPANION_FIRE_LOADED_STACKS: f32 = 6.; //f32 because it is directly used in f32 operations
 const LUDENS_COMPANION_FIRE_STACKS_CHARGE_TIME: f32 = 12.; //f32 because it is directly used in f32 operations
 fn ludens_companion_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::LudensCompanionFireLastConsumeTime] =
+    champ.effects_values[EffectValueId::LudensCompanionFireLastConsumeTime] =
         -(LUDENS_COMPANION_FIRE_STACKS_CHARGE_TIME + F32_TOL);
     //to allow for max stacks at time==0
 }
 
 fn ludens_companion_fire(champ: &mut Unit, _target_stats: &UnitStats, n_targets: f32) -> RawDmg {
     //if stacks not loaded, do nothing (previous condition), consume them and return fire dmg
-    if champ.time - champ.buffs_values[BuffValueId::LudensCompanionFireLastConsumeTime]
+    if champ.time - champ.effects_values[EffectValueId::LudensCompanionFireLastConsumeTime]
         <= LUDENS_COMPANION_FIRE_STACKS_CHARGE_TIME
     {
         return (0., 0., 0.);
     }
 
     //if stacks loaded (previous condition), consume stacks
-    champ.buffs_values[BuffValueId::LudensCompanionFireLastConsumeTime] = champ.time;
+    champ.effects_values[EffectValueId::LudensCompanionFireLastConsumeTime] = champ.time;
     let dmg: f32 = if n_targets >= LUDENS_COMPANION_FIRE_LOADED_STACKS {
         LUDENS_COMPANION_FIRE_LOADED_STACKS * (60. + 0.04 * champ.stats.ap())
     } else {
@@ -2626,25 +2630,25 @@ pub const LUDENS_COMPANION: Item = Item {
 
 //Malignance
 fn malignance_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::MalignanceHatefogCurseMrRedFlat] = 0.;
+    champ.effects_values[EffectValueId::MalignanceHatefogCurseMrRedFlat] = 0.;
 }
 
 const MALIGNANCE_HATEFOG_CURSE_F_MR_RED: f32 = 10.;
 fn malignance_hatefog_curse_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::MalignanceHatefogCurseMrRedFlat] == 0. {
+    if champ.effects_values[EffectValueId::MalignanceHatefogCurseMrRedFlat] == 0. {
         champ.stats.mr_red_flat += MALIGNANCE_HATEFOG_CURSE_F_MR_RED;
-        champ.buffs_values[BuffValueId::MalignanceHatefogCurseMrRedFlat] =
+        champ.effects_values[EffectValueId::MalignanceHatefogCurseMrRedFlat] =
             MALIGNANCE_HATEFOG_CURSE_F_MR_RED;
     }
 }
 
 fn malignance_hatefog_curse_disable(champ: &mut Unit) {
-    champ.stats.mr_red_flat -= champ.buffs_values[BuffValueId::MalignanceHatefogCurseMrRedFlat];
-    champ.buffs_values[BuffValueId::MalignanceHatefogCurseMrRedFlat] = 0.;
+    champ.stats.mr_red_flat -= champ.effects_values[EffectValueId::MalignanceHatefogCurseMrRedFlat];
+    champ.effects_values[EffectValueId::MalignanceHatefogCurseMrRedFlat] = 0.;
 }
 
-const MALIGNANCE_HATEFOG_CURSE: TemporaryBuff = TemporaryBuff {
-    id: BuffId::MalignanceHatefogCurse,
+const MALIGNANCE_HATEFOG_CURSE: TemporaryEffect = TemporaryEffect {
+    id: EffectId::MalignanceHatefogCurse,
     add_stack: malignance_hatefog_curse_enable,
     remove_every_stack: malignance_hatefog_curse_disable,
     duration: MALIGNANCE_HATEFOG_CURSE_TIME,
@@ -2653,7 +2657,7 @@ const MALIGNANCE_HATEFOG_CURSE: TemporaryBuff = TemporaryBuff {
 
 fn malignance_hatefog(champ: &mut Unit, _target_stats: &UnitStats, n_targets: f32) -> RawDmg {
     //if on cooldown, do nothing
-    if !champ.add_temporary_buff(&MALIGNANCE_HATEFOG_CURSE, champ.stats.item_haste) {
+    if !champ.add_temporary_effect(&MALIGNANCE_HATEFOG_CURSE, champ.stats.item_haste) {
         return (0., 0., 0.);
     }
     //if not on cooldown (previous condition), return dmg
@@ -2948,7 +2952,7 @@ pub const MORTAL_REMINDER: Item = Item {
 
 //Muramana
 fn muramana_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::MuramanaShockLastSpellHitTime] = -F32_TOL; //to allow for effect at time == 0
+    champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] = -F32_TOL; //to allow for effect at time == 0
 
     //awe passive
     champ.stats.bonus_ad += 0.025 * (champ.lvl_stats.mana + champ.items_stats.mana);
@@ -2960,7 +2964,7 @@ fn muramana_shock_on_spell_hit(
     n_targets: f32,
 ) -> RawDmg {
     //set shock last spell hit, to prevent potential on basic attack hit effects triggered by this ability to apply shock twice
-    champ.buffs_values[BuffValueId::MuramanaShockLastSpellHitTime] = champ.time;
+    champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] = champ.time;
     (
         n_targets * (0.027 * champ.stats.mana + 0.06 * champ.stats.ad()),
         0.,
@@ -2971,7 +2975,7 @@ fn muramana_shock_on_spell_hit(
 fn muramana_shock_on_basic_attack_hit(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //it is okay to have this condition in static on hit (exception)
     //if same instance of dmg (==exact same time) as muramana_shock_on_spell_hit, do nothing (to prevent basic attack that trigger on hit to apply muramana passive twice)
-    if champ.time == champ.buffs_values[BuffValueId::MuramanaShockLastSpellHitTime] {
+    if champ.time == champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] {
         return (0., 0., 0.);
     }
     //if not the same instance, return dmg (no need to update shock last spell hit time since spells effects are called first)
@@ -3150,10 +3154,10 @@ pub const NAVORI_FLICKERBLADE: Item = Item {
 
 //Opportunity, extration passive not implemented (too situationnal)
 fn opportunity_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::OpportunityPreparationLethality] = 0.;
+    champ.effects_values[EffectValueId::OpportunityPreparationLethality] = 0.;
 
     //preparation passive
-    champ.add_temporary_buff(
+    champ.add_temporary_effect(
         &OPPORTUNITY_PREPARATION,
         champ.lvl_stats.item_haste + champ.items_stats.item_haste,
     );
@@ -3180,21 +3184,21 @@ const OPPORTUNITY_PREPARATION_LETHALITY_BY_LVL: [f32; MAX_UNIT_LVL] = [
     6.3, //lvl 18
 ]; //assumes ranged value
 fn opportunity_preparation_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::OpportunityPreparationLethality] == 0. {
+    if champ.effects_values[EffectValueId::OpportunityPreparationLethality] == 0. {
         let lethality_buff: f32 =
             OPPORTUNITY_PREPARATION_LETHALITY_BY_LVL[usize::from(champ.lvl.get() - 1)];
         champ.stats.lethality += lethality_buff;
-        champ.buffs_values[BuffValueId::OpportunityPreparationLethality] = lethality_buff;
+        champ.effects_values[EffectValueId::OpportunityPreparationLethality] = lethality_buff;
     }
 }
 
 fn opportunity_preparation_disable(champ: &mut Unit) {
-    champ.stats.lethality -= champ.buffs_values[BuffValueId::OpportunityPreparationLethality];
-    champ.buffs_values[BuffValueId::OpportunityPreparationLethality] = 0.;
+    champ.stats.lethality -= champ.effects_values[EffectValueId::OpportunityPreparationLethality];
+    champ.effects_values[EffectValueId::OpportunityPreparationLethality] = 0.;
 }
 
-const OPPORTUNITY_PREPARATION: TemporaryBuff = TemporaryBuff {
-    id: BuffId::OpportunityPreparation,
+const OPPORTUNITY_PREPARATION: TemporaryEffect = TemporaryEffect {
+    id: EffectId::OpportunityPreparation,
     add_stack: opportunity_preparation_enable,
     remove_every_stack: opportunity_preparation_disable,
     duration: 3.,
@@ -3548,22 +3552,22 @@ pub const RANDUINS_OMEN: Item = Item {
 
 //Rapid firecannon
 fn rapid_firecannon_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::RapidFirecannonSharpshooterLastTriggerDistance] =
+    champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance] =
         -(ENERGIZED_ATTACKS_TRAVEL_REQUIRED + F32_TOL); // to allow for effect at time == 0
 }
 
 fn rapid_firecannon_sharpshooter(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //if not enough energy, add basic attack energy stacks
     if champ.sim_results.units_travelled
-        - champ.buffs_values[BuffValueId::RapidFirecannonSharpshooterLastTriggerDistance]
+        - champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance]
         < ENERGIZED_ATTACKS_TRAVEL_REQUIRED
     {
-        champ.buffs_values[BuffValueId::RapidFirecannonSharpshooterLastTriggerDistance] -=
+        champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance] -=
             ENERGIZED_ATTACKS_TRAVEL_REQUIRED * 6. / 100.; //basic attacks generate 6 energy stacks
         return (0., 0., 0.);
     }
     //if enough energy (previous condition), trigger energized attack
-    champ.buffs_values[BuffValueId::RapidFirecannonSharpshooterLastTriggerDistance] =
+    champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance] =
         champ.sim_results.units_travelled;
     (0., 60., 0.)
 }
@@ -3699,9 +3703,9 @@ pub const RAVENOUS_HYDRA: Item = Item {
 //Riftmaker
 const RIFTMAKER_VOID_CORRUPTION_NOT_IN_COMBAT_TIME_VALUE: f32 = -1.; //special value to indicate that the unit is not in combat, MUST BE NEGATIVE to not interfere with an actual combat start time value
 fn riftmaker_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionOmnivamp] = 0.;
-    champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCoef] = 0.;
-    champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCombatStartTime] =
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp] = 0.;
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef] = 0.;
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime] =
         RIFTMAKER_VOID_CORRUPTION_NOT_IN_COMBAT_TIME_VALUE;
 
     //void infusion passive
@@ -3711,43 +3715,44 @@ fn riftmaker_init(champ: &mut Unit) {
 const RIFTMAKER_VOID_CORRUPTION_MAX_COEF: f32 = 0.10;
 const RIFTMAKER_VOID_CORRUPTION_OMNIVAMP: f32 = 0.06; //value for ranged champions
 fn riftmaker_void_corruption_refresh(champ: &mut Unit, _availability_coef: f32) {
-    //test if it's the first refresh of the buff, reset combat start time if so
-    if champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCombatStartTime]
+    //test if it's the first refresh of the effect, reset combat start time if so
+    if champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime]
         == RIFTMAKER_VOID_CORRUPTION_NOT_IN_COMBAT_TIME_VALUE
     {
-        champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCombatStartTime] = champ.time;
-        champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCoef] = 0.;
+        champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime] = champ.time;
+        champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef] = 0.;
         return;
     }
     //if not the first refresh (previous condition), update coef
-    champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCoef] = f32::min(
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef] = f32::min(
         RIFTMAKER_VOID_CORRUPTION_MAX_COEF,
         0.02 * f32::trunc(
-            champ.time - champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCombatStartTime],
+            champ.time
+                - champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime],
         ),
     ); //as of patch 14.06, using trunc is the correct way to get the value
 
     //gain omnivamp if fully stacked
-    if (champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionOmnivamp] == 0.)
-        && champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCoef]
+    if (champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp] == 0.)
+        && champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef]
             == RIFTMAKER_VOID_CORRUPTION_MAX_COEF
     {
         champ.stats.omnivamp += RIFTMAKER_VOID_CORRUPTION_OMNIVAMP;
-        champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionOmnivamp] =
+        champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp] =
             RIFTMAKER_VOID_CORRUPTION_OMNIVAMP;
     }
 }
 
 fn riftmaker_void_corruption_disable(champ: &mut Unit) {
-    champ.stats.omnivamp -= champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionOmnivamp];
-    champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionOmnivamp] = 0.;
-    champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCoef] = 0.; //useless since we init it when refreshing buff for the first time but we do it for debug consistency
-    champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCombatStartTime] =
+    champ.stats.omnivamp -= champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp];
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp] = 0.;
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef] = 0.; //useless since we init it when refreshing effect for the first time but we do it for debug consistency
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime] =
         RIFTMAKER_VOID_CORRUPTION_NOT_IN_COMBAT_TIME_VALUE;
 }
 
-const RIFTMAKER_VOID_CORRUPTION: TemporaryBuff = TemporaryBuff {
-    id: BuffId::RiftmakerVoidCorruption,
+const RIFTMAKER_VOID_CORRUPTION: TemporaryEffect = TemporaryEffect {
+    id: EffectId::RiftmakerVoidCorruption,
     add_stack: riftmaker_void_corruption_refresh,
     remove_every_stack: riftmaker_void_corruption_disable,
     duration: 4.,
@@ -3755,8 +3760,8 @@ const RIFTMAKER_VOID_CORRUPTION: TemporaryBuff = TemporaryBuff {
 };
 
 fn riftmaker_void_corruption(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    champ.add_temporary_buff(&RIFTMAKER_VOID_CORRUPTION, champ.stats.item_haste);
-    champ.buffs_values[BuffValueId::RiftmakerVoidCorruptionCoef]
+    champ.add_temporary_effect(&RIFTMAKER_VOID_CORRUPTION, champ.stats.item_haste);
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef]
 }
 
 pub const RIFTMAKER: Item = Item {
@@ -3871,7 +3876,7 @@ fn runaans_hurricane_winds_fury(champ: &mut Unit, target_stats: &UnitStats) -> R
         on_basic_attack_hit_static_ad_dmg,
         on_basic_attack_hit_static_ap_dmg,
         on_basic_attack_hit_static_true_dmg,
-    ) = champ.get_items_on_basic_attack_hit_static(target_stats);
+    ) = champ.get_cum_on_basic_attack_hit_static(target_stats);
     (
         RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS
             * (0.55 * champ.stats.ad() * champ.stats.crit_coef()
@@ -4230,27 +4235,27 @@ pub const SHADOWFLAME: Item = Item {
 //Spear of shojin
 const SPEAR_OF_SHOJIN_FOCUSED_WILL_DELAY: f32 = 6.; //stack duration
 fn spear_of_shojin_init(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::SpearOfShojinFocusedWillStacks] = 0;
-    champ.buffs_values[BuffValueId::SpearOfShojinFocusedWillLastHitTime] =
+    champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] = 0;
+    champ.effects_values[EffectValueId::SpearOfShojinFocusedWillLastHitTime] =
         -(SPEAR_OF_SHOJIN_FOCUSED_WILL_DELAY + F32_TOL); //to allow for effect at time==0
 }
 
 const SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK: f32 = 0.03;
 fn spear_of_shojin_focused_will(champ: &mut Unit) -> f32 {
     //if last hit from too long ago, refresh duration and reset stacks
-    if champ.time - champ.buffs_values[BuffValueId::SpearOfShojinFocusedWillLastHitTime]
+    if champ.time - champ.effects_values[EffectValueId::SpearOfShojinFocusedWillLastHitTime]
         > SPEAR_OF_SHOJIN_FOCUSED_WILL_DELAY
     {
-        champ.buffs_values[BuffValueId::SpearOfShojinFocusedWillLastHitTime] = champ.time;
-        champ.buffs_stacks[BuffStackId::SpearOfShojinFocusedWillStacks] = 0; //first instance has 0 stack
+        champ.effects_values[EffectValueId::SpearOfShojinFocusedWillLastHitTime] = champ.time;
+        champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] = 0; //first instance has 0 stack
         return 0.;
     }
     //if last hit is recent enough (previous condition), refresh duration and return coef (add 1 stack if not fully stacked)
-    else if champ.buffs_stacks[BuffStackId::SpearOfShojinFocusedWillStacks] < 4 {
-        champ.buffs_stacks[BuffStackId::SpearOfShojinFocusedWillStacks] += 1;
+    else if champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] < 4 {
+        champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] += 1;
     }
-    champ.buffs_values[BuffValueId::SpearOfShojinFocusedWillLastHitTime] = champ.time;
-    f32::from(champ.buffs_stacks[BuffStackId::SpearOfShojinFocusedWillStacks])
+    champ.effects_values[EffectValueId::SpearOfShojinFocusedWillLastHitTime] = champ.time;
+    f32::from(champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks])
         * SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK //use value after adding a stack
 }
 
@@ -4433,26 +4438,26 @@ pub const STERAKS_GAGE: Item = Item {
 
 //Stormsurge (assumes passive is always triggered)
 fn stormsurge_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::StormsurgeStormraiderMsPercent] = 0.;
-    champ.buffs_stacks[BuffStackId::StormsurgeStormraiderTriggered] = 0;
+    champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] = 0.;
+    champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] = 0;
 }
 
 fn stormsurge_stormraider_ms_enable(champ: &mut Unit, availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::StormsurgeStormraiderMsPercent] == 0. {
+    if champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] == 0. {
         let percent_ms_buff: f32 = availability_coef * 0.35;
         champ.stats.ms_percent += percent_ms_buff;
-        champ.buffs_values[BuffValueId::StormsurgeStormraiderMsPercent] = percent_ms_buff;
+        champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] = percent_ms_buff;
     }
 }
 
 fn stormsurge_stormraider_ms_disable(champ: &mut Unit) {
-    champ.stats.ms_percent -= champ.buffs_values[BuffValueId::StormsurgeStormraiderMsPercent];
-    champ.buffs_values[BuffValueId::StormsurgeStormraiderMsPercent] = 0.;
+    champ.stats.ms_percent -= champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent];
+    champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] = 0.;
 }
 
 const STORMSURGE_STORMRAIDER_MS_COOLDOWN: f32 = 30.;
-const STORMSURGE_STORMRAIDER_MS: TemporaryBuff = TemporaryBuff {
-    id: BuffId::StormsurgeStormraiderMS,
+const STORMSURGE_STORMRAIDER_MS: TemporaryEffect = TemporaryEffect {
+    id: EffectId::StormsurgeStormraiderMS,
     add_stack: stormsurge_stormraider_ms_enable,
     remove_every_stack: stormsurge_stormraider_ms_disable,
     duration: 2.0,
@@ -4461,9 +4466,10 @@ const STORMSURGE_STORMRAIDER_MS: TemporaryBuff = TemporaryBuff {
 
 fn stormsurge_stormraider(champ: &mut Unit, _target_stats: &UnitStats) -> (f32, f32, f32) {
     //stormraider passive, triggers once, by a default 2.5sec after the first dmg instance since we don't record dmg done over time and cannot check the real activation condition
-    if champ.buffs_stacks[BuffStackId::StormsurgeStormraiderTriggered] == 0 && champ.time > 2.5 {
-        champ.buffs_stacks[BuffStackId::StormsurgeStormraiderTriggered] = 1;
-        champ.add_temporary_buff(&STORMSURGE_STORMRAIDER_MS, champ.stats.item_haste);
+    if champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] == 0 && champ.time > 2.5
+    {
+        champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] = 1;
+        champ.add_temporary_effect(&STORMSURGE_STORMRAIDER_MS, champ.stats.item_haste);
         let avalability_coef: f32 = effect_availability_formula(
             STORMSURGE_STORMRAIDER_MS_COOLDOWN * haste_formula(champ.stats.item_haste),
         );
@@ -4526,27 +4532,27 @@ pub const STORMSURGE: Item = Item {
 
 //Stridebreaker
 fn stridebreaker_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::StridebreakerBreakingShockwaveMsPercent] = 0.;
+    champ.effects_values[EffectValueId::StridebreakerBreakingShockwaveMsPercent] = 0.;
 }
 
 const STRIDEBREAKER_BREAKING_SHOCKWAVE_P_MS: f32 = 0.35;
 fn stridebreaker_braking_shockwave_ms_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::StridebreakerBreakingShockwaveMsPercent] == 0. {
+    if champ.effects_values[EffectValueId::StridebreakerBreakingShockwaveMsPercent] == 0. {
         //ms buff halved because decays over time
         champ.stats.ms_percent += 0.5 * STRIDEBREAKER_BREAKING_SHOCKWAVE_P_MS;
-        champ.buffs_values[BuffValueId::StridebreakerBreakingShockwaveMsPercent] =
+        champ.effects_values[EffectValueId::StridebreakerBreakingShockwaveMsPercent] =
             0.5 * STRIDEBREAKER_BREAKING_SHOCKWAVE_P_MS;
     }
 }
 
 fn stridebreaker_braking_shockwave_ms_disable(champ: &mut Unit) {
     champ.stats.ms_percent -=
-        champ.buffs_values[BuffValueId::StridebreakerBreakingShockwaveMsPercent];
-    champ.buffs_values[BuffValueId::StridebreakerBreakingShockwaveMsPercent] = 0.;
+        champ.effects_values[EffectValueId::StridebreakerBreakingShockwaveMsPercent];
+    champ.effects_values[EffectValueId::StridebreakerBreakingShockwaveMsPercent] = 0.;
 }
 
-const STRIDEBREAKER_BREAKING_SHOCKWAVE_MS: TemporaryBuff = TemporaryBuff {
-    id: BuffId::StridebreakerBreakingShockwaveMS,
+const STRIDEBREAKER_BREAKING_SHOCKWAVE_MS: TemporaryEffect = TemporaryEffect {
+    id: EffectId::StridebreakerBreakingShockwaveMS,
     add_stack: stridebreaker_braking_shockwave_ms_enable,
     remove_every_stack: stridebreaker_braking_shockwave_ms_disable,
     duration: 3.,
@@ -4562,7 +4568,7 @@ fn stridebreaker_breaking_shockwave(champ: &mut Unit, target_stats: &UnitStats) 
         false,
         1.,
     ); //calculate dmg before ms boost
-    champ.add_temporary_buff(&STRIDEBREAKER_BREAKING_SHOCKWAVE_MS, champ.stats.item_haste);
+    champ.add_temporary_effect(&STRIDEBREAKER_BREAKING_SHOCKWAVE_MS, champ.stats.item_haste);
     dmg
 }
 
@@ -4575,20 +4581,20 @@ fn stridebreaker_cleave(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
 }
 
 fn stridebreaker_temper_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::StridebreakerTemperMsFlat] == 0. {
+    if champ.effects_values[EffectValueId::StridebreakerTemperMsFlat] == 0. {
         let flat_ms_buff: f32 = 20.;
         champ.stats.ms_flat += flat_ms_buff;
-        champ.buffs_values[BuffValueId::StridebreakerTemperMsFlat] = flat_ms_buff;
+        champ.effects_values[EffectValueId::StridebreakerTemperMsFlat] = flat_ms_buff;
     }
 }
 
 fn stridebreaker_temper_disable(champ: &mut Unit) {
-    champ.stats.ms_flat -= champ.buffs_values[BuffValueId::StridebreakerTemperMsFlat];
-    champ.buffs_values[BuffValueId::StridebreakerTemperMsFlat] = 0.;
+    champ.stats.ms_flat -= champ.effects_values[EffectValueId::StridebreakerTemperMsFlat];
+    champ.effects_values[EffectValueId::StridebreakerTemperMsFlat] = 0.;
 }
 
-const STRIDEBREAKER_TEMPER: TemporaryBuff = TemporaryBuff {
-    id: BuffId::StridebreakerTemper,
+const STRIDEBREAKER_TEMPER: TemporaryEffect = TemporaryEffect {
+    id: EffectId::StridebreakerTemper,
     add_stack: stridebreaker_temper_enable,
     remove_every_stack: stridebreaker_temper_disable,
     duration: 2.,
@@ -4596,7 +4602,7 @@ const STRIDEBREAKER_TEMPER: TemporaryBuff = TemporaryBuff {
 };
 
 fn stridebreaker_temper_on_ad_hit(champ: &mut Unit) {
-    champ.add_temporary_buff(&STRIDEBREAKER_TEMPER, champ.stats.item_haste);
+    champ.add_temporary_effect(&STRIDEBREAKER_TEMPER, champ.stats.item_haste);
 }
 
 pub const STRIDEBREAKER_CLEAVE_RANGE: f32 = 350.;
@@ -4655,19 +4661,19 @@ pub const STRIDEBREAKER: Item = Item {
 //Sundered sky
 const SUNDERED_SKY_COOLDOWN: f32 = 8.;
 fn sundered_sky_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::SunderedSkyLastTriggerTime] =
+    champ.effects_values[EffectValueId::SunderedSkyLastTriggerTime] =
         -(SUNDERED_SKY_COOLDOWN + F32_TOL); //to allow for effect at time==0
 }
 
 fn sundered_sky_lightshield_strike(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //if on cooldown, do nothing
-    if champ.time - champ.buffs_values[BuffValueId::SunderedSkyLastTriggerTime]
+    if champ.time - champ.effects_values[EffectValueId::SunderedSkyLastTriggerTime]
         <= SUNDERED_SKY_COOLDOWN
     {
         return (0., 0., 0.);
     }
     //if not on cooldown, put on cooldown and trigger effect
-    champ.buffs_values[BuffValueId::SunderedSkyLastTriggerTime] = champ.time;
+    champ.effects_values[EffectValueId::SunderedSkyLastTriggerTime] = champ.time;
     champ.sim_results.heals_shields += 1.2 * champ.stats.base_ad
         + SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP * 0.06 * champ.stats.hp;
     let ad_dmg: f32 =
@@ -4731,11 +4737,11 @@ pub const SUNDERED_SKY: Item = Item {
 
 //Terminus
 fn terminus_init(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::TerminusJuxtapositionMode] = 0; //0==light, 1==dark
-    champ.buffs_stacks[BuffStackId::TerminusJuxtapositionLightStacks] = 0;
-    champ.buffs_stacks[BuffStackId::TerminusJuxtapositionDarkStacks] = 0;
-    champ.buffs_values[BuffValueId::TerminusJuxtapositionLightRes] = 0.;
-    champ.buffs_values[BuffValueId::TerminusJuxtapositionDarkPen] = 0.;
+    champ.effects_stacks[EffectStackId::TerminusJuxtapositionMode] = 0; //0==light, 1==dark
+    champ.effects_stacks[EffectStackId::TerminusJuxtapositionLightStacks] = 0;
+    champ.effects_stacks[EffectStackId::TerminusJuxtapositionDarkStacks] = 0;
+    champ.effects_values[EffectValueId::TerminusJuxtapositionLightRes] = 0.;
+    champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen] = 0.;
 }
 
 fn terminus_shadow(_champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
@@ -4764,28 +4770,28 @@ const TERMINUS_JUXTAPOSITION_RES_PER_LIGHT_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
     8., //lvl 18
 ];
 fn terminus_juxtaposition_add_light_stack(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_stacks[BuffStackId::TerminusJuxtapositionLightStacks]
+    if champ.effects_stacks[EffectStackId::TerminusJuxtapositionLightStacks]
         < TERMINUS_JUXTAPOSITION_MAX_STACKS
     {
-        champ.buffs_stacks[BuffStackId::TerminusJuxtapositionLightStacks] += 1;
+        champ.effects_stacks[EffectStackId::TerminusJuxtapositionLightStacks] += 1;
         let res_buff: f32 =
             TERMINUS_JUXTAPOSITION_RES_PER_LIGHT_STACK_BY_LVL[usize::from(champ.lvl.get() - 1)];
         champ.stats.armor += res_buff;
         champ.stats.mr += res_buff;
-        champ.buffs_values[BuffValueId::TerminusJuxtapositionLightRes] += res_buff;
+        champ.effects_values[EffectValueId::TerminusJuxtapositionLightRes] += res_buff;
     }
 }
 
 fn terminus_juxtaposition_remove_every_light_stack(champ: &mut Unit) {
-    champ.stats.armor -= champ.buffs_values[BuffValueId::TerminusJuxtapositionLightRes];
-    champ.stats.mr -= champ.buffs_values[BuffValueId::TerminusJuxtapositionLightRes];
-    champ.buffs_values[BuffValueId::TerminusJuxtapositionLightRes] = 0.;
-    champ.buffs_stacks[BuffStackId::TerminusJuxtapositionLightStacks] = 0;
+    champ.stats.armor -= champ.effects_values[EffectValueId::TerminusJuxtapositionLightRes];
+    champ.stats.mr -= champ.effects_values[EffectValueId::TerminusJuxtapositionLightRes];
+    champ.effects_values[EffectValueId::TerminusJuxtapositionLightRes] = 0.;
+    champ.effects_stacks[EffectStackId::TerminusJuxtapositionLightStacks] = 0;
 }
 
 const TERMINUS_JUXTAPOSITION_DURATION: f32 = 5.;
-const TERMINUS_JUXTAPOSITION_LIGHT: TemporaryBuff = TemporaryBuff {
-    id: BuffId::TerminusJuxtapositionLight,
+const TERMINUS_JUXTAPOSITION_LIGHT: TemporaryEffect = TemporaryEffect {
+    id: EffectId::TerminusJuxtapositionLight,
     add_stack: terminus_juxtaposition_add_light_stack,
     remove_every_stack: terminus_juxtaposition_remove_every_light_stack,
     duration: TERMINUS_JUXTAPOSITION_DURATION,
@@ -4794,26 +4800,28 @@ const TERMINUS_JUXTAPOSITION_LIGHT: TemporaryBuff = TemporaryBuff {
 
 const TERMINUS_JUXTAPOSITION_PEN_PER_DARK_STACK: f32 = 0.10;
 fn terminus_juxtaposition_add_dark_stack(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_stacks[BuffStackId::TerminusJuxtapositionDarkStacks]
+    if champ.effects_stacks[EffectStackId::TerminusJuxtapositionDarkStacks]
         < TERMINUS_JUXTAPOSITION_MAX_STACKS
     {
-        champ.buffs_stacks[BuffStackId::TerminusJuxtapositionDarkStacks] += 1;
+        champ.effects_stacks[EffectStackId::TerminusJuxtapositionDarkStacks] += 1;
         champ.stats.armor_pen_percent += TERMINUS_JUXTAPOSITION_PEN_PER_DARK_STACK;
         champ.stats.magic_pen_percent += TERMINUS_JUXTAPOSITION_PEN_PER_DARK_STACK;
-        champ.buffs_values[BuffValueId::TerminusJuxtapositionDarkPen] +=
+        champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen] +=
             TERMINUS_JUXTAPOSITION_PEN_PER_DARK_STACK;
     }
 }
 
 fn terminus_juxtaposition_remove_every_dark_stack(champ: &mut Unit) {
-    champ.stats.armor_pen_percent -= champ.buffs_values[BuffValueId::TerminusJuxtapositionDarkPen];
-    champ.stats.magic_pen_percent -= champ.buffs_values[BuffValueId::TerminusJuxtapositionDarkPen];
-    champ.buffs_values[BuffValueId::TerminusJuxtapositionDarkPen] = 0.;
-    champ.buffs_stacks[BuffStackId::TerminusJuxtapositionDarkStacks] = 0;
+    champ.stats.armor_pen_percent -=
+        champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen];
+    champ.stats.magic_pen_percent -=
+        champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen];
+    champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen] = 0.;
+    champ.effects_stacks[EffectStackId::TerminusJuxtapositionDarkStacks] = 0;
 }
 
-const TERMINUS_JUXTAPOSITION_DARK: TemporaryBuff = TemporaryBuff {
-    id: BuffId::TerminusJuxtapositionDark,
+const TERMINUS_JUXTAPOSITION_DARK: TemporaryEffect = TemporaryEffect {
+    id: EffectId::TerminusJuxtapositionDark,
     add_stack: terminus_juxtaposition_add_dark_stack,
     remove_every_stack: terminus_juxtaposition_remove_every_dark_stack,
     duration: TERMINUS_JUXTAPOSITION_DURATION,
@@ -4821,14 +4829,14 @@ const TERMINUS_JUXTAPOSITION_DARK: TemporaryBuff = TemporaryBuff {
 };
 
 fn terminus_juxtaposition(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
-    if champ.buffs_stacks[BuffStackId::TerminusJuxtapositionMode] == 0 {
+    if champ.effects_stacks[EffectStackId::TerminusJuxtapositionMode] == 0 {
         //add light stack and swap mode
-        champ.add_temporary_buff(&TERMINUS_JUXTAPOSITION_LIGHT, champ.stats.item_haste);
-        champ.buffs_stacks[BuffStackId::TerminusJuxtapositionMode] = 1;
+        champ.add_temporary_effect(&TERMINUS_JUXTAPOSITION_LIGHT, champ.stats.item_haste);
+        champ.effects_stacks[EffectStackId::TerminusJuxtapositionMode] = 1;
     } else {
         //add dark stack and swap mode
-        champ.add_temporary_buff(&TERMINUS_JUXTAPOSITION_DARK, champ.stats.item_haste);
-        champ.buffs_stacks[BuffStackId::TerminusJuxtapositionMode] = 0;
+        champ.add_temporary_effect(&TERMINUS_JUXTAPOSITION_DARK, champ.stats.item_haste);
+        champ.effects_stacks[EffectStackId::TerminusJuxtapositionMode] = 0;
     }
     (0., 0., 0.)
 }
@@ -4887,17 +4895,17 @@ pub const TERMINUS: Item = Item {
 
 //The collector
 fn the_collector_init(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::TheCollectorExecuted] = 0;
+    champ.effects_stacks[EffectStackId::TheCollectorExecuted] = 0;
 }
 
 const THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD: f32 = 0.05;
 fn the_collector_death(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    if champ.buffs_stacks[BuffStackId::TheCollectorExecuted] != 1
+    if champ.effects_stacks[EffectStackId::TheCollectorExecuted] != 1
         && champ.sim_results.dmg_done
             >= (1. - THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD) * target_stats.hp
     {
         champ.sim_results.dmg_done += THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD * target_stats.hp;
-        champ.buffs_stacks[BuffStackId::TheCollectorExecuted] = 1;
+        champ.effects_stacks[EffectStackId::TheCollectorExecuted] = 1;
     }
     0.
 }
@@ -5047,24 +5055,24 @@ fn trinity_force_init(champ: &mut Unit) {
     spellblade_init(champ);
 
     //quicken variables
-    champ.buffs_values[BuffValueId::TrinityForceQuickenMsFlat] = 0.;
+    champ.effects_values[EffectValueId::TrinityForceQuickenMsFlat] = 0.;
 }
 
 fn trinity_force_quicken_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::TrinityForceQuickenMsFlat] == 0. {
+    if champ.effects_values[EffectValueId::TrinityForceQuickenMsFlat] == 0. {
         let flat_ms_buff: f32 = 20.;
         champ.stats.ms_flat += flat_ms_buff;
-        champ.buffs_values[BuffValueId::TrinityForceQuickenMsFlat] = flat_ms_buff;
+        champ.effects_values[EffectValueId::TrinityForceQuickenMsFlat] = flat_ms_buff;
     }
 }
 
 fn trinity_force_quicken_disable(champ: &mut Unit) {
-    champ.stats.ms_flat -= champ.buffs_values[BuffValueId::TrinityForceQuickenMsFlat];
-    champ.buffs_values[BuffValueId::TrinityForceQuickenMsFlat] = 0.;
+    champ.stats.ms_flat -= champ.effects_values[EffectValueId::TrinityForceQuickenMsFlat];
+    champ.effects_values[EffectValueId::TrinityForceQuickenMsFlat] = 0.;
 }
 
-const TRINITY_FORCE_QUICKEN: TemporaryBuff = TemporaryBuff {
-    id: BuffId::TrinityForceQuicken,
+const TRINITY_FORCE_QUICKEN: TemporaryEffect = TemporaryEffect {
+    id: EffectId::TrinityForceQuicken,
     add_stack: trinity_force_quicken_enable,
     remove_every_stack: trinity_force_quicken_disable,
     duration: 2.,
@@ -5076,23 +5084,23 @@ fn trinity_force_spellblade_on_basic_attack_hit(
     _target_stats: &UnitStats,
 ) -> RawDmg {
     //quicken
-    champ.add_temporary_buff(&TRINITY_FORCE_QUICKEN, champ.stats.item_haste);
+    champ.add_temporary_effect(&TRINITY_FORCE_QUICKEN, champ.stats.item_haste);
 
     //spellblade
     //do nothing if not empowered
-    if champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] != 1 {
+    if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
     }
     //if empowered (previous condition) but last spell cast from too long ago, reset spellblade
-    else if champ.time - champ.buffs_values[BuffValueId::SpellbladeLastEmpowerTime]
+    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
-        champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 0;
+        champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
         return (0., 0., 0.);
     }
     //if empowered and last spell cast is recent enough (previous condition), reset and trigger spellblade
-    champ.buffs_stacks[BuffStackId::SpellbladeEmpowered] = 0;
-    champ.buffs_values[BuffValueId::SpellbladeLastConsumeTime] = champ.time;
+    champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
+    champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
     (2. * champ.stats.base_ad, 0., 0.)
 }
 
@@ -5260,22 +5268,22 @@ pub const VOID_STAFF: Item = Item {
 
 //Voltaic cyclosword
 fn voltaic_cyclosword_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::VoltaicCycloswordFirmamentLastTriggerDistance] =
+    champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance] =
         -(ENERGIZED_ATTACKS_TRAVEL_REQUIRED + F32_TOL); // to allow for effect at time == 0
 }
 
 fn voltaic_cyclosword_firmament(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //if not enough energy, add basic attack energy stacks
     if champ.sim_results.units_travelled
-        - champ.buffs_values[BuffValueId::VoltaicCycloswordFirmamentLastTriggerDistance]
+        - champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance]
         < ENERGIZED_ATTACKS_TRAVEL_REQUIRED
     {
-        champ.buffs_values[BuffValueId::VoltaicCycloswordFirmamentLastTriggerDistance] -=
+        champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance] -=
             ENERGIZED_ATTACKS_TRAVEL_REQUIRED * 6. / 100.; //basic attacks generate 6 energy stacks
         return (0., 0., 0.);
     }
     //if enough energy (previous condition), trigger energized attack
-    champ.buffs_values[BuffValueId::VoltaicCycloswordFirmamentLastTriggerDistance] =
+    champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance] =
         champ.sim_results.units_travelled;
     (100., 0., 0.) //slow not implemented
 }
@@ -5420,29 +5428,30 @@ pub const WITS_END: Item = Item {
 
 //Youmuu's ghostblade, haunt passive not implemented
 fn youmuus_ghostblade_init(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::YoumuusGhostbladeWraithStepMsPercent] = 0.;
+    champ.effects_values[EffectValueId::YoumuusGhostbladeWraithStepMsPercent] = 0.;
 }
 
 fn youmuus_ghostblade_wraith_step_active(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    champ.add_temporary_buff(&YOUMUUS_GHOSTBLADE_WRAITH_STEP, champ.stats.item_haste);
+    champ.add_temporary_effect(&YOUMUUS_GHOSTBLADE_WRAITH_STEP, champ.stats.item_haste);
     0.
 }
 
 fn youmuus_ghostblade_wraith_step_enable(champ: &mut Unit, availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::YoumuusGhostbladeWraithStepMsPercent] == 0. {
+    if champ.effects_values[EffectValueId::YoumuusGhostbladeWraithStepMsPercent] == 0. {
         let percent_ms_buff: f32 = availability_coef * 0.15; //ms value for ranged champions
         champ.stats.ms_percent += percent_ms_buff;
-        champ.buffs_values[BuffValueId::YoumuusGhostbladeWraithStepMsPercent] = percent_ms_buff;
+        champ.effects_values[EffectValueId::YoumuusGhostbladeWraithStepMsPercent] = percent_ms_buff;
     }
 }
 
 fn youmuus_ghostblade_wraith_step_disable(champ: &mut Unit) {
-    champ.stats.ms_percent -= champ.buffs_values[BuffValueId::YoumuusGhostbladeWraithStepMsPercent];
-    champ.buffs_values[BuffValueId::YoumuusGhostbladeWraithStepMsPercent] = 0.;
+    champ.stats.ms_percent -=
+        champ.effects_values[EffectValueId::YoumuusGhostbladeWraithStepMsPercent];
+    champ.effects_values[EffectValueId::YoumuusGhostbladeWraithStepMsPercent] = 0.;
 }
 
-const YOUMUUS_GHOSTBLADE_WRAITH_STEP: TemporaryBuff = TemporaryBuff {
-    id: BuffId::YoumuusGhostbladeWraithStep,
+const YOUMUUS_GHOSTBLADE_WRAITH_STEP: TemporaryEffect = TemporaryEffect {
+    id: EffectId::YoumuusGhostbladeWraithStep,
     add_stack: youmuus_ghostblade_wraith_step_enable,
     remove_every_stack: youmuus_ghostblade_wraith_step_disable,
     duration: 6.,

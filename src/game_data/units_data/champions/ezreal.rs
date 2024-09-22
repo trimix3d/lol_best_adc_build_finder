@@ -8,13 +8,13 @@ const EZREAL_R_N_TARGETS: f32 = 1.;
 const EZREAL_R_HIT_PERCENT: f32 = 0.8;
 
 fn ezreal_init_spells(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::EzrealWMark] = 0;
-    champ.buffs_stacks[BuffStackId::EzrealRisingSpellForceStacks] = 0;
-    champ.buffs_values[BuffValueId::EzrealRisingSpellForceBonusAS] = 0.;
+    champ.effects_stacks[EffectStackId::EzrealWMark] = 0;
+    champ.effects_stacks[EffectStackId::EzrealRisingSpellForceStacks] = 0;
+    champ.effects_values[EffectValueId::EzrealRisingSpellForceBonusAS] = 0.;
 }
 
 fn ezreal_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_mark_dmg: f32 = if champ.buffs_stacks[BuffStackId::EzrealWMark] == 1 {
+    let w_mark_dmg: f32 = if champ.effects_stacks[EffectStackId::EzrealWMark] == 1 {
         ezreal_consume_w_mark(champ, target_stats)
     } else {
         0.
@@ -35,22 +35,22 @@ fn ezreal_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 const EZREAL_RISING_SPELL_FORCE_BONUS_AS_PER_STACK: f32 = 0.10;
 
 fn ezreal_rising_spell_force_add_stack(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_stacks[BuffStackId::EzrealRisingSpellForceStacks] < 5 {
-        champ.buffs_stacks[BuffStackId::EzrealRisingSpellForceStacks] += 1;
+    if champ.effects_stacks[EffectStackId::EzrealRisingSpellForceStacks] < 5 {
+        champ.effects_stacks[EffectStackId::EzrealRisingSpellForceStacks] += 1;
         champ.stats.bonus_as += EZREAL_RISING_SPELL_FORCE_BONUS_AS_PER_STACK;
-        champ.buffs_values[BuffValueId::EzrealRisingSpellForceBonusAS] +=
+        champ.effects_values[EffectValueId::EzrealRisingSpellForceBonusAS] +=
             EZREAL_RISING_SPELL_FORCE_BONUS_AS_PER_STACK;
     }
 }
 
 fn ezreal_rising_spell_force_disable(champ: &mut Unit) {
-    champ.stats.bonus_as -= champ.buffs_values[BuffValueId::EzrealRisingSpellForceBonusAS];
-    champ.buffs_values[BuffValueId::EzrealRisingSpellForceBonusAS] = 0.;
-    champ.buffs_stacks[BuffStackId::EzrealRisingSpellForceStacks] = 0;
+    champ.stats.bonus_as -= champ.effects_values[EffectValueId::EzrealRisingSpellForceBonusAS];
+    champ.effects_values[EffectValueId::EzrealRisingSpellForceBonusAS] = 0.;
+    champ.effects_stacks[EffectStackId::EzrealRisingSpellForceStacks] = 0;
 }
 
-const EZREAL_RISING_SPELL_FORCE: TemporaryBuff = TemporaryBuff {
-    id: BuffId::EzrealRisingSpellForce,
+const EZREAL_RISING_SPELL_FORCE: TemporaryEffect = TemporaryEffect {
+    id: EffectId::EzrealRisingSpellForce,
     add_stack: ezreal_rising_spell_force_add_stack,
     remove_every_stack: ezreal_rising_spell_force_disable,
     duration: 6.,
@@ -61,7 +61,7 @@ const EZREAL_Q_BASE_DMG_BY_Q_LVL: [f32; 5] = [20., 45., 70., 95., 120.];
 const EZREAL_Q_CD_REFUND: f32 = 1.5;
 
 fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_mark_dmg: f32 = if champ.buffs_stacks[BuffStackId::EzrealWMark] == 1 {
+    let w_mark_dmg: f32 = if champ.effects_stacks[EffectStackId::EzrealWMark] == 1 {
         ezreal_consume_w_mark(champ, target_stats)
     } else {
         0.
@@ -79,7 +79,7 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     champ.r_cd = f32::max(0., champ.r_cd - EZREAL_Q_HIT_PERCENT * EZREAL_Q_CD_REFUND);
 
     //add passive stack
-    champ.add_temporary_buff(&EZREAL_RISING_SPELL_FORCE, 0.);
+    champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
     champ.dmg_on_target(
         target_stats,
@@ -95,7 +95,7 @@ const EZREAL_W_MARK_BASE_DMG_BY_W_LVL: [f32; 5] = [80., 135., 190., 245., 300.];
 const EZREAL_W_MARK_AP_RATIO_BY_W_LVL: [f32; 5] = [0.70, 0.75, 0.80, 0.85, 0.90];
 
 fn ezreal_consume_w_mark(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    champ.buffs_stacks[BuffStackId::EzrealWMark] = 0; //detonate mark
+    champ.effects_stacks[EffectStackId::EzrealWMark] = 0; //detonate mark
 
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index spell ratios by lvl
 
@@ -114,10 +114,10 @@ fn ezreal_consume_w_mark(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 }
 
 fn ezreal_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    champ.buffs_stacks[BuffStackId::EzrealWMark] = 1;
+    champ.effects_stacks[EffectStackId::EzrealWMark] = 1;
 
     //add passive stack
-    champ.add_temporary_buff(&EZREAL_RISING_SPELL_FORCE, 0.);
+    champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
     0.
 }
@@ -125,7 +125,7 @@ fn ezreal_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
 const EZREAL_E_BASE_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
 
 fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_mark_dmg: f32 = if champ.buffs_stacks[BuffStackId::EzrealWMark] == 1 {
+    let w_mark_dmg: f32 = if champ.effects_stacks[EffectStackId::EzrealWMark] == 1 {
         ezreal_consume_w_mark(champ, target_stats)
     } else {
         0.
@@ -134,7 +134,7 @@ fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     champ.sim_results.units_travelled += 475.; //blink range
 
     //add passive stack
-    champ.add_temporary_buff(&EZREAL_RISING_SPELL_FORCE, 0.);
+    champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index spell ratios by lvl
 
@@ -155,14 +155,14 @@ fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 const EZREAL_R_BASE_DMG_BY_R_LVL: [f32; 3] = [350., 550., 750.];
 
 fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_mark_dmg: f32 = if champ.buffs_stacks[BuffStackId::EzrealWMark] == 1 {
+    let w_mark_dmg: f32 = if champ.effects_stacks[EffectStackId::EzrealWMark] == 1 {
         ezreal_consume_w_mark(champ, target_stats)
     } else {
         0.
     };
 
     //add passive stack
-    champ.add_temporary_buff(&EZREAL_RISING_SPELL_FORCE, 0.);
+    champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index spell ratios by lvl
 

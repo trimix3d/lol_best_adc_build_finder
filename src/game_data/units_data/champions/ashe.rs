@@ -5,22 +5,22 @@ const ASHE_Q_MAX_STACKS: u8 = 4;
 const ASHE_W_N_TARGETS: f32 = 1.2;
 
 fn ashe_init_spells(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::AsheFrosted] = 0;
+    champ.effects_stacks[EffectStackId::AsheFrosted] = 0;
 
-    champ.buffs_stacks[BuffStackId::AsheFocusStacks] = 0;
-    champ.buffs_values[BuffValueId::AsheRangersFocusBonusAS] = 0.;
+    champ.effects_stacks[EffectStackId::AsheFocusStacks] = 0;
+    champ.effects_values[EffectValueId::AsheRangersFocusBonusAS] = 0.;
 }
 
 pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //check if target is frosted
-    let special_crit_coef: f32 = if champ.buffs_stacks[BuffStackId::AsheFrosted] == 1 {
+    let special_crit_coef: f32 = if champ.effects_stacks[EffectStackId::AsheFrosted] == 1 {
         1.15 + champ.stats.crit_chance * (0.75 + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)
     } else {
-        champ.buffs_stacks[BuffStackId::AsheFrosted] = 1; //apply frost, assumes slow never expires on target (real duration is 2s on patch 14.14)
+        champ.effects_stacks[EffectStackId::AsheFrosted] = 1; //apply frost, assumes slow never expires on target (real duration is 2s on patch 14.14)
         1.
     };
     //check if q buff is active (max stacks + 1 indicates that q buff is active)
-    if champ.buffs_stacks[BuffStackId::AsheFocusStacks] == ASHE_Q_MAX_STACKS + 1 {
+    if champ.effects_stacks[EffectStackId::AsheFocusStacks] == ASHE_Q_MAX_STACKS + 1 {
         let ad_dmg: f32 = ASHE_Q_AD_RATIO_BY_Q_LVL[usize::from(champ.q_lvl - 1)]
             * champ.stats.ad()
             * special_crit_coef;
@@ -34,8 +34,8 @@ pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         )
     } else {
         //add focus stack if not maxed
-        if champ.buffs_stacks[BuffStackId::AsheFocusStacks] < ASHE_Q_MAX_STACKS {
-            champ.buffs_stacks[BuffStackId::AsheFocusStacks] += 1;
+        if champ.effects_stacks[EffectStackId::AsheFocusStacks] < ASHE_Q_MAX_STACKS {
+            champ.effects_stacks[EffectStackId::AsheFocusStacks] += 1;
         }
         let ad_dmg: f32 = champ.stats.ad() * special_crit_coef;
         champ.dmg_on_target(
@@ -53,22 +53,22 @@ const ASHE_Q_BONUS_AS_BY_Q_LVL: [f32; 5] = [0.25, 0.325, 0.40, 0.475, 0.55];
 const ASHE_Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.05, 1.10, 1.15, 1.20, 1.25];
 
 fn ashe_rangers_focus_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::AsheRangersFocusBonusAS] == 0. {
-        champ.buffs_stacks[BuffStackId::AsheFocusStacks] = ASHE_Q_MAX_STACKS + 1; //max stacks + 1 indicates that q buff is active
+    if champ.effects_values[EffectValueId::AsheRangersFocusBonusAS] == 0. {
+        champ.effects_stacks[EffectStackId::AsheFocusStacks] = ASHE_Q_MAX_STACKS + 1; //max stacks + 1 indicates that q buff is active
         let bonus_as_buff: f32 = ASHE_Q_BONUS_AS_BY_Q_LVL[usize::from(champ.q_lvl - 1)];
         champ.stats.bonus_as += bonus_as_buff;
-        champ.buffs_values[BuffValueId::AsheRangersFocusBonusAS] = bonus_as_buff;
+        champ.effects_values[EffectValueId::AsheRangersFocusBonusAS] = bonus_as_buff;
     }
 }
 
 fn ashe_rangers_focus_disable(champ: &mut Unit) {
-    champ.stats.bonus_as -= champ.buffs_values[BuffValueId::AsheRangersFocusBonusAS];
-    champ.buffs_values[BuffValueId::AsheRangersFocusBonusAS] = 0.;
-    champ.buffs_stacks[BuffStackId::AsheFocusStacks] = 0;
+    champ.stats.bonus_as -= champ.effects_values[EffectValueId::AsheRangersFocusBonusAS];
+    champ.effects_values[EffectValueId::AsheRangersFocusBonusAS] = 0.;
+    champ.effects_stacks[EffectStackId::AsheFocusStacks] = 0;
 }
 
-const ASHE_RANGERS_FOCUS_BUFF: TemporaryBuff = TemporaryBuff {
-    id: BuffId::AsheRangersFocus,
+const ASHE_RANGERS_FOCUS_EFFECT: TemporaryEffect = TemporaryEffect {
+    id: EffectId::AsheRangersFocus,
     add_stack: ashe_rangers_focus_enable,
     remove_every_stack: ashe_rangers_focus_disable,
     duration: 6.,
@@ -76,7 +76,7 @@ const ASHE_RANGERS_FOCUS_BUFF: TemporaryBuff = TemporaryBuff {
 };
 
 fn ashe_q(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    champ.add_temporary_buff(&ASHE_RANGERS_FOCUS_BUFF, 0.);
+    champ.add_temporary_effect(&ASHE_RANGERS_FOCUS_EFFECT, 0.);
     champ.basic_attack_cd = 0.; //q resets basic attack cd
     0.
 }
@@ -88,7 +88,7 @@ fn ashe_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     let ad_dmg: f32 = ASHE_W_N_TARGETS * (ASHE_W_BASE_DMG_BY_W_LVL[w_lvl_idx] + champ.stats.ad());
 
-    champ.buffs_stacks[BuffStackId::AsheFrosted] = 1; //apply frost
+    champ.effects_stacks[EffectStackId::AsheFrosted] = 1; //apply frost
     champ.dmg_on_target(
         target_stats,
         (ad_dmg, 0., 0.),
@@ -111,7 +111,7 @@ fn ashe_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     let ap_dmg: f32 = ASHE_R_BASE_DMG_BY_R_LVL[r_lvl_idx] + 1.20 * champ.stats.ap();
 
-    champ.buffs_stacks[BuffStackId::AsheFrosted] = 1; //apply frost
+    champ.effects_stacks[EffectStackId::AsheFrosted] = 1; //apply frost
     champ.dmg_on_target(
         target_stats,
         (0., ap_dmg, 0.),
@@ -130,7 +130,7 @@ fn ashe_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_duratio
         //priority order: w, q, basic attack
         if champ.w_cd == 0. {
             champ.w(target_stats);
-        } else if champ.buffs_stacks[BuffStackId::AsheFocusStacks] == ASHE_Q_MAX_STACKS {
+        } else if champ.effects_stacks[EffectStackId::AsheFocusStacks] == ASHE_Q_MAX_STACKS {
             //ashe q has no cd
             champ.q(target_stats);
             //basic attack directly after

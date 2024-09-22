@@ -7,32 +7,32 @@ const KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT: f32 = 0.55;
 const KAISA_W_HIT_PERCENT: f32 = 0.85;
 
 fn kaisa_init_spells(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::KaisaSecondSkinStacks] = 0;
-    champ.buffs_values[BuffValueId::KaisaSuperchargeBonusAS] = 0.;
+    champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] = 0;
+    champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] = 0.;
 
     //Q evolve, items ad/bonus_ad? + base_ad from lvls must be >= 100
     if champ.items_stats.bonus_ad + champ.lvl_stats.base_ad - champ.properties.base_stats.base_ad
         >= 100.
     {
-        champ.buffs_stacks[BuffStackId::KaisaQEvolved] = 1;
+        champ.effects_stacks[EffectStackId::KaisaQEvolved] = 1;
     } else {
-        champ.buffs_stacks[BuffStackId::KaisaQEvolved] = 0;
+        champ.effects_stacks[EffectStackId::KaisaQEvolved] = 0;
     }
 
     //W evolve, items ap must ne >= 100
     if champ.items_stats.ap() >= 100. {
-        champ.buffs_stacks[BuffStackId::KaisaWEvolved] = 1;
+        champ.effects_stacks[EffectStackId::KaisaWEvolved] = 1;
     } else {
-        champ.buffs_stacks[BuffStackId::KaisaWEvolved] = 0;
+        champ.effects_stacks[EffectStackId::KaisaWEvolved] = 0;
     }
 
     //E evolve, items bonus_as + bonus_as from lvls must be >= 100% (invisibility not implemented)
     //if champ.items_stats.bonus_as + champ.lvl_stats.bonus_as - champ.properties.base_stats.bonus_as
     //    >= 1.
     //{
-    //    champ.buffs_stacks[BuffStackId::KaisaEEvolved] = 1;
+    //    champ.effects_stacks[EffectStackId::KaisaEEvolved] = 1;
     //} else {
-    //    champ.buffs_stacks[BuffStackId::KaisaEEvolved] = 0;
+    //    champ.effects_stacks[EffectStackId::KaisaEEvolved] = 0;
     //}
 }
 
@@ -89,20 +89,22 @@ fn kaisa_second_skin_ap_dmg(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     //calculate dmg before stacks application
     let mut ap_dmg: f32 = KAISA_SECOND_SKIN_BASE_AP_DMG_BY_LVL[lvl_idx]
-        + f32::from(champ.buffs_stacks[BuffStackId::KaisaSecondSkinStacks])
+        + f32::from(champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks])
             * KAISA_SECOND_SKIN_AP_DMG_PER_STACK_BY_LVL[lvl_idx]
         + champ.stats.ap()
             * KAISA_SECOND_SKIN_AP_COEF_BY_STACK
-                [usize::from(champ.buffs_stacks[BuffStackId::KaisaSecondSkinStacks])];
+                [usize::from(champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks])];
 
     //update stack count
-    if champ.buffs_stacks[BuffStackId::KaisaSecondSkinStacks] == KAISA_SECOND_SKIN_MAX_STACKS - 1 {
+    if champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks]
+        == KAISA_SECOND_SKIN_MAX_STACKS - 1
+    {
         ap_dmg += KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT
             * target_stats.hp
             * (0.15 + 0.06 / 100. * champ.stats.ap());
-        champ.buffs_stacks[BuffStackId::KaisaSecondSkinStacks] = 0;
+        champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] = 0;
     } else {
-        champ.buffs_stacks[BuffStackId::KaisaSecondSkinStacks] += 1;
+        champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] += 1;
     }
     ap_dmg
 }
@@ -134,7 +136,7 @@ fn kaisa_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let n_missiles: u8;
     let ad_dmg: f32;
     //missiles on the same target do reduced dmg beyond the first
-    if champ.buffs_stacks[BuffStackId::KaisaQEvolved] == 0 {
+    if champ.effects_stacks[EffectStackId::KaisaQEvolved] == 0 {
         //not evolved
         n_missiles = 6;
         ad_dmg = KAISA_Q_AD_DMG_BY_Q_LVL[q_lvl_idx]
@@ -174,7 +176,7 @@ fn kaisa_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     ap_dmg += kaisa_second_skin_ap_dmg(champ, target_stats)
         + kaisa_second_skin_ap_dmg(champ, target_stats); //applies proc one by one
 
-    if champ.buffs_stacks[BuffStackId::KaisaWEvolved] == 1 {
+    if champ.effects_stacks[EffectStackId::KaisaWEvolved] == 1 {
         //if evolved
         champ.w_cd -= KAISA_W_HIT_PERCENT * 0.75 * f32::max(0., champ.w_cd - KAISA_W_TRAVEL_TIME); //account for w travel time (otherwise cd is instantly refunded after casting and that can be op)
         ap_dmg += kaisa_second_skin_ap_dmg(champ, target_stats);
@@ -195,20 +197,20 @@ const KAISA_E_MS_PERCENT_BY_E_LVL: [f32; 5] = [0.55, 0.60, 0.65, 0.70, 0.75];
 const KAISA_E_BONUS_AS_BY_E_LVL: [f32; 5] = [0.40, 0.50, 0.60, 0.70, 0.80];
 
 fn kaisa_supercharge_as_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::KaisaSuperchargeBonusAS] == 0. {
+    if champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] == 0. {
         let bonus_as_buff: f32 = KAISA_E_BONUS_AS_BY_E_LVL[usize::from(champ.e_lvl - 1)];
         champ.stats.bonus_as += bonus_as_buff;
-        champ.buffs_values[BuffValueId::KaisaSuperchargeBonusAS] = bonus_as_buff;
+        champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] = bonus_as_buff;
     }
 }
 
 fn kaisa_supercharge_as_disable(champ: &mut Unit) {
-    champ.stats.bonus_as -= champ.buffs_values[BuffValueId::KaisaSuperchargeBonusAS];
-    champ.buffs_values[BuffValueId::KaisaSuperchargeBonusAS] = 0.;
+    champ.stats.bonus_as -= champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS];
+    champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] = 0.;
 }
 
-const KAISA_SUPERCHARGE_AS: TemporaryBuff = TemporaryBuff {
-    id: BuffId::KaisaSuperchargeAS,
+const KAISA_SUPERCHARGE_AS: TemporaryEffect = TemporaryEffect {
+    id: EffectId::KaisaSuperchargeAS,
     add_stack: kaisa_supercharge_as_enable,
     remove_every_stack: kaisa_supercharge_as_disable,
     duration: 4.,
@@ -228,7 +230,7 @@ fn kaisa_e(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     champ.walk(1.2 / (1. + capped_bonus_as));
     champ.stats.ms_percent -= percent_ms_buff;
 
-    champ.add_temporary_buff(&KAISA_SUPERCHARGE_AS, 0.);
+    champ.add_temporary_effect(&KAISA_SUPERCHARGE_AS, 0.);
     0.
 }
 

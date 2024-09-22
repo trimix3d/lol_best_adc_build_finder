@@ -7,9 +7,9 @@ const LUCIAN_N_VIGILANCE_PROCS: u8 = 1;
 const LUCIAN_R_HIT_PERCENT: f32 = 0.75;
 
 fn lucian_init_spells(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::LucianLightslingerEmpowered] = 0;
-    champ.buffs_stacks[BuffStackId::LucianVigilanceProcsRemaning] = LUCIAN_N_VIGILANCE_PROCS;
-    champ.buffs_values[BuffValueId::LucianArdentBlazeMsFlat] = 0.;
+    champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 0;
+    champ.effects_stacks[EffectStackId::LucianVigilanceProcsRemaning] = LUCIAN_N_VIGILANCE_PROCS;
+    champ.effects_values[EffectValueId::LucianArdentBlazeMsFlat] = 0.;
 }
 
 const LUCIAN_LIGHTSLINGER_BASIC_ATTACKS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
@@ -34,13 +34,14 @@ const LUCIAN_LIGHTSLINGER_BASIC_ATTACKS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
 ];
 
 fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    if champ.buffs_stacks[BuffStackId::LucianLightslingerEmpowered] == 1 {
-        champ.buffs_stacks[BuffStackId::LucianLightslingerEmpowered] = 0;
+    if champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] == 1 {
+        champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 0;
         champ.e_cd = f32::max(0., champ.e_cd - 4.); //double basic attack reduce e_cd by 2sec for each hit
 
         //vigilance passive
-        let ap_dmg: f32 = if champ.buffs_stacks[BuffStackId::LucianVigilanceProcsRemaning] != 0 {
-            champ.buffs_stacks[BuffStackId::LucianVigilanceProcsRemaning] -= 1;
+        let ap_dmg: f32 = if champ.effects_stacks[EffectStackId::LucianVigilanceProcsRemaning] != 0
+        {
+            champ.effects_stacks[EffectStackId::LucianVigilanceProcsRemaning] -= 1;
             2. * (15. + 0.20 * champ.stats.ad())
         } else {
             0.
@@ -70,7 +71,7 @@ fn lucian_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let ad_dmg: f32 = LUCIAN_Q_AD_DMG_BY_Q_LVL[q_lvl_idx]
         + LUCIAN_Q_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx] * champ.stats.bonus_ad;
 
-    champ.buffs_stacks[BuffStackId::LucianLightslingerEmpowered] = 1;
+    champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
 
     champ.dmg_on_target(
         target_stats,
@@ -85,20 +86,20 @@ fn lucian_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 const LUCIAN_ARDENT_BLAZE_MS_BY_W_LVL: [f32; 5] = [60., 65., 70., 75., 80.];
 
 fn lucian_ardent_blaze_ms_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::LucianArdentBlazeMsFlat] == 0. {
+    if champ.effects_values[EffectValueId::LucianArdentBlazeMsFlat] == 0. {
         let flat_ms_buff: f32 = LUCIAN_ARDENT_BLAZE_MS_BY_W_LVL[usize::from(champ.w_lvl - 1)];
         champ.stats.ms_flat += flat_ms_buff;
-        champ.buffs_values[BuffValueId::LucianArdentBlazeMsFlat] = flat_ms_buff;
+        champ.effects_values[EffectValueId::LucianArdentBlazeMsFlat] = flat_ms_buff;
     }
 }
 
 fn lucian_ardent_blaze_ms_disable(champ: &mut Unit) {
-    champ.stats.ms_flat -= champ.buffs_values[BuffValueId::LucianArdentBlazeMsFlat];
-    champ.buffs_values[BuffValueId::LucianArdentBlazeMsFlat] = 0.;
+    champ.stats.ms_flat -= champ.effects_values[EffectValueId::LucianArdentBlazeMsFlat];
+    champ.effects_values[EffectValueId::LucianArdentBlazeMsFlat] = 0.;
 }
 
-const LUCIAN_ARDENT_BLAZE_MS: TemporaryBuff = TemporaryBuff {
-    id: BuffId::LucianArdentBlazeMS,
+const LUCIAN_ARDENT_BLAZE_MS: TemporaryEffect = TemporaryEffect {
+    id: EffectId::LucianArdentBlazeMS,
     add_stack: lucian_ardent_blaze_ms_enable,
     remove_every_stack: lucian_ardent_blaze_ms_disable,
     duration: 1.,
@@ -110,10 +111,10 @@ fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index spell ratios by lvl
     let ap_dmg: f32 = LUCIAN_W_AP_DMG_BY_W_LVL[w_lvl_idx] + 0.9 * champ.stats.ap();
 
-    champ.buffs_stacks[BuffStackId::LucianLightslingerEmpowered] = 1;
+    champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
 
-    //for simplicity we apply the ms buff directly
-    champ.add_temporary_buff(&LUCIAN_ARDENT_BLAZE_MS, 0.);
+    //for simplicity we apply the ms effect directly
+    champ.add_temporary_effect(&LUCIAN_ARDENT_BLAZE_MS, 0.);
 
     champ.dmg_on_target(
         target_stats,
@@ -127,7 +128,7 @@ fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
 fn lucian_e(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     champ.sim_results.units_travelled += 425.; //maximum dash range
-    champ.buffs_stacks[BuffStackId::LucianLightslingerEmpowered] = 1;
+    champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
     0.
 }
 
@@ -139,7 +140,7 @@ fn lucian_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let ad_dmg: f32 = n_hits
         * (LUCIAN_R_AD_DMG_BY_R_LVL[r_lvl_idx] + 0.25 * champ.stats.ad() + 0.15 * champ.stats.ap());
 
-    champ.buffs_stacks[BuffStackId::LucianLightslingerEmpowered] = 1;
+    champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
 
     let r_dmg: f32 = champ.dmg_on_target(
         target_stats,
@@ -156,7 +157,7 @@ fn lucian_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 fn lucian_fight_scenario_all_out(champ: &mut Unit, target_stats: &UnitStats, fight_duration: f32) {
     while champ.time < fight_duration {
         //priority order: empowered basic attack, e, q, w, unempowered basic attack
-        if champ.buffs_stacks[BuffStackId::LucianLightslingerEmpowered] == 1 {
+        if champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] == 1 {
             //wait for the basic attack cooldown if there is one
             if champ.basic_attack_cd != 0. {
                 champ.walk(champ.basic_attack_cd + F32_TOL);
@@ -193,7 +194,7 @@ fn lucian_fight_scenario_all_out(champ: &mut Unit, target_stats: &UnitStats, fig
 fn lucian_fight_scenario_poke(champ: &mut Unit, target_stats: &UnitStats, fight_duration: f32) {
     while champ.time < fight_duration {
         //priority order: empowered basic attack, e, q, w (no unempowered basic attack)
-        if champ.buffs_stacks[BuffStackId::LucianLightslingerEmpowered] == 1 {
+        if champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] == 1 {
             //wait for the basic basic_attackattack cooldown if there is one
             if champ.basic_attack_cd != 0. {
                 champ.walk(champ.basic_attack_cd + F32_TOL);

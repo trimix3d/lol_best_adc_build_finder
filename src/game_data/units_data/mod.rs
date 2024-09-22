@@ -2,8 +2,9 @@ mod champions;
 pub mod runes_data;
 
 use super::{
-    buffs_data::*,
-    effect_availability_formula, haste_formula,
+    effect_availability_formula,
+    effects_data::*,
+    haste_formula,
     items_data::{items::NULL_ITEM, Build, Item},
     F32_TOL, TIME_BETWEEN_CLICKS,
 };
@@ -373,8 +374,8 @@ pub struct UnitProperties {
     pub growth_stats: UnitStats,
     /// Perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to `lvl_stats`).
     pub on_lvl_set: Option<fn(&mut Unit)>,
-    /// Init spells variables and starting buffs on the unit. This function should ensure that
-    /// all Unit variables and all Unit buffs variables are properly initialized (in `Unit.buffs_values` or `Unit.buffs_stacks`).
+    /// Init spells variables and starting effects on the unit. This function should ensure that
+    /// all Unit variables and all Unit effects variables are properly initialized (in `Unit.effects_values` or `Unit.effects_stacks`).
     pub init_spells: Option<fn(&mut Unit)>,
     pub basic_attack: fn(&mut Unit, &UnitStats) -> f32, //returns basic attack dmg and triggers effects
     //no field for passive (incorporated in Unit spells instead)
@@ -426,7 +427,7 @@ impl SkillOrder {
 
     /// Returns Ok if the given `skill_order` is valid, Err with an error message otherwise.
     /// A valid `skill_order` is one with 1 lvl-up per Unit lvl and in total 5 lvl-ups per spell (3 for ultimate).
-    /// Aphelios special case is also treated when the 'aphelios' arg is set to true.
+    /// Aphelios special case is also treated when the `is_aphelios` arg is set to true.
     pub fn check_skill_order_validity(&self, is_aphelios: bool) -> Result<(), String> {
         //u8 will never overflow since we enforce values in skill order to be only 0s or 1s (=> max sum we can encounter is `MAX_UNIT_LVL`)
         let mut q_sum: u8 = 0;
@@ -460,6 +461,74 @@ impl SkillOrder {
         }
         Ok(())
     }
+}
+
+/// Used to return (`ad_dmg`, `ap_dmg`, `true_dmg`) of a damage instance.
+pub type RawDmg = (f32, f32, f32);
+
+/// Holds different function that must be executed on the `Unit` after specific trigger events.
+/// Trigger event are basic attacks, spell hits, ...
+///
+/// The prime use case is on hit from an item passive:
+/// after each auto attack, a function returning the dmg from the on hit passive is called.
+///
+/// In not specified, for every function in this struct: first argument of type `&Unit` is the direct source of the action provoqued by the trigger event.
+/// Second argument of type `&Unit` (if any) is the 'receiver' of the action (e.g. the target for on hit).
+///
+/// For program correctness, these function should NEVER modify the `Unit` outside of temporary effects and temporary variables.
+struct OnEventActions {
+    /// Init `Unit`/`Item` temporary variables and starting effects on the `Unit`. these function should ensure that all `Unit`/`Item`
+    /// variables and all `Unit`/`Item` effects variables are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
+    /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
+    /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
+    pub on_fight_init: Option<fn(&mut Unit)>,
+
+    /// Triggers special actives and returns dmg done.
+    pub special_active: Option<fn(&mut Unit, &UnitStats) -> f32>,
+
+    /// Applies effects triggered when a basic spell is casted (and updates temporary variables accordingly).
+    pub on_basic_spell_cast: Option<fn(&mut Unit)>,
+    /// Applies effects triggered when ultimate is casted (and updates temporary variables accordingly).
+    pub on_ultimate_cast: Option<fn(&mut Unit)>,
+
+    /// Returns on basic spell hit raw dmg and updates the conditionals accordingly in the unit temporary variables.
+    /// 3rd argument (f32) is the number of targets hit by the spell.
+    pub on_basic_spell_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
+    /// Returns on ultimate spell hit raw dmg and updates the conditionals accordingly in the unit temporary variables.
+    /// 3rd argument (f32) is the number of targets hit by the spell.
+    pub on_ultimate_spell_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
+
+    /// Returns item bonus dmg multipler for spell dmg and updates unit variables accordingly.
+    /// Is applied after on spell hit dmg in calculations (affects them too).
+    pub spell_coef: Option<fn(&mut Unit) -> f32>,
+
+    /// Returns the static part of on basic attack hit raw dmg of the item.
+    /// On basic attack hit is divided in two parts:
+    /// - static: dmg that applies on all targets unconditionally
+    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
+    /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
+    pub on_basic_attack_hit_static: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
+    /// Returns the dynamic part of on basic attack hit raw dmg of the item.
+    /// On basic attack hit is divided in two parts:
+    /// - static: dmg that applies on all targets unconditionally
+    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
+    /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
+    pub on_basic_attack_hit_dynamic: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
+
+    /// Returns item on any hit raw dmg and updates the conditionals accordingly in the unit variables.
+    /// This function is called every hit, in addition to others on_..._hit functions of the item if it has one.
+    pub on_any_hit: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
+    // Applies item effects on the unit triggered when ad dmg is done and updates unit variables accordingly.
+    pub on_ad_hit: Option<fn(&mut Unit)>,
+
+    /// Returns item bonus dmg multiplier for ap dmg and true dmg.
+    /// Stacks multiplicatively with `tot_dmg_coef`.
+    pub ap_true_dmg_coef: Option<fn(&mut Unit) -> f32>,
+
+    /// Returns item bonus dmg multipler for any dmg done.
+    /// Stacks multiplicatively with `ap_true_dmg_coef`.
+    /// Is applied last in dmg calculations (lord dominik's regards giant slayer, ...).
+    pub tot_dmg_coef: Option<fn(&mut Unit, &UnitStats) -> f32>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -518,11 +587,11 @@ pub struct Unit {
     pub w_cd: f32,
     pub e_cd: f32,
     pub r_cd: f32,
-    //permanent and temporary buffs
-    pub buffs_stacks: EnumMap<BuffStackId, u8>, //holds various buffs integers values on the unit
-    pub buffs_values: EnumMap<BuffValueId, f32>, //holds various buffs floats values on the unit
-    temporary_buffs_durations: IndexMap<&'static TemporaryBuff, f32, FxBuildHasher>, //IndexMap of active temporary buffs on the unit and their remaining duration
-    temporary_buffs_cooldowns: IndexMap<&'static TemporaryBuff, f32, FxBuildHasher>, //IndexMap of temporary buffs on cooldown on the unit
+    //temporary effects
+    pub effects_stacks: EnumMap<EffectStackId, u8>, //holds various effects integer values on the unit
+    pub effects_values: EnumMap<EffectValueId, f32>, //holds various effects float values on the unit
+    temporary_effects_durations: IndexMap<&'static TemporaryEffect, f32, FxBuildHasher>, //IndexMap of active temporary effects on the unit and their remaining duration
+    temporary_effects_cooldowns: IndexMap<&'static TemporaryEffect, f32, FxBuildHasher>, //IndexMap of temporary effects on cooldown on the unit
     //active fight scenario
     pub fight_scenario: FightScenario,
     //simulation results
@@ -615,9 +684,6 @@ pub enum DmgSource {
     Other,
 }
 
-/// Used to return (`ad_dmg`, `ap_dmg`, `true_dmg`) of a damage instance.
-pub type RawDmg = (f32, f32, f32);
-
 impl Unit {
     /// base crit damage value for an Unit.
     pub const BASE_CRIT_DMG: f32 = 1.75;
@@ -703,10 +769,10 @@ impl Unit {
             w_cd: 0.,
             e_cd: 0.,
             r_cd: 0.,
-            buffs_stacks: EnumMap::default(),
-            buffs_values: EnumMap::default(),
-            temporary_buffs_durations: IndexMap::with_hasher(FxBuildHasher),
-            temporary_buffs_cooldowns: IndexMap::with_hasher(FxBuildHasher),
+            effects_stacks: EnumMap::default(),
+            effects_values: EnumMap::default(),
+            temporary_effects_durations: IndexMap::with_hasher(FxBuildHasher),
+            temporary_effects_cooldowns: IndexMap::with_hasher(FxBuildHasher),
             fight_scenario: properties_ref.fight_scenarios[0],
             sim_results: UnitSimulationResult::default(),
             actions_log: Vec::new(),
@@ -879,16 +945,16 @@ impl Unit {
         self.stats.store_add(&self.lvl_stats, &self.items_stats);
         //runes are done later (need to do it after items passives init)
 
-        //reset temporary buffs
-        self.buffs_stacks.clear(); //this is not really needed since we init the variables later, but we do it to clear unused variables for debugging convenience
-        self.buffs_values.clear(); //same as above
-        self.temporary_buffs_durations.clear(); //this is needed to remove every temporary buffs
-        self.temporary_buffs_cooldowns.clear(); //same as above
+        //reset temporary effects
+        self.effects_stacks.clear(); //this is not really needed since we init the variables later, but we do it to clear unused variables for debugging convenience
+        self.effects_values.clear(); //same as above
+        self.temporary_effects_durations.clear(); //this is needed to remove every temporary effects
+        self.temporary_effects_cooldowns.clear(); //same as above
 
-        //self.temporary_buffs_durations.shrink_to_fit(); //hits performance a bit, i think the reduced memory usage is not worth it
-        //self.temporary_buffs_cooldowns.shrink_to_fit(); //hits performance a bit, i think the reduced memory usage is not worth it
+        //self.temporary_effects_durations.shrink_to_fit(); //hits performance a bit, i think the reduced memory usage is not worth it
+        //self.temporary_effects_cooldowns.shrink_to_fit(); //hits performance a bit, i think the reduced memory usage is not worth it
 
-        //init items variables and starting buffs on the unit (after buffs reset)
+        //init items variables and starting effects on the unit (after effects reset)
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
         //this is hacky but the init function should never change self.build
         for i in 0..MAX_UNIT_ITEMS {
@@ -901,7 +967,7 @@ impl Unit {
         self.update_runes_stats();
         self.stats.add(&self.runes_stats);
 
-        //init spells variables and starting buffs on the unit
+        //init spells variables and starting effects on the unit
         if let Some(init_spells) = self.properties.init_spells {
             init_spells(self);
         }
@@ -914,36 +980,40 @@ impl Unit {
         //self.actions_log.shrink_to_fit(); //hits performance a bit, i think the reduced memory usage is not worth it
     }
 
-    /// Attempt to add the given buff to the Unit. If the buff is not on cooldown, the function
+    /// Attempt to add the given effect to the Unit. If the effect is not on cooldown, the function
     /// adds it to the Unit and returns true (or refreshes its duration if already present).
-    /// If the buff is on cooldown, it does nothing and returns false.
+    /// If the effect is on cooldown, it does nothing and returns false.
     ///
-    /// The haste argument is to specify which haste value to use for the buff cooldown (ability haste, item haste, ...)
-    pub fn add_temporary_buff(&mut self, buff_ref: &'static TemporaryBuff, haste: f32) -> bool {
-        //return early if buff is on cooldown
-        if self.temporary_buffs_cooldowns.contains_key(buff_ref) {
+    /// The haste argument is to specify which haste value to use for the effect cooldown (ability haste, item haste, ...)
+    pub fn add_temporary_effect(
+        &mut self,
+        effect_ref: &'static TemporaryEffect,
+        haste: f32,
+    ) -> bool {
+        //return early if effect is on cooldown
+        if self.temporary_effects_cooldowns.contains_key(effect_ref) {
             return false;
         }
 
-        //store buff remaining duration
-        self.temporary_buffs_durations
-            .insert(buff_ref, buff_ref.duration);
+        //store effect remaining duration
+        self.temporary_effects_durations
+            .insert(effect_ref, effect_ref.duration);
 
-        //store buff cooldown only if cooldown is non-zero (cooldown starts on activation)
+        //store effect cooldown only if cooldown is non-zero (cooldown starts on activation)
         let mut availability_coef: f32 = 1.;
-        if buff_ref.cooldown != 0. {
-            let real_cooldown: f32 = buff_ref.cooldown * haste_formula(haste);
-            self.temporary_buffs_cooldowns
-                .insert(buff_ref, real_cooldown);
+        if effect_ref.cooldown != 0. {
+            let real_cooldown: f32 = effect_ref.cooldown * haste_formula(haste);
+            self.temporary_effects_cooldowns
+                .insert(effect_ref, real_cooldown);
             availability_coef = effect_availability_formula(real_cooldown);
         }
 
-        //add buff stack to the unit
-        (buff_ref.add_stack)(self, availability_coef);
+        //add effect stack to the unit
+        (effect_ref.add_stack)(self, availability_coef);
         true
     }
 
-    /// Wait immobile for the given amount of time. Removes buffs if they expire.
+    /// Wait immobile for the given amount of time. Removes effects if they expire.
     pub fn wait(&mut self, dt: f32) {
         //sanity check
         assert!(
@@ -961,59 +1031,60 @@ impl Unit {
         self.e_cd = f32::max(0., self.e_cd - dt);
         self.r_cd = f32::max(0., self.r_cd - dt);
 
-        //update buffs durations
+        //update effects durations
         let mut i: usize = 0;
-        while i < self.temporary_buffs_durations.len() {
-            //update buff duration
-            let (&buff_ref, duration_ref) =
-                self.temporary_buffs_durations.get_index_mut(i).unwrap();
+        while i < self.temporary_effects_durations.len() {
+            //update effect duration
+            let (&effect_ref, duration_ref) =
+                self.temporary_effects_durations.get_index_mut(i).unwrap();
             *duration_ref -= dt;
 
-            //remove buff from the unit if its duration ends
+            //remove effect from the unit if its duration ends
             if *duration_ref < F32_TOL {
-                (buff_ref.remove_every_stack)(self);
-                self.temporary_buffs_durations.swap_remove_index(i);
+                (effect_ref.remove_every_stack)(self);
+                self.temporary_effects_durations.swap_remove_index(i);
             } else {
                 i += 1;
             }
         }
 
-        //update buffs cooldowns
+        //update effects cooldowns
         let mut i: usize = 0;
-        while i < self.temporary_buffs_cooldowns.len() {
-            //update buff cooldown
-            let (_, cooldown_ref) = self.temporary_buffs_cooldowns.get_index_mut(i).unwrap();
+        while i < self.temporary_effects_cooldowns.len() {
+            //update effect cooldown
+            let (_, cooldown_ref) = self.temporary_effects_cooldowns.get_index_mut(i).unwrap();
             *cooldown_ref -= dt;
 
-            //remove buff from storage if its cooldown ends
+            //remove effect from storage if its cooldown ends
             if *cooldown_ref < F32_TOL {
-                self.temporary_buffs_cooldowns.swap_remove_index(i);
+                self.temporary_effects_cooldowns.swap_remove_index(i);
             } else {
                 i += 1;
             }
         }
     }
 
-    /// Move for the given amount of time. Removes buffs if they expire and add distance to `self.simulation_results.units_travelled`.
+    /// Move for the given amount of time. Removes effects if they expire and add distance to `self.simulation_results.units_travelled`.
     pub fn walk(&mut self, mut dt: f32) {
         while dt >= F32_TOL {
-            //find minimum time until next expiring buff
+            //find minimum time until next expiring effect
             let min_duration: f32 = *self
-                .temporary_buffs_durations
+                .temporary_effects_durations
                 .values()
                 .chain(core::iter::once(&dt))
                 .min_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
                 .unwrap(); //will never panic as we chain with once so there is at minimum 1 element
 
-            //walk until next expiring buff
-            self.sim_results.units_travelled += self.stats.ms() * min_duration; //must be before self.wait() to still benefit from temporary buffs
+            //walk until next expiring effect
+            self.sim_results.units_travelled += self.stats.ms() * min_duration; //must be before self.wait() to still benefit from temporary effects
             self.wait(min_duration);
             dt -= min_duration;
         }
     }
 
+    //todo: remove every occurence of "build[i]" if possible to avoid indirections, also search for "on_" (on_action_effect)
     /// Returns items on basic attack hit static dmg.
-    pub fn get_items_on_basic_attack_hit_static(&mut self, target_stats: &UnitStats) -> RawDmg {
+    pub fn get_cum_on_basic_attack_hit_static(&mut self, target_stats: &UnitStats) -> RawDmg {
         let mut ad_dmg: f32 = 0.;
         let mut ap_dmg: f32 = 0.;
         let mut true_dmg: f32 = 0.;
@@ -1402,7 +1473,7 @@ impl Unit {
 
     /// Same as casting r except the dmg, units travelled, etc. during the r are all reduced
     /// according to the availability formula (to account for the r cooldown).
-    /// Useless to use for ultimates that only adds a buff.
+    /// Useless to use for ultimates that only adds an effect.
     pub fn weighted_r(&mut self, target_stats: &UnitStats) -> f32 {
         let dmg_done_before_r: f32 = self.sim_results.dmg_done;
         let life_vamped_before_r: f32 = self.sim_results.life_vamped;

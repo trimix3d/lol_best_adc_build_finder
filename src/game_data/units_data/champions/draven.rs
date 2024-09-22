@@ -8,39 +8,39 @@ const DRAVEN_R_N_TARGETS: f32 = 1.;
 const DRAVEN_R_RETURN_PERCENT: f32 = 0.75;
 
 fn draven_init_spells(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::DravenAxesInHand] = 0;
-    champ.buffs_stacks[BuffStackId::DravenAxesInAir] = 0;
-    champ.buffs_values[BuffValueId::DravenBloodRushBonusAS] = 0.;
-    champ.buffs_values[BuffValueId::DravenBloodRushBonusMsPercent] = 0.;
+    champ.effects_stacks[EffectStackId::DravenAxesInHand] = 0;
+    champ.effects_stacks[EffectStackId::DravenAxesInAir] = 0;
+    champ.effects_values[EffectValueId::DravenBloodRushBonusAS] = 0.;
+    champ.effects_values[EffectValueId::DravenBloodRushBonusMsPercent] = 0.;
 }
 
 const DRAVEN_AXE_TIME_SPENT_IN_AIR: f32 = 2.; //axe travel time before hitting the target not accounted in this duration
 
 fn draven_throw_axe(champ: &mut Unit, _availability_coef: f32) {
-    champ.buffs_stacks[BuffStackId::DravenAxesInHand] -= 1;
-    champ.buffs_stacks[BuffStackId::DravenAxesInAir] += 1;
+    champ.effects_stacks[EffectStackId::DravenAxesInHand] -= 1;
+    champ.effects_stacks[EffectStackId::DravenAxesInAir] += 1;
 }
 
 fn draven_catch_axe(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::DravenAxesInAir] -= 1;
-    champ.buffs_stacks[BuffStackId::DravenAxesInHand] += 1;
+    champ.effects_stacks[EffectStackId::DravenAxesInAir] -= 1;
+    champ.effects_stacks[EffectStackId::DravenAxesInHand] += 1;
     champ.w_cd = 0.; //catching axe resets w cd
 }
 
-//buff for axe n1
-const DRAVEN_THROW_AXE1: TemporaryBuff = TemporaryBuff {
-    id: BuffId::DravenThrowAxe1,
+//effect for axe n1
+const DRAVEN_THROW_AXE1: TemporaryEffect = TemporaryEffect {
+    id: EffectId::DravenThrowAxe1,
     add_stack: draven_throw_axe,
-    remove_every_stack: draven_catch_axe, //buff assumes draven catches every axe
+    remove_every_stack: draven_catch_axe, //effect assumes draven catches every axe
     duration: DRAVEN_AXE_TIME_SPENT_IN_AIR,
     cooldown: 0.,
 };
 
-//buff for axe n2
-const DRAVEN_THROW_AXE2: TemporaryBuff = TemporaryBuff {
-    id: BuffId::DravenThrowAxe2,
+//effect for axe n2
+const DRAVEN_THROW_AXE2: TemporaryEffect = TemporaryEffect {
+    id: EffectId::DravenThrowAxe2,
     add_stack: draven_throw_axe,
-    remove_every_stack: draven_catch_axe, //buff assumes draven catches every axe
+    remove_every_stack: draven_catch_axe, //effect assumes draven catches every axe
     duration: DRAVEN_AXE_TIME_SPENT_IN_AIR,
     cooldown: 0.,
 };
@@ -57,21 +57,21 @@ fn draven_q_axe_bonus_dmg(champ: &Unit) -> f32 {
 fn draven_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let mut ad_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
-    if champ.buffs_stacks[BuffStackId::DravenAxesInHand] >= 1
-        && champ.buffs_stacks[BuffStackId::DravenAxesInAir] < 2
+    if champ.effects_stacks[EffectStackId::DravenAxesInHand] >= 1
+        && champ.effects_stacks[EffectStackId::DravenAxesInAir] < 2
     {
         //this code only supports 2 axes in the air maximum, but its fine for most cases anyway
         if !champ
-            .temporary_buffs_durations
+            .temporary_effects_durations
             .contains_key(&DRAVEN_THROW_AXE1)
         {
-            champ.add_temporary_buff(&DRAVEN_THROW_AXE1, 0.);
+            champ.add_temporary_effect(&DRAVEN_THROW_AXE1, 0.);
             ad_dmg += draven_q_axe_bonus_dmg(champ);
         } else if !champ
-            .temporary_buffs_durations
+            .temporary_effects_durations
             .contains_key(&DRAVEN_THROW_AXE2)
         {
-            champ.add_temporary_buff(&DRAVEN_THROW_AXE2, 0.);
+            champ.add_temporary_effect(&DRAVEN_THROW_AXE2, 0.);
             ad_dmg += draven_q_axe_bonus_dmg(champ);
         }
     }
@@ -87,36 +87,36 @@ fn draven_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 }
 
 fn draven_q(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    champ.buffs_stacks[BuffStackId::DravenAxesInHand] =
-        u8::min(2, champ.buffs_stacks[BuffStackId::DravenAxesInHand] + 1);
+    champ.effects_stacks[EffectStackId::DravenAxesInHand] =
+        u8::min(2, champ.effects_stacks[EffectStackId::DravenAxesInHand] + 1);
     0.
 }
 
 const DRAVEN_BLOOD_RUSH_BONUS_AS_BY_W_LVL: [f32; 5] = [0.20, 0.25, 0.30, 0.35, 0.40];
 const DRAVEN_BLOOD_RUSH_MS_PERCENT_BY_W_LVL: [f32; 5] =
-    [0.50 / 2., 0.55 / 2., 0.60 / 2., 0.65 / 2., 0.70 / 2.]; //halved because decaying buff
+    [0.50 / 2., 0.55 / 2., 0.60 / 2., 0.65 / 2., 0.70 / 2.]; //halved because decaying effect
 
 fn draven_blood_rush_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::DravenBloodRushBonusAS] == 0. {
+    if champ.effects_values[EffectValueId::DravenBloodRushBonusAS] == 0. {
         let w_lvl_idx: usize = usize::from(champ.w_lvl - 1);
         let bonus_as: f32 = DRAVEN_BLOOD_RUSH_BONUS_AS_BY_W_LVL[w_lvl_idx];
         let ms_percent: f32 = DRAVEN_BLOOD_RUSH_MS_PERCENT_BY_W_LVL[w_lvl_idx];
         champ.stats.bonus_as += bonus_as;
         champ.stats.ms_percent += ms_percent;
-        champ.buffs_values[BuffValueId::DravenBloodRushBonusAS] = bonus_as;
-        champ.buffs_values[BuffValueId::DravenBloodRushBonusMsPercent] = ms_percent;
+        champ.effects_values[EffectValueId::DravenBloodRushBonusAS] = bonus_as;
+        champ.effects_values[EffectValueId::DravenBloodRushBonusMsPercent] = ms_percent;
     }
 }
 
 fn draven_blood_rush_disable(champ: &mut Unit) {
-    champ.stats.bonus_as -= champ.buffs_values[BuffValueId::DravenBloodRushBonusAS];
-    champ.stats.ms_percent -= champ.buffs_values[BuffValueId::DravenBloodRushBonusMsPercent];
-    champ.buffs_values[BuffValueId::DravenBloodRushBonusAS] = 0.;
-    champ.buffs_values[BuffValueId::DravenBloodRushBonusMsPercent] = 0.;
+    champ.stats.bonus_as -= champ.effects_values[EffectValueId::DravenBloodRushBonusAS];
+    champ.stats.ms_percent -= champ.effects_values[EffectValueId::DravenBloodRushBonusMsPercent];
+    champ.effects_values[EffectValueId::DravenBloodRushBonusAS] = 0.;
+    champ.effects_values[EffectValueId::DravenBloodRushBonusMsPercent] = 0.;
 }
 
-const DRAVEN_BLOOD_RUSH: TemporaryBuff = TemporaryBuff {
-    id: BuffId::DravenBloodRush,
+const DRAVEN_BLOOD_RUSH: TemporaryEffect = TemporaryEffect {
+    id: EffectId::DravenBloodRush,
     add_stack: draven_blood_rush_enable,
     remove_every_stack: draven_blood_rush_disable,
     duration: 1.5,
@@ -124,7 +124,7 @@ const DRAVEN_BLOOD_RUSH: TemporaryBuff = TemporaryBuff {
 };
 
 fn draven_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    champ.add_temporary_buff(&DRAVEN_BLOOD_RUSH, 0.);
+    champ.add_temporary_effect(&DRAVEN_BLOOD_RUSH, 0.);
     0.
 }
 
@@ -173,9 +173,9 @@ fn draven_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durat
     let mut basic_attacks_count: u8 = DRAVEN_BASIC_ATTACKS_PER_W - 1;
     while champ.time < fight_duration {
         //priority order: q before basic attacking if less than 2 axes in hand, basic attack if at least one axe and less than 2 axes in air, w every x basic attack
-        if champ.basic_attack_cd == 0. && champ.buffs_stacks[BuffStackId::DravenAxesInAir] < 2 {
+        if champ.basic_attack_cd == 0. && champ.effects_stacks[EffectStackId::DravenAxesInAir] < 2 {
             //q before launching basic attack if available
-            if champ.q_cd == 0. && champ.buffs_stacks[BuffStackId::DravenAxesInHand] < 2 {
+            if champ.q_cd == 0. && champ.effects_stacks[EffectStackId::DravenAxesInHand] < 2 {
                 champ.q(target_stats);
             }
             champ.basic_attack(target_stats);
@@ -189,7 +189,7 @@ fn draven_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durat
                     + [
                         //cap minimum waiting time by TIME_BETWEEN_CLICKS if forced to wait for the axes in air to launch basic attack
                         //(waiting repeatedly by small time steps is faster than retrieving axes remaining in air duration)
-                        if champ.buffs_stacks[BuffStackId::DravenAxesInAir] < 2 {
+                        if champ.effects_stacks[EffectStackId::DravenAxesInAir] < 2 {
                             champ.basic_attack_cd
                         } else {
                             f32::max(champ.basic_attack_cd, TIME_BETWEEN_CLICKS)
@@ -216,7 +216,7 @@ fn draven_fight_scenario_start_with_one_axe(
     target_stats: &UnitStats,
     fight_duration: f32,
 ) {
-    champ.buffs_stacks[BuffStackId::DravenAxesInHand] = 1;
+    champ.effects_stacks[EffectStackId::DravenAxesInHand] = 1;
     draven_fight_scenario(champ, target_stats, fight_duration);
 }
 

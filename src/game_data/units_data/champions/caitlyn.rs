@@ -5,8 +5,8 @@ const CAITLYN_Q_N_TARGETS: f32 = 1.0;
 const CAITLYN_Q_HIT_PERCENT: f32 = 0.85;
 
 fn caitlyn_init_spells(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::CaitlynHeadshotStacks] = 0;
-    champ.buffs_stacks[BuffStackId::CaitlynBonusHeadshot] = 0;
+    champ.effects_stacks[EffectStackId::CaitlynHeadshotStacks] = 0;
+    champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] = 0;
 }
 
 const CAITLYN_HEADSHOT_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
@@ -39,14 +39,14 @@ fn caitlyn_heatshot_ad_dmg(champ: &Unit) -> f32 {
 fn caitlyn_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let mut ad_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
-    if champ.buffs_stacks[BuffStackId::CaitlynBonusHeadshot] == 1 {
-        champ.buffs_stacks[BuffStackId::CaitlynBonusHeadshot] = 0;
+    if champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] == 1 {
+        champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] = 0;
         ad_dmg += caitlyn_heatshot_ad_dmg(champ);
-    } else if champ.buffs_stacks[BuffStackId::CaitlynHeadshotStacks] == 5 {
-        champ.buffs_stacks[BuffStackId::CaitlynHeadshotStacks] = 0;
+    } else if champ.effects_stacks[EffectStackId::CaitlynHeadshotStacks] == 5 {
+        champ.effects_stacks[EffectStackId::CaitlynHeadshotStacks] = 0;
         ad_dmg += caitlyn_heatshot_ad_dmg(champ);
     } else {
-        champ.buffs_stacks[BuffStackId::CaitlynHeadshotStacks] += 1;
+        champ.effects_stacks[EffectStackId::CaitlynHeadshotStacks] += 1;
     }
 
     champ.dmg_on_target(
@@ -92,7 +92,7 @@ fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index spell ratios by lvl
 
     let ap_dmg: f32 = CAITLYN_E_BASE_DMG_BY_E_LVL[e_lvl_idx] + 0.80 * champ.stats.ap();
-    champ.buffs_stacks[BuffStackId::CaitlynBonusHeadshot] = 1;
+    champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] = 1;
 
     champ.dmg_on_target(
         target_stats,

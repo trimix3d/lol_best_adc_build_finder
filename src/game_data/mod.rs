@@ -1,4 +1,4 @@
-pub mod buffs_data;
+pub mod effects_data;
 pub mod items_data;
 pub mod units_data;
 

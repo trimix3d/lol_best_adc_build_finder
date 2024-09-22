@@ -8,9 +8,9 @@ const SIVIR_Q_RETURN_PERCENT: f32 = 0.66;
 const SIVIR_W_N_RICOCHETS: f32 = 1.0;
 
 fn sivir_init_spells(champ: &mut Unit) {
-    champ.buffs_values[BuffValueId::SivirRicochetBonusAS] = 0.;
-    champ.buffs_values[BuffValueId::SivirFleetOfFootMsFlat] = 0.;
-    champ.buffs_values[BuffValueId::SivirOnTheHuntMsPercent] = 0.;
+    champ.effects_values[EffectValueId::SivirRicochetBonusAS] = 0.;
+    champ.effects_values[EffectValueId::SivirFleetOfFootMsFlat] = 0.;
+    champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] = 0.;
 }
 
 const SIVIR_FLEET_OF_FOOT_MS_FLAT_BY_LVL: [f32; MAX_UNIT_LVL] = [
@@ -35,21 +35,21 @@ const SIVIR_FLEET_OF_FOOT_MS_FLAT_BY_LVL: [f32; MAX_UNIT_LVL] = [
 ];
 
 fn sivir_fleet_of_foot_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::SivirFleetOfFootMsFlat] == 0. {
+    if champ.effects_values[EffectValueId::SivirFleetOfFootMsFlat] == 0. {
         let ms_flat: f32 =
-            0.5 * SIVIR_FLEET_OF_FOOT_MS_FLAT_BY_LVL[usize::from(champ.lvl.get() - 1)]; //halved because decaying buff
+            0.5 * SIVIR_FLEET_OF_FOOT_MS_FLAT_BY_LVL[usize::from(champ.lvl.get() - 1)]; //halved because decaying effect
         champ.stats.ms_flat += ms_flat;
-        champ.buffs_values[BuffValueId::SivirFleetOfFootMsFlat] = ms_flat;
+        champ.effects_values[EffectValueId::SivirFleetOfFootMsFlat] = ms_flat;
     }
 }
 
 fn sivir_fleet_of_foot_disable(champ: &mut Unit) {
-    champ.stats.ms_flat -= champ.buffs_values[BuffValueId::SivirFleetOfFootMsFlat];
-    champ.buffs_values[BuffValueId::SivirFleetOfFootMsFlat] = 0.;
+    champ.stats.ms_flat -= champ.effects_values[EffectValueId::SivirFleetOfFootMsFlat];
+    champ.effects_values[EffectValueId::SivirFleetOfFootMsFlat] = 0.;
 }
 
-const SIVIR_FLEET_OF_FOOT: TemporaryBuff = TemporaryBuff {
-    id: BuffId::SivirFleetOfFoot,
+const SIVIR_FLEET_OF_FOOT: TemporaryEffect = TemporaryEffect {
+    id: EffectId::SivirFleetOfFoot,
     add_stack: sivir_fleet_of_foot_enable,
     remove_every_stack: sivir_fleet_of_foot_disable,
     duration: 1.5,
@@ -57,10 +57,10 @@ const SIVIR_FLEET_OF_FOOT: TemporaryBuff = TemporaryBuff {
 };
 
 pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    champ.add_temporary_buff(&SIVIR_FLEET_OF_FOOT, 0.);
+    champ.add_temporary_effect(&SIVIR_FLEET_OF_FOOT, 0.);
 
     //if buffed by r, basic attacks reduces spells cooldown
-    if champ.buffs_values[BuffValueId::SivirOnTheHuntMsPercent] != 0. {
+    if champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] != 0. {
         champ.q_cd = f32::max(0., champ.q_cd - SIVIR_R_SPELLS_CD_REFUND_TIME);
         champ.w_cd = f32::max(0., champ.w_cd - SIVIR_R_SPELLS_CD_REFUND_TIME);
         champ.e_cd = f32::max(0., champ.e_cd - SIVIR_R_SPELLS_CD_REFUND_TIME);
@@ -79,7 +79,7 @@ pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     );
 
     //w ricochets dmg, instance of dmg must be done after basic attack
-    if champ.buffs_values[BuffValueId::SivirRicochetBonusAS] != 0. {
+    if champ.effects_values[EffectValueId::SivirRicochetBonusAS] != 0. {
         let w_lvl_idx: usize = usize::from(champ.w_lvl - 1);
         let ricochet_ad_dmg: f32 = SIVIR_W_N_RICOCHETS
             * SIVIR_W_AD_RATIO_BY_W_LVL[w_lvl_idx]
@@ -125,21 +125,21 @@ fn sivir_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 const SIVIR_W_BONUS_AS_BY_W_LVL: [f32; 5] = [0.20, 0.25, 0.30, 0.35, 0.40];
 
 fn sivir_ricochet_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::SivirRicochetBonusAS] == 0. {
+    if champ.effects_values[EffectValueId::SivirRicochetBonusAS] == 0. {
         let w_lvl_idx: usize = usize::from(champ.w_lvl - 1);
         let bonus_as: f32 = SIVIR_W_BONUS_AS_BY_W_LVL[w_lvl_idx];
         champ.stats.bonus_as += bonus_as;
-        champ.buffs_values[BuffValueId::SivirRicochetBonusAS] = bonus_as;
+        champ.effects_values[EffectValueId::SivirRicochetBonusAS] = bonus_as;
     }
 }
 
 fn sivir_ricochet_disable(champ: &mut Unit) {
-    champ.stats.bonus_as -= champ.buffs_values[BuffValueId::SivirRicochetBonusAS];
-    champ.buffs_values[BuffValueId::SivirRicochetBonusAS] = 0.;
+    champ.stats.bonus_as -= champ.effects_values[EffectValueId::SivirRicochetBonusAS];
+    champ.effects_values[EffectValueId::SivirRicochetBonusAS] = 0.;
 }
 
-const SIVIR_RICOCHET: TemporaryBuff = TemporaryBuff {
-    id: BuffId::SivirRicochet,
+const SIVIR_RICOCHET: TemporaryEffect = TemporaryEffect {
+    id: EffectId::SivirRicochet,
     add_stack: sivir_ricochet_enable,
     remove_every_stack: sivir_ricochet_disable,
     duration: 4.,
@@ -149,7 +149,7 @@ const SIVIR_RICOCHET: TemporaryBuff = TemporaryBuff {
 const SIVIR_W_AD_RATIO_BY_W_LVL: [f32; 5] = [0.30, 0.35, 0.40, 0.45, 0.50];
 
 fn sivir_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    champ.add_temporary_buff(&SIVIR_RICOCHET, 0.);
+    champ.add_temporary_effect(&SIVIR_RICOCHET, 0.);
 
     //reset basic attack cd
     champ.basic_attack_cd = 0.;
@@ -162,74 +162,74 @@ fn sivir_e(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     0.
 }
 
-//buff is weighted by r cooldown
+//effect is weighted by r cooldown
 fn sivir_on_the_hunt_lvl_1_enable(champ: &mut Unit, availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::SivirOnTheHuntMsPercent] == 0. {
+    if champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] == 0. {
         let ms_percent: f32 = availability_coef * 0.20;
         champ.stats.ms_percent += ms_percent;
-        champ.buffs_values[BuffValueId::SivirOnTheHuntMsPercent] = ms_percent;
+        champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] = ms_percent;
     }
 }
 
 fn sivir_on_the_hunt_lvl_2_enable(champ: &mut Unit, availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::SivirOnTheHuntMsPercent] == 0. {
+    if champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] == 0. {
         let ms_percent: f32 = availability_coef * 0.25;
         champ.stats.ms_percent += ms_percent;
-        champ.buffs_values[BuffValueId::SivirOnTheHuntMsPercent] = ms_percent;
+        champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] = ms_percent;
     }
 }
 
 fn sivir_on_the_hunt_lvl_3_enable(champ: &mut Unit, availability_coef: f32) {
-    if champ.buffs_values[BuffValueId::SivirOnTheHuntMsPercent] == 0. {
+    if champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] == 0. {
         let ms_percent: f32 = availability_coef * 0.30;
         champ.stats.ms_percent += ms_percent;
-        champ.buffs_values[BuffValueId::SivirOnTheHuntMsPercent] = ms_percent;
+        champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] = ms_percent;
     }
 }
 
 fn sivir_on_the_hunt_disable(champ: &mut Unit) {
-    champ.stats.ms_percent -= champ.buffs_values[BuffValueId::SivirOnTheHuntMsPercent];
-    champ.buffs_values[BuffValueId::SivirOnTheHuntMsPercent] = 0.;
+    champ.stats.ms_percent -= champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent];
+    champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] = 0.;
 }
 
-const SIVIR_ON_THE_HUNT_MS_LVL_1: TemporaryBuff = TemporaryBuff {
-    id: BuffId::SivirOnTheHuntMS,
+const SIVIR_ON_THE_HUNT_MS_LVL_1: TemporaryEffect = TemporaryEffect {
+    id: EffectId::SivirOnTheHuntMS,
     add_stack: sivir_on_the_hunt_lvl_1_enable,
     remove_every_stack: sivir_on_the_hunt_disable,
     duration: 8.,
     cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_spell_lvl[0],
 };
 
-const SIVIR_ON_THE_HUNT_MS_LVL_2: TemporaryBuff = TemporaryBuff {
-    id: BuffId::SivirOnTheHuntMS,
+const SIVIR_ON_THE_HUNT_MS_LVL_2: TemporaryEffect = TemporaryEffect {
+    id: EffectId::SivirOnTheHuntMS,
     add_stack: sivir_on_the_hunt_lvl_2_enable,
     remove_every_stack: sivir_on_the_hunt_disable,
     duration: 10.,
     cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_spell_lvl[1],
 };
 
-const SIVIR_ON_THE_HUNT_MS_LVL_3: TemporaryBuff = TemporaryBuff {
-    id: BuffId::SivirOnTheHuntMS,
+const SIVIR_ON_THE_HUNT_MS_LVL_3: TemporaryEffect = TemporaryEffect {
+    id: EffectId::SivirOnTheHuntMS,
     add_stack: sivir_on_the_hunt_lvl_3_enable,
     remove_every_stack: sivir_on_the_hunt_disable,
     duration: 12.,
     cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_spell_lvl[2],
 };
 
-/// Basic spells cooldown refunded by each basic attack when under r buff
+/// Basic spells cooldown refunded by each basic attack when under r effect
 const SIVIR_R_SPELLS_CD_REFUND_TIME: f32 = 0.5;
 
 fn sivir_r(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     match champ.r_lvl {
-        1 => champ.add_temporary_buff(
+        1 => champ.add_temporary_effect(
             &SIVIR_ON_THE_HUNT_MS_LVL_1,
             champ.stats.ability_haste_ultimate(),
         ),
-        2 => champ.add_temporary_buff(
+        2 => champ.add_temporary_effect(
             &SIVIR_ON_THE_HUNT_MS_LVL_2,
             champ.stats.ability_haste_ultimate(),
         ),
-        3 => champ.add_temporary_buff(
+        3 => champ.add_temporary_effect(
             &SIVIR_ON_THE_HUNT_MS_LVL_3,
             champ.stats.ability_haste_ultimate(),
         ),
@@ -242,7 +242,7 @@ fn sivir_r(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
 }
 
 fn sivir_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_duration: f32) {
-    //r at the beginning (buff is already weighted)
+    //r at the beginning (effect is already weighted)
     champ.r(target_stats);
 
     while champ.time < fight_duration {

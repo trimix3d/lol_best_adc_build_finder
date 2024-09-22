@@ -144,9 +144,9 @@ pub struct Item {
     pub stats: UnitStats,
 
     //on action fonctions
-    /// Init item variables and starting buffs on the Unit. this function should ensure that all item
-    /// variables and all item buffs variables are properly initialized (in `Unit.buff_values` or `Unit.buffs_stacks`).
-    /// NEVER use Unit.stats as source of stat for buffs in this function as it can be modified by previous items init,
+    /// Init item variables and starting effects on the Unit. this function should ensure that all item
+    /// variables and all item effects variables are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
+    /// NEVER use Unit.stats as source of stat for effects in this function as it can be modified by previous items init,
     /// instead, sum `Unit.lvl_stats` and `Unit.items_stats`.
     pub init_item: Option<fn(&mut Unit)>,
 

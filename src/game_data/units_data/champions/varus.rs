@@ -14,11 +14,11 @@ const VARUS_W_TARGET_MISSING_HP_PERCENT: f32 = 0.4;
 const VARUS_E_N_TARGETS: f32 = 1.0;
 
 fn varus_init_spells(champ: &mut Unit) {
-    champ.buffs_stacks[BuffStackId::VarusBlightStacks] = 0;
-    champ.buffs_stacks[BuffStackId::VarusBlightedQuiverEmpowered] = 0;
+    champ.effects_stacks[EffectStackId::VarusBlightStacks] = 0;
+    champ.effects_stacks[EffectStackId::VarusBlightedQuiverEmpowered] = 0;
 }
 
-//passive buff on kill not implemented (too situationnal)
+//passive effect on kill not implemented (too situationnal)
 
 fn varus_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let ad_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
@@ -26,8 +26,8 @@ fn varus_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         VARUS_BLIGHT_ON_HIT_AP_DMG_BY_W_LVL[usize::from(champ.w_lvl - 1)] + 0.35 * champ.stats.ap();
 
     //assumes blight stacks are applied with less than 6s interval (doesn't check if it expires)
-    if champ.buffs_stacks[BuffStackId::VarusBlightStacks] < VARUS_MAX_BLIGHT_STACKS {
-        champ.buffs_stacks[BuffStackId::VarusBlightStacks] += 1;
+    if champ.effects_stacks[EffectStackId::VarusBlightStacks] < VARUS_MAX_BLIGHT_STACKS {
+        champ.effects_stacks[EffectStackId::VarusBlightStacks] += 1;
     }
 
     champ.dmg_on_target(
@@ -49,7 +49,7 @@ fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     const ARROW_CHARGE_WAIT_TIME: f32 = 1.25 * VARUS_Q_CHARGE_PERCENT;
 
     //approximate self slow by reducing ms_percent (current code doesn't handle slows)
-    //approximating slows by reducing ms_percent is exact only when ms_percent is not modified by other buffs during the duration of the self slow.
+    //approximating slows by reducing ms_percent is exact only when ms_percent is not modified by other effects during the duration of the self slow.
     let eq_charge_ms_percent: f32 =
         (1. + champ.stats.ms_percent) * (1. - VARUS_Q_CHARGE_SLOW_PERCENT) - 1.; //equivalent ms_percent during arrow charge
     let eq_ms_percent_debuff: f32 = champ.stats.ms_percent - eq_charge_ms_percent;
@@ -74,8 +74,8 @@ fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         ARROW_CHARGE_DMG_COEF * varus_consume_blight_stacks_ap_dmg(champ, target_stats); //assumes only one target has blights stacks
 
     //empowered by w
-    if champ.buffs_stacks[BuffStackId::VarusBlightedQuiverEmpowered] == 1 {
-        champ.buffs_stacks[BuffStackId::VarusBlightedQuiverEmpowered] = 0;
+    if champ.effects_stacks[EffectStackId::VarusBlightedQuiverEmpowered] == 1 {
+        champ.effects_stacks[EffectStackId::VarusBlightedQuiverEmpowered] = 0;
         ap_dmg += N_TARGET_COEF
             * ARROW_CHARGE_DMG_COEF
             * target_stats.hp
@@ -104,7 +104,7 @@ const VARUS_W_TARGET_MISSING_HP_COEF_BY_W_LVL: [f32; 5] = [0.06, 0.08, 0.10, 0.1
 
 fn varus_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     //w passive is implemented inside varus basic attacks
-    champ.buffs_stacks[BuffStackId::VarusBlightedQuiverEmpowered] = 1;
+    champ.effects_stacks[EffectStackId::VarusBlightedQuiverEmpowered] = 1;
     0.
 }
 
@@ -114,8 +114,8 @@ const VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK: f32 = 0.13;
 /// Consumes blights stacks and return proc dmg.
 /// Always assumes blight stacks are applied on one target only.
 fn varus_consume_blight_stacks_ap_dmg(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let n_stacks: f32 = f32::from(champ.buffs_stacks[BuffStackId::VarusBlightStacks]);
-    champ.buffs_stacks[BuffStackId::VarusBlightStacks] = 0; //consume all blight stacks
+    let n_stacks: f32 = f32::from(champ.effects_stacks[EffectStackId::VarusBlightStacks]);
+    champ.effects_stacks[EffectStackId::VarusBlightStacks] = 0; //consume all blight stacks
 
     champ.q_cd = f32::max(
         0.,
@@ -174,30 +174,30 @@ fn varus_r_add_delayed_blight_stack_enable(_champ: &mut Unit, _availability_coef
 
 fn varus_r_add_delayed_blight_stack_disable(champ: &mut Unit) {
     //add blight stack after a set duration
-    champ.buffs_stacks[BuffStackId::VarusBlightStacks] = u8::min(
+    champ.effects_stacks[EffectStackId::VarusBlightStacks] = u8::min(
         VARUS_MAX_BLIGHT_STACKS,
-        champ.buffs_stacks[BuffStackId::VarusBlightStacks] + 1,
+        champ.effects_stacks[EffectStackId::VarusBlightStacks] + 1,
     );
 }
 
-const VARUS_R_ADD_DELAYED_BLIGHT_STACKS_0_5: TemporaryBuff = TemporaryBuff {
-    id: BuffId::VarusRAddDelayedBlightStacks05,
+const VARUS_R_ADD_DELAYED_BLIGHT_STACKS_0_5: TemporaryEffect = TemporaryEffect {
+    id: EffectId::VarusRAddDelayedBlightStacks05,
     add_stack: varus_r_add_delayed_blight_stack_enable,
     remove_every_stack: varus_r_add_delayed_blight_stack_disable,
     duration: 0.5 + VARUS_R_TRAVEL_TIME,
     cooldown: 0.,
 };
 
-const VARUS_R_ADD_DELAYED_BLIGHT_STACKS_1_0: TemporaryBuff = TemporaryBuff {
-    id: BuffId::VarusRAddDelayedBlightStacks10,
+const VARUS_R_ADD_DELAYED_BLIGHT_STACKS_1_0: TemporaryEffect = TemporaryEffect {
+    id: EffectId::VarusRAddDelayedBlightStacks10,
     add_stack: varus_r_add_delayed_blight_stack_enable,
     remove_every_stack: varus_r_add_delayed_blight_stack_disable,
     duration: 1. + VARUS_R_TRAVEL_TIME,
     cooldown: 0.,
 };
 
-const VARUS_R_ADD_DELAYED_BLIGHT_STACKS_1_5: TemporaryBuff = TemporaryBuff {
-    id: BuffId::VarusRAddDelayedBlightStacks15,
+const VARUS_R_ADD_DELAYED_BLIGHT_STACKS_1_5: TemporaryEffect = TemporaryEffect {
+    id: EffectId::VarusRAddDelayedBlightStacks15,
     add_stack: varus_r_add_delayed_blight_stack_enable,
     remove_every_stack: varus_r_add_delayed_blight_stack_disable,
     duration: 1.5 + VARUS_R_TRAVEL_TIME,
@@ -217,9 +217,9 @@ fn varus_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     ap_dmg += varus_consume_blight_stacks_ap_dmg(champ, target_stats); //assumes only one target has blights stacks
 
     //add delayed blights stacks
-    champ.add_temporary_buff(&VARUS_R_ADD_DELAYED_BLIGHT_STACKS_0_5, 0.);
-    champ.add_temporary_buff(&VARUS_R_ADD_DELAYED_BLIGHT_STACKS_1_0, 0.);
-    champ.add_temporary_buff(&VARUS_R_ADD_DELAYED_BLIGHT_STACKS_1_5, 0.);
+    champ.add_temporary_effect(&VARUS_R_ADD_DELAYED_BLIGHT_STACKS_0_5, 0.);
+    champ.add_temporary_effect(&VARUS_R_ADD_DELAYED_BLIGHT_STACKS_1_0, 0.);
+    champ.add_temporary_effect(&VARUS_R_ADD_DELAYED_BLIGHT_STACKS_1_5, 0.);
 
     champ.dmg_on_target(
         target_stats,
@@ -238,12 +238,12 @@ fn varus_fight_scenario_all_out(champ: &mut Unit, target_stats: &UnitStats, figh
 
     while champ.time < fight_duration {
         //priority order: q (+w when available) when at least 2 blight stacks, e when at least 1 blight stacks, basic attack
-        if champ.q_cd == 0. && champ.buffs_stacks[BuffStackId::VarusBlightStacks] >= 2 {
+        if champ.q_cd == 0. && champ.effects_stacks[EffectStackId::VarusBlightStacks] >= 2 {
             if champ.w_cd == 0. {
                 champ.w(target_stats);
             }
             champ.q(target_stats);
-        } else if champ.e_cd == 0. && champ.buffs_stacks[BuffStackId::VarusBlightStacks] >= 1 {
+        } else if champ.e_cd == 0. && champ.effects_stacks[EffectStackId::VarusBlightStacks] >= 1 {
             champ.e(target_stats);
         } else if champ.basic_attack_cd == 0. {
             champ.basic_attack(target_stats);
@@ -251,12 +251,12 @@ fn varus_fight_scenario_all_out(champ: &mut Unit, target_stats: &UnitStats, figh
             champ.walk(
                 F32_TOL
                     + [
-                        if champ.buffs_stacks[BuffStackId::VarusBlightStacks] >= 2 {
+                        if champ.effects_stacks[EffectStackId::VarusBlightStacks] >= 2 {
                             champ.q_cd
                         } else {
                             champ.basic_attack_cd
                         },
-                        if champ.buffs_stacks[BuffStackId::VarusBlightStacks] >= 1 {
+                        if champ.effects_stacks[EffectStackId::VarusBlightStacks] >= 1 {
                             champ.e_cd
                         } else {
                             champ.basic_attack_cd
