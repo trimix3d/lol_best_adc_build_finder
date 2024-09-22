@@ -352,7 +352,7 @@ fn gold_weighted_average(values: &[f32], golds: &[f32], max_golds: f32) -> f32 {
 #[derive(Debug, Clone)]
 pub struct BuildContainer {
     pub build: Build,
-    pub cumulated_utils: EnumSet<ItemUtils>,
+    pub cum_utils: EnumSet<ItemUtils>,
     pub golds: [f32; MAX_UNIT_ITEMS + 1], //starting golds + 1 value per item
     pub dps: [f32; MAX_UNIT_ITEMS + 1],   //starting dps + 1 value per item
     pub defense: [f32; MAX_UNIT_ITEMS + 1], //starting defense + 1 value per item
@@ -692,6 +692,7 @@ pub fn score_formula_with_normalized_weights(
         * ms.powf(norm_ms_weight)
 }
 
+/// Generate the next 'layer' of builds from current builds, returns None if next layer is empty (never returns an empty Vec).
 fn generate_build_layer(
     current_builds: Vec<BuildContainer>,
     pool: &[&'static Item],
@@ -761,6 +762,22 @@ fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usiz
     )
 }
 
+fn get_scores_from_sim_results(champ: &Unit, ad_taken_percent: f32) -> (f32, f32, f32) {
+    let actual_time: f32 = champ.time; //take champ.time instead of fight_duration in scores calculations, since simulation can be slighlty extended
+
+    let dps: f32 = champ.sim_results.dmg_done / actual_time; //average dps of the unit over the fight simulation
+
+    let effective_hp: f32 = (champ.stats.hp
+        + champ.sim_results.heals_shields
+        + 6. * champ.sim_results.life_vamped / actual_time)
+        / (ad_taken_percent * resistance_formula_pos(champ.stats.armor)
+            + (1. - ad_taken_percent) * resistance_formula_pos(champ.stats.mr)); //effective (hp + heals and shields gained during the simulation + life vamped over a standardized duration), ap dmg percent is deducted by the formula: 1. - ad_taken_percent (neglecting true damage)
+
+    let move_speed: f32 = champ.sim_results.units_travelled / actual_time; //average move speed of the unit over the fight simulation
+
+    (dps, effective_hp, move_speed)
+}
+
 /// Number of pareto scores to consider. Must be consistent with the number of elements in the `ParetoPoint` type.
 /// f32 because only used in f32 calculations.
 const N_PARETO_SCORES: f32 = 7.;
@@ -802,29 +819,32 @@ impl ParetoSpacePoint {
         //the final scores are calculated from the weighted sum of each simulation result (weight according to the normal distribution)
         let std_dev: f32 = 0.15 * fight_duration; //chosen arbitrarily, but it works
 
-        //weights for a value at 1 std_dev from the mean
+        //weights for a value at 1.25 std_dev from the mean
+        champ.simulate_fight(target_stats, fight_duration - 1.25 * std_dev);
         let (dps, defense, ms): (f32, f32, f32) =
-            champ.simulate_fight(target_stats, fight_duration - std_dev, ad_taken_percent);
-        avg_dps += 0.274 * dps;
-        avg_defense += 0.274 * defense;
-        avg_ms += 0.274 * ms;
+            get_scores_from_sim_results(champ, ad_taken_percent);
+        avg_dps += 0.25 * dps;
+        avg_defense += 0.25 * defense;
+        avg_ms += 0.25 * ms;
 
         //weights for a value at the mean
+        champ.simulate_fight(target_stats, fight_duration);
         let (dps, defense, ms): (f32, f32, f32) =
-            champ.simulate_fight(target_stats, fight_duration, ad_taken_percent);
-        avg_dps += 0.452 * dps;
-        avg_defense += 0.452 * defense;
-        avg_ms += 0.452 * ms;
+            get_scores_from_sim_results(champ, ad_taken_percent);
+        avg_dps += 0.50 * dps;
+        avg_defense += 0.50 * defense;
+        avg_ms += 0.50 * ms;
 
-        //weights for a value at 1 std_dev from the mean
+        //weights for a value at 1.25 std_dev from the mean
+        champ.simulate_fight(target_stats, fight_duration + 1.25 * std_dev);
         let (dps, defense, ms): (f32, f32, f32) =
-            champ.simulate_fight(target_stats, fight_duration + std_dev, ad_taken_percent);
-        avg_dps += 0.274 * dps;
-        avg_defense += 0.274 * defense;
-        avg_ms += 0.274 * ms;
+            get_scores_from_sim_results(champ, ad_taken_percent);
+        avg_dps += 0.25 * dps;
+        avg_defense += 0.25 * defense;
+        avg_ms += 0.25 * ms;
 
         Self {
-            utils: container.cumulated_utils | container.build[item_idx].utils, //only check current item, as containers should records items utils cumulatively from previous items
+            utils: container.cum_utils | container.build[item_idx].utils, //only check current item, as containers should records items utils cumulatively from previous items
             golds: champ.build_cost,
             dps: avg_dps,
             defense: avg_defense,
@@ -975,7 +995,7 @@ pub fn find_best_builds(
     champ.set_lvl(lvl).expect("Failed to set lvl");
     let mut empty_build: BuildContainer = BuildContainer {
         build: Build::default(),
-        cumulated_utils: enum_set!(),
+        cum_utils: enum_set!(),
         golds: [STARTING_GOLDS; MAX_UNIT_ITEMS + 1],
         dps: [0.; MAX_UNIT_ITEMS + 1],
         defense: [0.; MAX_UNIT_ITEMS + 1],
@@ -1118,7 +1138,7 @@ pub fn find_best_builds(
 
         //fill remaining build containers
         for (container, scores) in zip(best_builds.iter_mut(), pareto_space_points.iter()) {
-            container.cumulated_utils = scores.utils;
+            container.cum_utils = scores.utils;
             container.golds[item_slot] = scores.golds;
             container.dps[item_slot] = scores.dps;
             container.defense[item_slot] = scores.defense;

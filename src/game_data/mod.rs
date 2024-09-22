@@ -95,7 +95,7 @@ const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [
 /// Travel distance required to fully charge energized attacks (rapid firecanon, statikk shiv, ...).
 const ENERGIZED_ATTACKS_TRAVEL_REQUIRED: f32 = 100. * 24.;
 
-//other parameters:
+//fights simulation parameters:
 /// Average time in seconds we consider between fights (used to weight items actives with different cooldowns).
 const TIME_BETWEEN_FIGHTS: f32 = 180.;
 /// Returns the availability coef of a passive/active effect according to its cooldown.
@@ -121,7 +121,7 @@ macro_rules! basic_attack_aoe_effect_avg_additionnal_targets {
 }
 use basic_attack_aoe_effect_avg_additionnal_targets; //to make it accessible in submodules
 
-//game related functions:
+//game mechanics related functions:
 /// Returns coefficient multiplying base cooldown to give the actual cooldown reduced by haste.
 /// <https://leagueoflegends.fandom.com/wiki/Haste>
 fn haste_formula(haste: f32) -> f32 {

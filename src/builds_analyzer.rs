@@ -5,13 +5,21 @@ use super::{
     game_data::items_data::{BuildHash, ItemUtils},
 };
 
+use enumset::EnumSet;
 use rustc_hash::{FxBuildHasher, FxHashMap};
+
+use core::num::NonZeroUsize;
 
 //todo: tier list and save it in file
 
 /// Sort the provided pareto builds by their average score.
 pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights: (f32, f32, f32)) {
-    let n_items: usize = builds_ref[0].build.item_count(); //assumes all builds have the same length
+    //sanity check
+    if builds_ref.is_empty() {
+        return;
+    }
+
+    let n_items: usize = builds_ref[0].build.item_count(); //assumes all builds have the same length as the first of the list
     let max_golds: f32 = builds_ref
         .iter()
         .map(|build| build.golds[n_items])
@@ -50,10 +58,30 @@ pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights:
 /// Prints the provided pareto builds.
 pub fn print_builds_scores(
     builds_ref: &[BuildContainer],
-    n_to_print: usize,
     judgment_weights: (f32, f32, f32),
+    n_to_print: NonZeroUsize,
+    must_have_utils: EnumSet<ItemUtils>,
 ) {
-    let n_items: usize = builds_ref[0].build.item_count(); //assumes all builds have the same length
+    let filtered_builds = builds_ref
+        .iter()
+        .filter(|container| (must_have_utils & !container.cum_utils).is_empty());
+    let filtered_len = filtered_builds.clone().count();
+
+    //sanity check
+    if filtered_len == 0 {
+        println!("No builds to show");
+        return;
+    }
+
+    let n_to_print: usize = usize::min(n_to_print.get(), filtered_len);
+    println!(
+        "Showing the {n_to_print} best builds (out of {}):\n\
+         score | !h/s | surv | spec | build\n\
+         ---------------------------------------------------",
+        filtered_len
+    );
+
+    let n_items: usize = builds_ref[0].build.item_count(); //assumes all builds have the same length as the first of the list
     let max_golds: f32 = builds_ref
         .iter()
         .map(|build| build.golds[n_items])
@@ -61,30 +89,31 @@ pub fn print_builds_scores(
         .unwrap_or(STARTING_GOLDS);
     let normalized_judgement_weights: (f32, f32, f32) =
         get_normalized_judgment_weights(judgment_weights);
-
-    //print builds
-    let n_to_print: usize = usize::min(n_to_print, builds_ref.len());
-    println!(
-        "Showing the {n_to_print} best builds (out of {}):\n\
-         score | !h/s | surv | other | build\n\
-         ---------------------------------------------------",
-        builds_ref.len()
-    );
-    for container in &builds_ref[0..n_to_print] {
+    const UTIL_CHECK_MARK_CHAR: char = '●';
+    const UTIL_CROSS_MARK_CHAR: char = ' ';
+    for container in filtered_builds.take(n_to_print) {
         print!(
-            "{:5.0} | {:^4} | {:^4} | {:^5} | ",
+            "{:5.0} | {:^4} | {:^4} | {:^4} | ",
             container.get_avg_score_with_normalized_weights(
                 n_items,
                 max_golds,
                 normalized_judgement_weights
             ),
-            u8::from(
-                container
-                    .cumulated_utils
-                    .contains(ItemUtils::AntiHealShield)
-            ),
-            u8::from(container.cumulated_utils.contains(ItemUtils::Survivability)),
-            u8::from(container.cumulated_utils.contains(ItemUtils::Other))
+            if container.cum_utils.contains(ItemUtils::AntiHealShield) {
+                UTIL_CHECK_MARK_CHAR
+            } else {
+                UTIL_CROSS_MARK_CHAR
+            },
+            if container.cum_utils.contains(ItemUtils::Survivability) {
+                UTIL_CHECK_MARK_CHAR
+            } else {
+                UTIL_CROSS_MARK_CHAR
+            },
+            if container.cum_utils.contains(ItemUtils::Special) {
+                UTIL_CHECK_MARK_CHAR
+            } else {
+                UTIL_CROSS_MARK_CHAR
+            },
         );
         for item_idx in 0..(n_items - 1) {
             print!(

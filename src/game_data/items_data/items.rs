@@ -325,7 +325,7 @@ pub const AXIOM_ARC: Item = Item {
     short_name: "Axiom_arc",
     cost: 3000.,
     item_groups: enum_set!(),
-    utils: enum_set!(ItemUtils::Other), //flux ultimate cd reduction passive
+    utils: enum_set!(ItemUtils::Special), //flux ultimate cd reduction passive
     stats: UnitStats {
         hp: 0.,
         mana: 0.,
@@ -488,7 +488,7 @@ pub const BLACK_CLEAVER: Item = Item {
     short_name: "Black_cleaver",
     cost: 3000.,
     item_groups: enum_set!(ItemGroups::Fatality),
-    utils: enum_set!(ItemUtils::Other), //carve armor reduction passive
+    utils: enum_set!(ItemUtils::Special), //carve armor reduction passive
     stats: UnitStats {
         hp: 400.,
         mana: 0.,
@@ -920,7 +920,7 @@ pub const CRYPTBLOOM: Item = Item {
     short_name: "Cryptbloom",
     cost: 2850.,
     item_groups: enum_set!(ItemGroups::Blight),
-    utils: enum_set!(ItemUtils::Other), //life from death healing passive
+    utils: enum_set!(ItemUtils::Special), //life from death healing passive
     stats: UnitStats {
         hp: 0.,
         mana: 0.,
@@ -1258,7 +1258,7 @@ pub const ESSENCE_REAVER: Item = Item {
     short_name: "ER",
     cost: 3100.,
     item_groups: enum_set!(),
-    utils: enum_set!(ItemUtils::Other), //essence drain passive mana refund
+    utils: enum_set!(ItemUtils::Special), //essence drain passive mana refund
     stats: UnitStats {
         hp: 0.,
         mana: 0.,
@@ -2670,7 +2670,7 @@ pub const MALIGNANCE: Item = Item {
     short_name: "Malignance",
     cost: 2700.,
     item_groups: enum_set!(),
-    utils: enum_set!(ItemUtils::Other), //hatefog magic resistance reduction
+    utils: enum_set!(ItemUtils::Special), //hatefog magic resistance reduction
     stats: UnitStats {
         hp: 0.,
         mana: 600.,
@@ -3574,7 +3574,7 @@ pub const RAPID_FIRECANNON: Item = Item {
     short_name: "RFC",
     cost: 2600.,
     item_groups: enum_set!(),
-    utils: enum_set!(ItemUtils::Other), //sharpshooter bonus range
+    utils: enum_set!(ItemUtils::Special), //sharpshooter bonus range
     stats: UnitStats {
         hp: 0.,
         mana: 0.,
@@ -4317,7 +4317,7 @@ pub const STATIKK_SHIV: Item = Item {
     short_name: "Statikk",
     cost: 2900.,
     item_groups: enum_set!(),
-    utils: enum_set!(ItemUtils::Other), //electrospark wave clear
+    utils: enum_set!(ItemUtils::Special), //electrospark wave clear
     stats: UnitStats {
         hp: 0.,
         mana: 0.,
@@ -5155,7 +5155,7 @@ pub const UMBRAL_GLAIVE: Item = Item {
     short_name: "Umbral_glaive",
     cost: 2600.,
     item_groups: enum_set!(),
-    utils: enum_set!(ItemUtils::Other), //blackout passive
+    utils: enum_set!(ItemUtils::Special), //blackout passive
     stats: UnitStats {
         hp: 0.,
         mana: 0.,

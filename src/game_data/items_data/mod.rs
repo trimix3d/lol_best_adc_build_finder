@@ -126,7 +126,7 @@ pub enum ItemGroups {
 pub enum ItemUtils {
     AntiHealShield,
     Survivability,
-    Other,
+    Special,
 }
 
 #[derive(Debug)]
@@ -404,7 +404,6 @@ impl Build {
     /// Returns the build hash. Builds with same items but in different item order will produce the same hash.
     /// If there is no id collision between items, this function doesn't produces collisions either
     /// (except for the case above which is intended).
-    #[inline]
     #[must_use]
     pub fn get_hash(&self) -> BuildHash {
         let mut ids: [ItemId; MAX_UNIT_ITEMS] = [

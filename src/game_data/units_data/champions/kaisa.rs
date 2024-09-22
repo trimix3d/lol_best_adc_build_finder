@@ -162,8 +162,7 @@ fn kaisa_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 /// Used to calculate the average travel time of the projectile.
 const KAISA_W_PROJECTILE_SPEED: f32 = 1750.;
 /// Has an impact on evolved w cd refund (greater travel time -> cd refund is less relevant).
-/// Assumes travel distance is 1200 units (=champion sight range).
-const KAISA_W_TRAVEL_TIME: f32 = 1200. / KAISA_W_PROJECTILE_SPEED;
+const KAISA_W_TRAVEL_TIME: f32 = 1000. / KAISA_W_PROJECTILE_SPEED;
 
 const KAISA_W_AP_DMG_BY_W_LVL: [f32; 5] = [30., 55., 80., 105., 130.];
 

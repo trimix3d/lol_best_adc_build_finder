@@ -6,9 +6,11 @@ use items_data::{items::*, *};
 use units_data::*;
 
 use constcat::concat;
+use enumset::{enum_set, EnumSet};
 
 use core::fmt::Debug;
 use core::iter::Iterator;
+use core::num::NonZeroUsize;
 use core::ops::RangeBounds;
 use std::io;
 
@@ -362,7 +364,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
             Err(command) => return Err(command),
         };
 
-        //start computation
+        //compute best builds
         println!();
         let mut pareto_builds = match find_best_builds(&mut champ, &settings) {
             Ok(pareto_builds) => pareto_builds,
@@ -373,54 +375,67 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
                 continue;
             }
         };
-
-        //print results
         sort_builds_by_score(&mut pareto_builds, settings.judgment_weights);
-        println!();
-        print_builds_scores(
-            &pareto_builds,
-            DEFAULT_N_PRINTED_BUILDS,
-            settings.judgment_weights,
-        );
 
-        //prompt for next thing to do
+        //results screen
+        let mut n_to_print: NonZeroUsize = NonZeroUsize::new(DEFAULT_N_PRINTED_BUILDS)
+            .expect("Failed to create NonZeroUsize from DEFAULT_N_PRINTED_BUILDS");
+        let mut must_have_utils: EnumSet<ItemUtils> = enum_set!();
         loop {
+            println!();
+            print_builds_scores(
+                &pareto_builds,
+                settings.judgment_weights,
+                n_to_print,
+                must_have_utils,
+            );
+
+            //prompt for what's next
             let choice: usize = match get_user_choice(
-                    "",
-                    "Select an action (press enter to return to champion selection)",
-                    "How to interpret the columns from left to right:\n \
-                    - score: the overall score of the build (according to the judgment weights)\n \
-                    - !h/s : if the build has anti-heal or anti-shield utility\n \
+                "",
+                "Select an action (press enter to return to champion selection)",
+                "How to interpret the columns from left to right:\n \
+                    - score: the overall score of the build\n \
+                    - !h/s : if the build has anti heal/shield utility\n \
                     - surv : if the build has survivability utility (e.g. zhonyas stasis, edge of night spell shield, ...)\n \
-                    - other: if the build has other utility (e.g. RFC bonus range, black cleaver armor reduction, ...)\n \
+                    - spec : if the build has special utility (e.g. RFC bonus range, black cleaver armor reduction, ...)\n \
                     - build: the build in item order (with the score at each item slot in brackets)",
-                    ["show more builds", "restart generation with different settings"],
-                    true,
-                ) {
-                    Ok(Some(choice)) => choice,
-                    Ok(None) => return Ok(()),
-                    Err(UserCommand::Back) => break,
-                    Err(command) => return Err(command)
-                };
+                [
+                    &format!("only show builds with anti heal/shield utility : {}", must_have_utils.contains(ItemUtils::AntiHealShield)),
+                    &format!("only show builds with survivability utility: {}", must_have_utils.contains(ItemUtils::Survivability)),
+                    &format!("only show builds with special utility: {}", must_have_utils.contains(ItemUtils::Special)),
+                    "choose number of builds to show",
+                    "restart generation with different settings",
+                ],
+                true,
+            ) {
+                Ok(Some(choice)) => choice,
+                Ok(None) => return Ok(()),
+                Err(UserCommand::Back) => break,
+                Err(command) => return Err(command),
+            };
+
             match choice {
-                1 => {
-                    match get_user_usize(
-                        "",
-                        "Enter the number of builds to show",
-                        "No help message available.",
-                        1..,
-                        false, //safety of a later expect() depends on this argument to be false
-                    ) {
-                        Ok(n) => print_builds_scores(
-                            &pareto_builds,
+                1 => must_have_utils ^= enum_set!(ItemUtils::AntiHealShield),
+                2 => must_have_utils ^= enum_set!(ItemUtils::Survivability),
+                3 => must_have_utils ^= enum_set!(ItemUtils::Special),
+                4 => match get_user_usize(
+                    "",
+                    "Enter the number of builds to show",
+                    "No help message available.",
+                    1..,   //safety of a later unwrap depends on this range to exclude 0
+                    false, //safety of a later expect() depends on this argument to be false
+                ) {
+                    Ok(n) => {
+                        n_to_print = NonZeroUsize::new(
                             n.expect("Expected an input from user, but received none"),
-                            settings.judgment_weights,
-                        ),
-                        Err(UserCommand::Back) => (),
-                        Err(command) => return Err(command),
+                        )
+                        .unwrap(); //should never panic as we prevent choice from being 0 above
                     }
-                }
-                2 => break,
+                    Err(UserCommand::Back) => (),
+                    Err(command) => return Err(command),
+                },
+                5 => break,
                 _ => unreachable!("Unhandled user input"),
             }
         }

@@ -423,9 +423,7 @@ impl SkillOrder {
             r: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
         }
     }
-}
 
-impl SkillOrder {
     /// Returns Ok if the given `skill_order` is valid, Err with an error message otherwise.
     /// A valid `skill_order` is one with 1 lvl-up per Unit lvl and in total 5 lvl-ups per spell (3 for ultimate).
     /// Aphelios special case is also treated when the 'aphelios' arg is set to true.
@@ -464,7 +462,7 @@ impl SkillOrder {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct UnitSimulationResult {
     pub dmg_done: f32,
     pub life_vamped: f32,   //heals obtained by basic attacks over a duration
@@ -494,10 +492,7 @@ impl UnitSimulationResult {
 
 #[derive(Debug, Clone)]
 pub struct Unit {
-    //constant unit properties
     pub properties: &'static UnitProperties,
-    //the rest below can change at runtime
-    //stats
     pub stats: UnitStats,
     //lvl related
     skill_order: SkillOrder,
@@ -1431,26 +1426,10 @@ impl Unit {
     /// Simulate a fight for the unit hitting the specified target according to what is defined in the unit properties
     /// and returns (average dps, effective hp, average move speed) obtained from the simulation.
     /// This function will always start by initializing the unit with `self.init_fight` and use all items actives before simulating.
-    pub fn simulate_fight(
-        &mut self,
-        target_stats: &UnitStats,
-        fight_duration: f32,
-        ad_taken_percent: f32,
-    ) -> (f32, f32, f32) {
+    pub fn simulate_fight(&mut self, target_stats: &UnitStats, fight_duration: f32) {
         self.init_fight();
         self.use_all_items_actives(target_stats);
         (self.fight_scenario.0)(self, target_stats, fight_duration);
-
-        //retrieve scores
-        let actual_time: f32 = self.time; //take self.time instead of fight_duration in scores calculations, since simulation can be slighlty extended
-        let dps: f32 = self.sim_results.dmg_done / actual_time; //average dps of the unit over the fight simulation
-        let effective_hp: f32 = (self.stats.hp
-            + self.sim_results.heals_shields
-            + 6. * self.sim_results.life_vamped / actual_time)
-            / (ad_taken_percent * resistance_formula_pos(self.stats.armor)
-                + (1. - ad_taken_percent) * resistance_formula_pos(self.stats.mr)); //effective (hp + heals and shields gained during the simulation + life vamped over a standardized duration), ap dmg percent is deducted by the formula: 1. - ad_taken_percent (neglecting true damage)
-        let move_speed: f32 = self.sim_results.units_travelled / actual_time; //average move speed of the unit over the fight simulation
-        (dps, effective_hp, move_speed)
     }
 
     /// Default `basic_attack` for an unit.
