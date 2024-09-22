@@ -17,7 +17,7 @@ use std::io;
 use io::Write;
 
 /// Number of builds to be printed by default when displaying results.
-const DEFAULT_N_PRINTED_BUILDS: usize = 20;
+const DEFAULT_N_PRINTED_BUILDS: usize = 18;
 
 pub fn launch_interface() {
     println!(
