@@ -67,12 +67,6 @@ pub fn print_builds_scores(
         .filter(|container| (must_have_utils & !container.cum_utils).is_empty());
     let filtered_len = filtered_builds.clone().count();
 
-    //sanity check
-    if filtered_len == 0 {
-        println!("No builds to show");
-        return;
-    }
-
     let n_to_print: usize = usize::min(n_to_print.get(), filtered_len);
     println!(
         "Showing the {n_to_print} best builds (out of {}):\n\
@@ -80,6 +74,12 @@ pub fn print_builds_scores(
          ---------------------------------------------------",
         filtered_len
     );
+
+    //sanity check
+    if filtered_len == 0 {
+        println!("No builds to show!");
+        return;
+    }
 
     let n_items: usize = builds_ref[0].build.item_count(); //assumes all builds have the same length as the first of the list
     let max_golds: f32 = builds_ref
