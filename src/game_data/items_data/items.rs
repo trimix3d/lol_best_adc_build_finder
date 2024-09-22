@@ -2970,7 +2970,7 @@ fn muramana_shock_on_spell_hit(
 
 fn muramana_shock_on_basic_attack_hit(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //it is okay to have this condition in static on hit (exception)
-    //if same instance of dmg as muramana_shock_on_spell_hit, do nothing (to prevent basic attack that trigger on hit to apply muramana passive twice)
+    //if same instance of dmg (==exact same time) as muramana_shock_on_spell_hit, do nothing (to prevent basic attack that trigger on hit to apply muramana passive twice)
     if champ.time == champ.buffs_values[BuffValueId::MuramanaShockLastSpellHitTime] {
         return (0., 0., 0.);
     }
