@@ -36,7 +36,7 @@ const OPTIMIZER_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //d
 const MAX_UNIT_LVL_F32: f32 = MAX_UNIT_LVL as f32; //`MAX_UNIT_LVL` is well whithin f32's range to avoid precision loss
 
 /// Using Ahri stats for squishy dummy.
-const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
+const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES_REF: &UnitProperties = &UnitProperties {
     name: "squishy (e.g. Ahri)",
     as_limit: Unit::DEFAULT_AS_LIMIT,
     as_ratio: 0.625,
@@ -103,12 +103,13 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         omnivamp: 0.,
     },
     on_lvl_set: None,
-    init_spells: None,
+    init_unit: None,
     basic_attack: null_basic_attack,
     q: NULL_BASIC_SPELL,
     w: NULL_BASIC_SPELL,
     e: NULL_BASIC_SPELL,
     r: NULL_ULTIMATE_SPELL,
+    on_trigger_event: OnTriggerEvent::const_default(),
     fight_scenarios: &[(null_simulate_fight, "null")],
     unit_defaults: UnitDefaults {
         runes_pages: &OPTIMIZER_DUMMY_RUNES_PAGE,
@@ -120,7 +121,7 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
 };
 
 /// Using Riven stats for bruiser dummy with additionnal stats from bruiser items.
-const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
+const BRUISER_OPTIMIZER_DUMMY_PROPERTIES_REF: &UnitProperties = &UnitProperties {
     name: "bruiser (e.g. Riven)",
     as_limit: Unit::DEFAULT_AS_LIMIT,
     as_ratio: 0.625,
@@ -191,12 +192,13 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         omnivamp: 0.,
     },
     on_lvl_set: None,
-    init_spells: None,
+    init_unit: None,
     basic_attack: null_basic_attack,
     q: NULL_BASIC_SPELL,
     w: NULL_BASIC_SPELL,
     e: NULL_BASIC_SPELL,
     r: NULL_ULTIMATE_SPELL,
+    on_trigger_event: OnTriggerEvent::const_default(),
     fight_scenarios: &[(null_simulate_fight, "null")],
     unit_defaults: UnitDefaults {
         runes_pages: &OPTIMIZER_DUMMY_RUNES_PAGE,
@@ -208,7 +210,7 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
 };
 
 /// Using Ornn stats for bruiser dummy with additionnal stats from bruiser items.
-const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
+const TANKY_OPTIMIZER_DUMMY_PROPERTIES_REF: &UnitProperties = &UnitProperties {
     name: "tank (e.g. Ornn)",
     as_limit: Unit::DEFAULT_AS_LIMIT,
     as_ratio: 0.625,
@@ -282,12 +284,13 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         omnivamp: 0.,
     },
     on_lvl_set: None,
-    init_spells: None,
+    init_unit: None,
     basic_attack: null_basic_attack,
     q: NULL_BASIC_SPELL,
     w: NULL_BASIC_SPELL,
     e: NULL_BASIC_SPELL,
     r: NULL_ULTIMATE_SPELL,
+    on_trigger_event: OnTriggerEvent::const_default(),
     fight_scenarios: &[(null_simulate_fight, "null")],
     unit_defaults: UnitDefaults {
         runes_pages: &OPTIMIZER_DUMMY_RUNES_PAGE,
@@ -299,9 +302,9 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
 };
 
 pub const TARGET_OPTIONS: [&UnitProperties; 3] = [
-    &SQUISHY_OPTIMIZER_DUMMY_PROPERTIES,
-    &BRUISER_OPTIMIZER_DUMMY_PROPERTIES,
-    &TANKY_OPTIMIZER_DUMMY_PROPERTIES,
+    SQUISHY_OPTIMIZER_DUMMY_PROPERTIES_REF,
+    BRUISER_OPTIMIZER_DUMMY_PROPERTIES_REF,
+    TANKY_OPTIMIZER_DUMMY_PROPERTIES_REF,
 ];
 
 /// Sorts a clone of the slice and compares adjacent elements to find if there is duplicates.
@@ -419,7 +422,7 @@ pub struct BuildsGenerationSettings {
 impl Default for BuildsGenerationSettings {
     fn default() -> Self {
         BuildsGenerationSettings {
-            target_properties: &SQUISHY_OPTIMIZER_DUMMY_PROPERTIES,
+            target_properties: SQUISHY_OPTIMIZER_DUMMY_PROPERTIES_REF,
             fight_duration: 8.,
             ad_taken_percent: 0.60,
             judgment_weights: (1., 0.25, 0.5),
@@ -457,7 +460,7 @@ impl BuildsGenerationSettings {
         match doesn't work :,(
         */
         #[allow(clippy::if_same_then_else)]
-        if *properties_ref == Unit::ASHE_PROPERTIES {
+        if *properties_ref == *Unit::ASHE_PROPERTIES_REF {
             BuildsGenerationSettings {
                 //boots_slot: 1, //gives questionable results
                 legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
@@ -466,7 +469,7 @@ impl BuildsGenerationSettings {
                 search_threshold: 0.15,
                 ..Default::default()
             }
-        } else if *properties_ref == Unit::DRAVEN_PROPERTIES {
+        } else if *properties_ref == *Unit::DRAVEN_PROPERTIES_REF {
             BuildsGenerationSettings {
                 legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties_ref.unit_defaults.boots_pool),
@@ -474,7 +477,7 @@ impl BuildsGenerationSettings {
                 search_threshold: 0.15,
                 ..Default::default()
             }
-        } else if *properties_ref == Unit::KAISA_PROPERTIES {
+        } else if *properties_ref == *Unit::KAISA_PROPERTIES_REF {
             BuildsGenerationSettings {
                 legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties_ref.unit_defaults.boots_pool),
@@ -482,14 +485,14 @@ impl BuildsGenerationSettings {
                 search_threshold: 0.15,
                 ..Default::default()
             }
-        } else if *properties_ref == Unit::LUCIAN_PROPERTIES {
+        } else if *properties_ref == *Unit::LUCIAN_PROPERTIES_REF {
             BuildsGenerationSettings {
                 legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties_ref.unit_defaults.boots_pool),
                 support_items_pool: Vec::from(properties_ref.unit_defaults.support_items_pool),
                 ..Default::default()
             }
-        } else if *properties_ref == Unit::VARUS_PROPERTIES {
+        } else if *properties_ref == *Unit::VARUS_PROPERTIES_REF {
             BuildsGenerationSettings {
                 legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties_ref.unit_defaults.boots_pool),
@@ -976,7 +979,7 @@ pub fn find_best_builds(
         )
         .with_message(format!(
             "Calculating best builds for {}...",
-            champ.properties.name
+            champ.properties_ref.name
         ));
     progress_bar.enable_steady_tick(Duration::from_millis(200));
 
@@ -1153,7 +1156,7 @@ pub fn find_best_builds(
     println!(
         "Found {} optimized builds for {}",
         best_builds.len(),
-        champ.properties.name
+        champ.properties_ref.name
     );
 
     //restore original champion configuration
@@ -1178,7 +1181,7 @@ mod tests {
     pub fn test_default_build_generation_settings() {
         //test for an unknown champion
         if let Err(error_msg) =
-            BuildsGenerationSettings::default_by_champion(&BRUISER_OPTIMIZER_DUMMY_PROPERTIES)
+            BuildsGenerationSettings::default_by_champion(&BRUISER_OPTIMIZER_DUMMY_PROPERTIES_REF)
                 .check_settings()
         {
             panic!(

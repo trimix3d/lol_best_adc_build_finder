@@ -123,7 +123,7 @@ fn varus_consume_blight_stacks_ap_dmg(champ: &mut Unit, target_stats: &UnitStats
             - n_stacks
                 * VARUS_SPELLS_HIT_PERCENT
                 * VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
-                * champ.properties.q.base_cooldown_by_spell_lvl[usize::from(champ.q_lvl - 1)],
+                * champ.properties_ref.q.base_cooldown_by_spell_lvl[usize::from(champ.q_lvl - 1)],
     );
     champ.w_cd = f32::max(
         0.,
@@ -131,7 +131,7 @@ fn varus_consume_blight_stacks_ap_dmg(champ: &mut Unit, target_stats: &UnitStats
             - n_stacks
                 * VARUS_SPELLS_HIT_PERCENT
                 * VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
-                * champ.properties.w.base_cooldown_by_spell_lvl[usize::from(champ.w_lvl - 1)],
+                * champ.properties_ref.w.base_cooldown_by_spell_lvl[usize::from(champ.w_lvl - 1)],
     );
     champ.e_cd = f32::max(
         0.,
@@ -139,7 +139,7 @@ fn varus_consume_blight_stacks_ap_dmg(champ: &mut Unit, target_stats: &UnitStats
             - n_stacks
                 * VARUS_SPELLS_HIT_PERCENT
                 * VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
-                * champ.properties.e.base_cooldown_by_spell_lvl[usize::from(champ.e_lvl - 1)],
+                * champ.properties_ref.e.base_cooldown_by_spell_lvl[usize::from(champ.e_lvl - 1)],
     );
 
     n_stacks
@@ -408,7 +408,7 @@ const VARUS_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const VARUS_BASE_AS: f32 = 0.658;
 impl Unit {
-    pub const VARUS_PROPERTIES: UnitProperties = UnitProperties {
+    pub const VARUS_PROPERTIES_REF: &UnitProperties = &UnitProperties {
         name: "Varus",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: VARUS_BASE_AS,
@@ -475,7 +475,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: None,
-        init_spells: Some(varus_init_spells),
+        init_unit: Some(varus_init_spells),
         basic_attack: varus_basic_attack,
         q: BasicSpell {
             cast: varus_q,
@@ -496,6 +496,21 @@ impl Unit {
             cast: varus_r,
             cast_time: 0.2419,
             base_cooldown_by_spell_lvl: [100., 80., 60.],
+        },
+        on_trigger_event: OnTriggerEvent {
+            on_fight_init: vec![],
+            special_active: vec![],
+            on_basic_spell_cast: vec![],
+            on_ultimate_cast: vec![],
+            on_basic_spell_hit: vec![],
+            on_ultimate_spell_hit: vec![],
+            spell_coef: vec![],
+            on_basic_attack_hit_static: vec![],
+            on_basic_attack_hit_dynamic: vec![],
+            on_any_hit: vec![],
+            on_ad_hit: vec![],
+            ap_true_dmg_coef: vec![],
+            tot_dmg_coef: vec![],
         },
         fight_scenarios: &[
             (varus_fight_scenario_all_out, "all out"),

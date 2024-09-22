@@ -331,7 +331,7 @@ const LUCIAN_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const LUCIAN_BASE_AS: f32 = 0.638;
 impl Unit {
-    pub const LUCIAN_PROPERTIES: UnitProperties = UnitProperties {
+    pub const LUCIAN_PROPERTIES_REF: &UnitProperties = &UnitProperties {
         name: "Lucian",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: LUCIAN_BASE_AS, //if not specified, same as base AS
@@ -398,7 +398,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: None,
-        init_spells: Some(lucian_init_spells),
+        init_unit: Some(lucian_init_spells),
         basic_attack: lucian_basic_attack,
         q: BasicSpell {
             cast: lucian_q,
@@ -419,6 +419,21 @@ impl Unit {
             cast: lucian_r,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [110., 100., 90.],
+        },
+        on_trigger_event: OnTriggerEvent {
+            on_fight_init: vec![],
+            special_active: vec![],
+            on_basic_spell_cast: vec![],
+            on_ultimate_cast: vec![],
+            on_basic_spell_hit: vec![],
+            on_ultimate_spell_hit: vec![],
+            spell_coef: vec![],
+            on_basic_attack_hit_static: vec![],
+            on_basic_attack_hit_dynamic: vec![],
+            on_any_hit: vec![],
+            on_ad_hit: vec![],
+            ap_true_dmg_coef: vec![],
+            tot_dmg_coef: vec![],
         },
         fight_scenarios: &[
             (lucian_fight_scenario_all_out, "all out"),

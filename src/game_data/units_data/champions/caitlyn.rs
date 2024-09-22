@@ -255,7 +255,7 @@ const CAITLYN_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const CAITLYN_BASE_AS: f32 = 0.681;
 impl Unit {
-    pub const CAITLYN_PROPERTIES: UnitProperties = UnitProperties {
+    pub const CAITLYN_PROPERTIES_REF: &UnitProperties = &UnitProperties {
         name: "Caitlyn",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: 0.610,
@@ -322,7 +322,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: None,
-        init_spells: Some(caitlyn_init_spells),
+        init_unit: Some(caitlyn_init_spells),
         basic_attack: caitlyn_basic_attack,
         q: BasicSpell {
             cast: caitlyn_q,
@@ -343,6 +343,21 @@ impl Unit {
             cast: caitlyn_r,
             cast_time: 1. + 0.375, //lock time + cast time
             base_cooldown_by_spell_lvl: [90., 90., 90.],
+        },
+        on_trigger_event: OnTriggerEvent {
+            on_fight_init: vec![],
+            special_active: vec![],
+            on_basic_spell_cast: vec![],
+            on_ultimate_cast: vec![],
+            on_basic_spell_hit: vec![],
+            on_ultimate_spell_hit: vec![],
+            spell_coef: vec![],
+            on_basic_attack_hit_static: vec![],
+            on_basic_attack_hit_dynamic: vec![],
+            on_any_hit: vec![],
+            on_ad_hit: vec![],
+            ap_true_dmg_coef: vec![],
+            tot_dmg_coef: vec![],
         },
         fight_scenarios: &[(caitlyn_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

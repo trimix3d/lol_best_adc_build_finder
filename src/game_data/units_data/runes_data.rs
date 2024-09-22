@@ -32,7 +32,7 @@ impl Unit {
     /// For this reason, this function must be ran after being sure that `Unit.lvl_stats` and `Unit.items_stats` are up to date.
     /// This also means that runes stats might become out of date after changing lvl/items.
     pub fn update_runes_stats(&mut self) {
-        self.runes_stats.put_to_zero();
+        self.runes_stats.clear();
 
         //adaptive force doesn't count in champions passives, so it only depends on items stats in practise
         let runes_adaptive_bonus_ad: f32;

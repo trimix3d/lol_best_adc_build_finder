@@ -143,6 +143,7 @@ pub struct Item {
     //stats
     pub stats: UnitStats,
 
+    //todo: delete this
     //on action fonctions
     /// Init item variables and starting effects on the Unit. this function should ensure that all item
     /// variables and all item effects variables are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).

@@ -354,7 +354,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
 
     //create build generation settings
     let mut settings: BuildsGenerationSettings =
-        BuildsGenerationSettings::default_by_champion(champ.properties);
+        BuildsGenerationSettings::default_by_champion(champ.properties_ref);
 
     loop {
         //set build generation settings
@@ -554,7 +554,7 @@ fn confirm_builds_generation_settings(
         let choice: usize = match get_user_choice(
             format!(
                 "Build generation for {} will be launched with these settings:",
-                champ.properties.name
+                champ.properties_ref.name
             )
             .as_str(),
             "Select a setting to change (press enter to confirm current settings)",
@@ -616,7 +616,7 @@ fn confirm_builds_generation_settings(
             }
             13 => {
                 //reset to default settings
-                *settings_ref = BuildsGenerationSettings::default_by_champion(champ.properties);
+                *settings_ref = BuildsGenerationSettings::default_by_champion(champ.properties_ref);
             }
             _ => unreachable!("Unhandled user input"),
         }
@@ -661,19 +661,19 @@ fn change_fight_scenario(champ: &mut Unit) -> Result<(), UserCommand> {
     match get_user_choice(
         &format!(
             "Available fight scenarios for {} are:",
-            champ.properties.name
+            champ.properties_ref.name
         ),
-        &format!("Select a fight scenario for {}", champ.properties.name),
+        &format!("Select a fight scenario for {}", champ.properties_ref.name),
         FIGHT_SCENARIO_HELP_MSG,
         champ
-            .properties
+            .properties_ref
             .fight_scenarios
             .iter()
             .map(|scenario| scenario.1),
         false,
     ) {
         Ok(Some(choice)) => {
-            champ.fight_scenario = champ.properties.fight_scenarios[choice - 1];
+            champ.fight_scenario = champ.properties_ref.fight_scenarios[choice - 1];
             Ok(())
         }
         Ok(None) => Ok(()), //should never get here because `allow_no_input` is false but just in case

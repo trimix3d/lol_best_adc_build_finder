@@ -325,7 +325,7 @@ const DRAVEN_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const DRAVEN_BASE_AS: f32 = 0.679;
 impl Unit {
-    pub const DRAVEN_PROPERTIES: UnitProperties = UnitProperties {
+    pub const DRAVEN_PROPERTIES_REF: &UnitProperties = &UnitProperties {
         name: "Draven",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: DRAVEN_BASE_AS, //if not specified, same as base AS
@@ -392,7 +392,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: None,
-        init_spells: Some(draven_init_spells),
+        init_unit: Some(draven_init_spells),
         basic_attack: draven_basic_attack,
         q: BasicSpell {
             cast: draven_q,
@@ -413,6 +413,21 @@ impl Unit {
             cast: draven_r,
             cast_time: 0.5,
             base_cooldown_by_spell_lvl: [100., 90., 80.],
+        },
+        on_trigger_event: OnTriggerEvent {
+            on_fight_init: vec![],
+            special_active: vec![],
+            on_basic_spell_cast: vec![],
+            on_ultimate_cast: vec![],
+            on_basic_spell_hit: vec![],
+            on_ultimate_spell_hit: vec![],
+            spell_coef: vec![],
+            on_basic_attack_hit_static: vec![],
+            on_basic_attack_hit_dynamic: vec![],
+            on_any_hit: vec![],
+            on_ad_hit: vec![],
+            ap_true_dmg_coef: vec![],
+            tot_dmg_coef: vec![],
         },
         fight_scenarios: &[
             (draven_fight_scenario_start_with_one_axe, "start with 1 axe"),

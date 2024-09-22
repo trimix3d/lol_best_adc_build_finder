@@ -225,7 +225,7 @@ const TEMPLATE_UNIT_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const TEMPLATE_UNIT_BASE_AS: f32 = 0;
 impl Unit {
-    pub const TEMPLATE_UNIT_PROPERTIES: UnitProperties = UnitProperties {
+    pub const TEMPLATE_UNIT_PROPERTIES_REF: &UnitProperties = &UnitProperties {
         name: "Template_unit",            //todo
         as_limit: Unit::DEFAULT_AS_LIMIT, //todo
         as_ratio: TEMPLATE_UNIT_BASE_AS,  //todo, if not specified, same as base AS

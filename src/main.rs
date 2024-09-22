@@ -20,7 +20,7 @@ fn champion_test_ground() {
     const TARGET_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no spell (except passing validity checks when creating the dummy)
 
     const TARGET_DUMMY_BASE_AS: f32 = 0.658; //in game default value is 0.658
-    const TARGET_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
+    const TARGET_DUMMY_PROPERTIES_REF: &UnitProperties = &UnitProperties {
         name: "target_dummy",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: TARGET_DUMMY_BASE_AS,
@@ -59,12 +59,13 @@ fn champion_test_ground() {
         //no growth stats so they remain constant (lvl doesn't matter)
         growth_stats: UnitStats::const_default(),
         on_lvl_set: None,
-        init_spells: None,
+        init_unit: None,
         basic_attack: null_basic_attack,
         q: NULL_BASIC_SPELL,
         w: NULL_BASIC_SPELL,
         e: NULL_BASIC_SPELL,
         r: NULL_ULTIMATE_SPELL,
+        on_trigger_event: OnTriggerEvent::const_default(),
         fight_scenarios: &[(null_simulate_fight, "null")],
         unit_defaults: UnitDefaults {
             runes_pages: &TARGET_DUMMY_RUNES_PAGE,
@@ -76,12 +77,12 @@ fn champion_test_ground() {
     };
 
     //creation of target dummy
-    let target_dummy: Unit = Unit::from_defaults(&TARGET_DUMMY_PROPERTIES, 6, Build::default())
+    let target_dummy: Unit = Unit::from_defaults(TARGET_DUMMY_PROPERTIES_REF, 6, Build::default())
         .expect("Failed to create target dummy");
 
     //creation of champion
     let mut champ: Unit = Unit::from_defaults(
-        &Unit::ASHE_PROPERTIES,
+        Unit::ASHE_PROPERTIES_REF,
         6,
         Build([
             &KRAKEN_SLAYER,
