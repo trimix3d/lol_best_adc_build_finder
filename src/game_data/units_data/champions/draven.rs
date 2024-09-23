@@ -94,7 +94,7 @@ fn draven_q(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
 
 const DRAVEN_BLOOD_RUSH_BONUS_AS_BY_W_LVL: [f32; 5] = [0.20, 0.25, 0.30, 0.35, 0.40];
 const DRAVEN_BLOOD_RUSH_MS_PERCENT_BY_W_LVL: [f32; 5] =
-    [0.50 / 2., 0.55 / 2., 0.60 / 2., 0.65 / 2., 0.70 / 2.]; //halved because decaying effect
+    [0.50 / 2., 0.55 / 2., 0.60 / 2., 0.65 / 2., 0.70 / 2.]; //halved because decaying buff
 
 fn draven_blood_rush_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::DravenBloodRushBonusAS] == 0. {
@@ -325,7 +325,7 @@ const DRAVEN_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const DRAVEN_BASE_AS: f32 = 0.679;
 impl Unit {
-    pub const DRAVEN_PROPERTIES_REF: &UnitProperties = &UnitProperties {
+    pub const DRAVEN_PROPERTIES: UnitProperties = UnitProperties {
         name: "Draven",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: DRAVEN_BASE_AS, //if not specified, same as base AS
@@ -392,7 +392,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: None,
-        init_unit: Some(draven_init_spells),
+        init_abilities: Some(draven_init_spells),
         basic_attack: draven_basic_attack,
         q: BasicSpell {
             cast: draven_q,
@@ -413,21 +413,6 @@ impl Unit {
             cast: draven_r,
             cast_time: 0.5,
             base_cooldown_by_spell_lvl: [100., 90., 80.],
-        },
-        on_trigger_event: OnTriggerEvent {
-            on_fight_init: vec![],
-            special_active: vec![],
-            on_basic_spell_cast: vec![],
-            on_ultimate_cast: vec![],
-            on_basic_spell_hit: vec![],
-            on_ultimate_spell_hit: vec![],
-            spell_coef: vec![],
-            on_basic_attack_hit_static: vec![],
-            on_basic_attack_hit_dynamic: vec![],
-            on_any_hit: vec![],
-            on_ad_hit: vec![],
-            ap_true_dmg_coef: vec![],
-            tot_dmg_coef: vec![],
         },
         fight_scenarios: &[
             (draven_fight_scenario_start_with_one_axe, "start with 1 axe"),

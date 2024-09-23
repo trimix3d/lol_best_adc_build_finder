@@ -324,106 +324,6 @@ pub struct UltimateSpell {
     base_cooldown_by_spell_lvl: [f32; 3], //ultimate has 3 lvls
 }
 
-/// Used to return (`ad_dmg`, `ap_dmg`, `true_dmg`) of a damage instance.
-pub type RawDmg = (f32, f32, f32);
-
-/// Holds different function that must be executed on the `Unit` after specific trigger events.
-/// Trigger event are basic attacks, spell hits, ...
-///
-/// The prime use case is on-hit from an item passive :
-/// after each auto attack, a function returning the dmg from the on hit passive is called.
-///
-/// In not specified, for every function in this struct : first argument of type `&Unit` is the direct source of the action provoqued by the trigger event.
-/// Second argument of type `&Unit` (if any) is the 'receiver' of the action (e.g. the target for on hit).
-///
-/// For program correctness, these function should NEVER modify the `Unit` outside of temporary effects and effect variables.
-#[derive(Debug, Clone)]
-pub struct OnTriggerEvent {
-    /// Init `Unit`/`Item` effect variables and temporary effects on the `Unit`. These function should ensure that all effect
-    /// variables used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
-    /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
-    /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
-    pub on_fight_init: Vec<fn(&mut Unit)>,
-
-    /// Triggers special actives and returns dmg done.
-    pub special_active: Vec<fn(&mut Unit, &UnitStats) -> f32>,
-
-    /// Applies effects triggered when a basic spell is casted (and updates effect variables accordingly).
-    pub on_basic_spell_cast: Vec<fn(&mut Unit)>,
-    /// Applies effects triggered when ultimate is casted (and updates effect variables accordingly).
-    pub on_ultimate_cast: Vec<fn(&mut Unit)>,
-
-    /// Returns on-basic-spell-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
-    /// 3rd argument (f32) is the number of targets hit by the spell.
-    pub on_basic_spell_hit: Vec<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-    /// Returns on-ultimate-spell-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
-    /// 3rd argument (f32) is the number of targets hit by the spell.
-    pub on_ultimate_spell_hit: Vec<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-
-    /// Returns bonus dmg multipler for spell dmg and updates effect variables accordingly.
-    /// Is applied after on spell hit dmg in calculations (affects them too).
-    pub spell_coef: Vec<fn(&mut Unit) -> f32>,
-
-    /// Returns the static part of on-basic-attack-hit raw dmg.
-    /// on-basic-attack-hit is divided in two parts :
-    /// - static: dmg that applies on all targets unconditionally
-    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
-    /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
-    pub on_basic_attack_hit_static: Vec<fn(&mut Unit, &UnitStats) -> RawDmg>,
-    /// Returns the dynamic part of on-basic-attack-hit raw dmg.
-    /// on-basic-attack-hit is divided in two parts:
-    /// - static: dmg that applies on all targets unconditionally
-    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
-    /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
-    pub on_basic_attack_hit_dynamic: Vec<fn(&mut Unit, &UnitStats) -> RawDmg>,
-
-    /// Returns on-any-hit raw dmg and updates the conditionals accordingly in the effect variables.
-    /// This function is called every hit, in addition to others on_..._hit functions.
-    pub on_any_hit: Vec<fn(&mut Unit, &UnitStats) -> RawDmg>,
-    // Applies effects on the unit triggered when ad dmg is done and updates effect variables accordingly.
-    pub on_ad_hit: Vec<fn(&mut Unit)>,
-
-    /// Returns bonus dmg multiplier for ap dmg and true dmg.
-    /// Stacks additively with itself and multiplicatively with `tot_dmg_coef`.
-    pub ap_true_dmg_coef: Vec<fn(&mut Unit) -> f32>,
-
-    /// Returns bonus dmg multipler for any dmg done.
-    /// Stacks additively with itself and multiplicatively with `ap_true_dmg_coef`.
-    /// Is applied last in dmg calculations.
-    pub tot_dmg_coef: Vec<fn(&mut Unit, &UnitStats) -> f32>,
-}
-
-impl Default for OnTriggerEvent {
-    fn default() -> Self {
-        Self::const_default()
-    }
-}
-
-impl OnTriggerEvent {
-    #[must_use]
-    pub const fn const_default() -> Self {
-        Self {
-            on_fight_init: Vec::new(),
-            special_active: Vec::new(),
-            on_basic_spell_cast: Vec::new(),
-            on_ultimate_cast: Vec::new(),
-            on_basic_spell_hit: Vec::new(),
-            on_ultimate_spell_hit: Vec::new(),
-            spell_coef: Vec::new(),
-            on_basic_attack_hit_static: Vec::new(),
-            on_basic_attack_hit_dynamic: Vec::new(),
-            on_any_hit: Vec::new(),
-            on_ad_hit: Vec::new(),
-            ap_true_dmg_coef: Vec::new(),
-            tot_dmg_coef: Vec::new(),
-        }
-    }
-
-    pub fn clear(&mut self) {
-        *self = Self::default();
-    }
-}
-
 #[derive(Debug)]
 pub struct UnitDefaults {
     pub runes_pages: &'static RunesPage,
@@ -439,26 +339,25 @@ pub type FightScenario = (fn(&mut Unit, &UnitStats, f32), &'static str);
 #[derive(Debug)]
 pub struct UnitProperties {
     pub name: &'static str,
-    //todo: maybe put this in Unit for better cache locality
     pub as_limit: f32, //as limit of the unit (can be practical limit, e.g. kalista passive is not effective after a certain attack speed value, default as limit is 2.5)
-    //todo: maybe put this in Unit for better cache locality
-    pub as_ratio: f32,       //attack speed ratio, if not specified, same as base AS
-    pub windup_percent: f32, //% attack wind up //todo: maybe put this in Unit for better cache locality
-    pub windup_modifier: f32, //get it from <https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks> //todo: maybe put this in Unit for better cache locality
+    pub as_ratio: f32, //attack speed ratio, if not specified, same as base AS
+    pub windup_percent: f32, //% attack wind up
+    pub windup_modifier: f32, //get it from <https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks>
     pub base_stats: UnitStats,
     pub growth_stats: UnitStats,
     /// Perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to `lvl_stats`).
-    pub on_lvl_set: Option<fn(&mut Unit)>, //todo: replace this with OnTriggerEvent
+    pub on_lvl_set: Option<fn(&mut Unit)>,
     /// Init effect variables and temporary effects on the `Unit`. This function should ensure that all effect variables
     /// used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
-    pub init_unit: Option<fn(&mut Unit)>, //todo: replace this with OnTriggerEvent
+    /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
+    /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
+    pub init_abilities: Option<fn(&mut Unit)>,
     pub basic_attack: fn(&mut Unit, &UnitStats) -> f32, //returns basic attack dmg and triggers effects
     //no field for passive (incorporated in Unit spells instead)
     pub q: BasicSpell, //todo: maybe put this in Unit for better cache locality
     pub w: BasicSpell,
     pub e: BasicSpell,
     pub r: UltimateSpell,
-    pub on_trigger_event: OnTriggerEvent,
     pub fight_scenarios: &'static [FightScenario],
     pub unit_defaults: UnitDefaults,
 }
@@ -539,6 +438,91 @@ impl SkillOrder {
     }
 }
 
+//todo: replace all "spell" occurrences with "ability"
+#[derive(Debug)]
+enum TriggerEvent {
+    InitFight,
+    SpecialActive,
+    BasicAbilityCast,
+    UltimateAbilityCast,
+    BasicAbilityHit,
+    UltimateAbilityHit,
+    BasicAttackCast,
+    BasicAttackHit,
+    PhysicalDmgHit, //todo: remove every instance of "ad_hit"
+    MagicDmgHit,
+    TrueDmgHit,
+    AnyDmgHit,
+}
+
+/// Holds different function that must be executed on the `Unit` after specific trigger events.
+/// Trigger event are basic attacks, spell hits, ...
+///
+/// The prime use case is on-hit from an item passive :
+/// after each auto attack, a function returning the dmg from the on hit passive is called.
+///
+/// In not specified, for every function in this struct : first argument of type `&Unit` is the direct source of the action provoqued by the trigger event.
+/// Second argument of type `&Unit` (if any) is the 'receiver' of the action (e.g. the target for on hit).
+///
+/// For program correctness, these function should NEVER modify the `Unit` outside of temporary effects and effect variables.
+#[derive(Debug)]
+struct lol {
+    /// Init `Unit`/`Item` effect variables and temporary effects on the `Unit`. These function should ensure that all effect
+    /// variables used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
+    /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
+    /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
+    init_item: Option<fn(&mut Unit)>,
+
+    /// Triggers special actives and returns dmg done.
+    active: Option<fn(&mut Unit, &UnitStats) -> f32>,
+
+    /// Applies effects triggered when a basic spell is casted (and updates effect variables accordingly).
+    on_basic_spell_cast: Option<fn(&mut Unit)>,
+    /// Applies effects triggered when ultimate is casted (and updates effect variables accordingly).
+    on_ultimate_cast: Option<fn(&mut Unit)>,
+
+    /// Returns on-basic-spell-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
+    /// 3rd argument (f32) is the number of targets hit by the spell.
+    on_basic_spell_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
+    /// Returns on-ultimate-spell-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
+    /// 3rd argument (f32) is the number of targets hit by the spell.
+    on_ultimate_spell_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
+
+    //todo: put this in Unitstats
+    /// Returns bonus dmg multipler for spell dmg and updates effect variables accordingly.
+    /// Is applied after on spell hit dmg in calculations (affects them too).
+    spell_coef: Option<fn(&mut Unit) -> f32>,
+
+    /// Returns the static part of on-basic-attack-hit raw dmg.
+    /// on-basic-attack-hit is divided in two parts :
+    /// - static: dmg that applies on all targets unconditionally
+    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
+    /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
+    on_basic_attack_hit_static: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
+    /// Returns the dynamic part of on-basic-attack-hit raw dmg.
+    /// on-basic-attack-hit is divided in two parts:
+    /// - static: dmg that applies on all targets unconditionally
+    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
+    /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
+    on_basic_attack_hit_dynamic: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
+
+    /// Returns on-any-hit raw dmg and updates the conditionals accordingly in the effect variables.
+    /// This function is called every hit, in addition to others on_..._hit functions.
+    on_any_hit: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
+    /// Applies effects on the unit triggered when ad dmg is done and updates effect variables accordingly.
+    on_ad_hit: Option<fn(&mut Unit)>,
+
+    /// Returns bonus dmg multiplier for ap dmg and true dmg.
+    /// Stacks additively with itself and multiplicatively with `tot_dmg_coef`.
+    ap_true_dmg_coef: Option<fn(&mut Unit) -> f32>,
+
+    //todo: put this in Unitstats
+    /// Returns bonus dmg multipler for any dmg done.
+    /// Stacks additively with itself and multiplicatively with `ap_true_dmg_coef`.
+    /// Is applied last in dmg calculations.
+    tot_dmg_coef: Option<fn(&mut Unit, &UnitStats) -> f32>,
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct UnitSimulationResult {
     pub dmg_done: f32,
@@ -566,8 +550,7 @@ impl UnitSimulationResult {
 
 #[derive(Debug, Clone)]
 pub struct Unit {
-    pub properties_ref: &'static UnitProperties,
-    on_trigger_event: OnTriggerEvent,
+    pub properties: &'static UnitProperties,
     pub stats: UnitStats,
     //lvl related
     skill_order: SkillOrder,
@@ -593,9 +576,11 @@ pub struct Unit {
     pub w_cd: f32,
     pub e_cd: f32,
     pub r_cd: f32,
+    //on trigger functions
+
     //temporary effects
-    pub effects_stacks: EnumMap<EffectStackId, u8>, //holds various effects integer values on the unit
-    pub effects_values: EnumMap<EffectValueId, f32>, //holds various effects float values on the unit
+    pub effects_stacks: EnumMap<EffectStackId, u8>, //holds various effects integers values on the unit
+    pub effects_values: EnumMap<EffectValueId, f32>, //holds various effects floats values on the unit
     temporary_effects_durations: IndexMap<&'static TemporaryEffect, f32, FxBuildHasher>, //IndexMap of active temporary effects on the unit and their remaining duration
     temporary_effects_cooldowns: IndexMap<&'static TemporaryEffect, f32, FxBuildHasher>, //IndexMap of temporary effects on cooldown on the unit
     //active fight scenario
@@ -610,7 +595,7 @@ impl fmt::Display for Unit {
         writeln!(
             f,
             "Unit '{}', lvl {}, Q-W-E-R lvl: {}-{}-{}-{}, build: {}",
-            self.properties_ref.name,
+            self.properties.name,
             self.lvl,
             self.q_lvl,
             self.w_lvl,
@@ -638,11 +623,11 @@ impl fmt::Display for Unit {
         writeln!(
             f,
             "attack speed: {:.3} ({:.3} base as + {:.0}% bonus as * {:.3} as ratio, capped at {:.2})",
-            self.stats.attack_speed(self.properties_ref.as_ratio),
+            self.stats.attack_speed(self.properties.as_ratio),
             self.stats.base_as,
             100. * self.stats.bonus_as,
-            self.properties_ref.as_ratio,
-            self.properties_ref.as_limit
+            self.properties.as_ratio,
+            self.properties.as_limit
         )?;
         writeln!(f, "ability haste: {:.0}", self.stats.ability_haste)?;
         writeln!(f, "basic ability haste: {:.0}", self.stats.basic_haste)?;
@@ -689,6 +674,9 @@ pub enum DmgSource {
     UltimateSpell,
     Other,
 }
+
+/// Used to return (`ad_dmg`, `ap_dmg`, `true_dmg`) of a damage instance.
+pub type RawDmg = (f32, f32, f32);
 
 impl Unit {
     /// base crit damage value for an Unit.
@@ -751,22 +739,7 @@ impl Unit {
 
         //create the unit
         let mut new_unit: Self = Self {
-            properties_ref,
-            on_trigger_event: OnTriggerEvent {
-                on_fight_init: Vec::new(),
-                special_active: Vec::new(),
-                on_basic_spell_cast: Vec::new(),
-                on_ultimate_cast: Vec::new(),
-                on_basic_spell_hit: Vec::new(),
-                on_ultimate_spell_hit: Vec::new(),
-                spell_coef: Vec::new(),
-                on_basic_attack_hit_static: Vec::new(),
-                on_basic_attack_hit_dynamic: Vec::new(),
-                on_any_hit: Vec::new(),
-                on_ad_hit: Vec::new(),
-                ap_true_dmg_coef: Vec::new(),
-                tot_dmg_coef: Vec::new(),
-            },
+            properties: properties_ref,
             stats: UnitStats::default(),
             runes_page: RunesPage {
                 shard1: RuneShard::Left,
@@ -836,8 +809,7 @@ impl Unit {
     /// In case of a failure, the unit is not modified.
     pub fn set_skill_order(&mut self, skill_order: SkillOrder) -> Result<(), String> {
         //return early if skill_order is not valid
-        skill_order
-            .check_skill_order_validity(*self.properties_ref == *Unit::APHELIOS_PROPERTIES_REF)?;
+        skill_order.check_skill_order_validity(*self.properties == Unit::APHELIOS_PROPERTIES)?;
 
         self.skill_order = skill_order;
         self.update_spells_lvls();
@@ -875,8 +847,8 @@ impl Unit {
         self.update_spells_lvls();
 
         //update unit lvl stats
-        let base: &UnitStats = &self.properties_ref.base_stats;
-        let growth: &UnitStats = &self.properties_ref.growth_stats;
+        let base: &UnitStats = &self.properties.base_stats;
+        let growth: &UnitStats = &self.properties.growth_stats;
         self.lvl_stats.hp = growth_stat_formula(self.lvl, base.hp, growth.hp);
         self.lvl_stats.mana = growth_stat_formula(self.lvl, base.mana, growth.mana);
         self.lvl_stats.base_ad = growth_stat_formula(self.lvl, base.base_ad, growth.base_ad);
@@ -923,7 +895,7 @@ impl Unit {
         self.lvl_stats.omnivamp = growth_stat_formula(self.lvl, base.omnivamp, growth.omnivamp);
 
         //perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to lvl_stats)
-        if let Some(on_lvl_set) = self.properties_ref.on_lvl_set {
+        if let Some(on_lvl_set) = self.properties.on_lvl_set {
             on_lvl_set(self);
         }
 
@@ -973,10 +945,10 @@ impl Unit {
         self.temporary_effects_durations.clear(); //this is needed to remove every temporary effects
         self.temporary_effects_cooldowns.clear(); //same as above
 
-        //self.temporary_effects_durations.shrink_to_fit(); //hits performance a bit, i think the reduced memory usage is not worth it
-        //self.temporary_effects_cooldowns.shrink_to_fit(); //hits performance a bit, i think the reduced memory usage is not worth it
+        //self.temporary_effects_durations.shrink_to_fit(); //hits performance a bit, i don't think the reduced memory usage is worth it
+        //self.temporary_effects_cooldowns.shrink_to_fit(); //hits performance a bit, i don't think the reduced memory usage is worth it
 
-        //init items variables and starting effects on the unit (after effects reset)
+        //init effect variables and temporary effects on the unit (after effects reset)
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
         //this is hacky but the init function should never change self.build
         for i in 0..MAX_UNIT_ITEMS {
@@ -985,21 +957,21 @@ impl Unit {
             }
         }
 
+        //init effect variables and temporary effects on the unit
+        if let Some(init_abilities) = self.properties.init_abilities {
+            init_abilities(self);
+        }
+
         //runes stats (after items passives init)
         self.update_runes_stats();
         self.stats.add(&self.runes_stats);
-
-        //init spells variables and starting effects on the unit
-        if let Some(init_spells) = self.properties_ref.init_unit {
-            init_spells(self);
-        }
 
         //reset simulation results
         self.sim_results.clear();
 
         //reset actions log
         self.actions_log.clear();
-        //self.actions_log.shrink_to_fit(); //hits performance a bit, i think the reduced memory usage is not worth it
+        //self.actions_log.shrink_to_fit(); //hits performance a bit, i don't think the reduced memory usage is worth it
     }
 
     /// Attempt to add the given effect to the Unit. If the effect is not on cooldown, the function
@@ -1104,9 +1076,9 @@ impl Unit {
         }
     }
 
-    //todo: remove every occurence of "build[i]" if possible to avoid indirections, also search for "on_" and "init_"/"_init" (on_action_effect)
+    //todo: remove this
     /// Returns items on basic attack hit static dmg.
-    pub fn get_cum_on_basic_attack_hit_static(&mut self, target_stats: &UnitStats) -> RawDmg {
+    pub fn get_on_basic_attack_hit_static(&mut self, target_stats: &UnitStats) -> RawDmg {
         let mut ad_dmg: f32 = 0.;
         let mut ap_dmg: f32 = 0.;
         let mut true_dmg: f32 = 0.;
@@ -1127,6 +1099,7 @@ impl Unit {
         (ad_dmg, ap_dmg, true_dmg)
     }
 
+    //todo: remove this
     /// Returns items spell coef.
     fn get_items_spell_coef(&mut self) -> f32 {
         let mut coef: f32 = 1.;
@@ -1377,10 +1350,10 @@ impl Unit {
 
         //wait cast (windup) time
         let windup_time: f32 = real_windup_time(windup_formula(
-            self.properties_ref.windup_percent,
-            self.properties_ref.windup_modifier,
+            self.properties.windup_percent,
+            self.properties.windup_modifier,
             self.stats.base_as,
-            self.stats.attack_speed(self.properties_ref.as_ratio),
+            self.stats.attack_speed(self.properties.as_ratio),
         ));
         self.wait(windup_time);
 
@@ -1388,13 +1361,13 @@ impl Unit {
         self.basic_attack_cd = f32::max(
             0.,
             1. / f32::min(
-                self.properties_ref.as_limit,
-                self.stats.attack_speed(self.properties_ref.as_ratio),
+                self.properties.as_limit,
+                self.stats.attack_speed(self.properties.as_ratio),
             ) - windup_time,
         ); //limit as cd to the unit as limit
 
         //return dmg
-        (self.properties_ref.basic_attack)(self, target_stats)
+        (self.properties.basic_attack)(self, target_stats)
     }
 
     /// cast q and returns dmg done.
@@ -1403,7 +1376,7 @@ impl Unit {
         self.actions_log.push((self.time, "Q"));
 
         //wait cast time
-        self.wait(self.properties_ref.q.cast_time);
+        self.wait(self.properties.q.cast_time);
 
         //on spell cast effects
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
@@ -1415,10 +1388,10 @@ impl Unit {
         }
         //set cd
         self.q_cd = haste_formula(self.stats.ability_haste_basic())
-            * self.properties_ref.q.base_cooldown_by_spell_lvl[usize::from(self.q_lvl - 1)];
+            * self.properties.q.base_cooldown_by_spell_lvl[usize::from(self.q_lvl - 1)];
 
         //return dmg
-        (self.properties_ref.q.cast)(self, target_stats)
+        (self.properties.q.cast)(self, target_stats)
     }
 
     /// cast w and returns dmg done.
@@ -1427,7 +1400,7 @@ impl Unit {
         self.actions_log.push((self.time, "W"));
 
         //wait cast time
-        self.wait(self.properties_ref.w.cast_time);
+        self.wait(self.properties.w.cast_time);
 
         //on spell cast effects
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
@@ -1439,10 +1412,10 @@ impl Unit {
         }
         //set cd
         self.w_cd = haste_formula(self.stats.ability_haste_basic())
-            * self.properties_ref.w.base_cooldown_by_spell_lvl[usize::from(self.w_lvl - 1)];
+            * self.properties.w.base_cooldown_by_spell_lvl[usize::from(self.w_lvl - 1)];
 
         //return dmg
-        (self.properties_ref.w.cast)(self, target_stats)
+        (self.properties.w.cast)(self, target_stats)
     }
 
     /// cast e and returns dmg done.
@@ -1451,7 +1424,7 @@ impl Unit {
         self.actions_log.push((self.time, "E"));
 
         //wait cast time
-        self.wait(self.properties_ref.e.cast_time);
+        self.wait(self.properties.e.cast_time);
 
         //on spell cast effects
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
@@ -1463,10 +1436,10 @@ impl Unit {
         }
         //set cd
         self.e_cd = haste_formula(self.stats.ability_haste_basic())
-            * self.properties_ref.e.base_cooldown_by_spell_lvl[usize::from(self.e_lvl - 1)];
+            * self.properties.e.base_cooldown_by_spell_lvl[usize::from(self.e_lvl - 1)];
 
         //return dmg
-        (self.properties_ref.e.cast)(self, target_stats)
+        (self.properties.e.cast)(self, target_stats)
     }
 
     /// cast r and returns dmg done.
@@ -1475,7 +1448,7 @@ impl Unit {
         self.actions_log.push((self.time, "R"));
 
         //wait cast time
-        self.wait(self.properties_ref.r.cast_time);
+        self.wait(self.properties.r.cast_time);
 
         //on spell cast effects
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
@@ -1487,15 +1460,15 @@ impl Unit {
         }
         //set cd
         self.r_cd = haste_formula(self.stats.ability_haste_ultimate())
-            * self.properties_ref.r.base_cooldown_by_spell_lvl[usize::from(self.r_lvl - 1)];
+            * self.properties.r.base_cooldown_by_spell_lvl[usize::from(self.r_lvl - 1)];
 
         //return dmg
-        (self.properties_ref.r.cast)(self, target_stats)
+        (self.properties.r.cast)(self, target_stats)
     }
 
     /// Same as casting r except the dmg, units travelled, etc. during the r are all reduced
     /// according to the availability formula (to account for the r cooldown).
-    /// Useless to use for ultimates that only adds an effect.
+    /// Useless to use for ultimates that only adds a effect.
     pub fn weighted_r(&mut self, target_stats: &UnitStats) -> f32 {
         let dmg_done_before_r: f32 = self.sim_results.dmg_done;
         let life_vamped_before_r: f32 = self.sim_results.life_vamped;

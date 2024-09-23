@@ -477,7 +477,7 @@ const APHELIOS_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const APHELIOS_BASE_AS: f32 = 0.64;
 impl Unit {
-    pub const APHELIOS_PROPERTIES_REF: &UnitProperties = &UnitProperties {
+    pub const APHELIOS_PROPERTIES: UnitProperties = UnitProperties {
         name: "Aphelios",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: APHELIOS_BASE_AS, //if not specified, same as base AS
@@ -544,7 +544,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: Some(aphelios_on_lvl_set),
-        init_unit: None,
+        init_abilities: None,
         basic_attack: aphelios_basic_attack,
         q: BasicSpell {
             cast: aphelios_q,
@@ -557,21 +557,6 @@ impl Unit {
             cast: aphelios_r,
             cast_time: 0.6,
             base_cooldown_by_spell_lvl: [120., 110., 100.],
-        },
-        on_trigger_event: OnTriggerEvent {
-            on_fight_init: vec![],
-            special_active: vec![],
-            on_basic_spell_cast: vec![],
-            on_ultimate_cast: vec![],
-            on_basic_spell_hit: vec![],
-            on_ultimate_spell_hit: vec![],
-            spell_coef: vec![],
-            on_basic_attack_hit_static: vec![],
-            on_basic_attack_hit_dynamic: vec![],
-            on_any_hit: vec![],
-            on_ad_hit: vec![],
-            ap_true_dmg_coef: vec![],
-            tot_dmg_coef: vec![],
         },
         fight_scenarios: &[(aphelios_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

@@ -143,61 +143,59 @@ pub struct Item {
     //stats
     pub stats: UnitStats,
 
-    //todo: delete this
-    //on action fonctions
-    /// Init item variables and starting effects on the Unit. this function should ensure that all item
-    /// variables and all item effects variables are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
-    /// NEVER use Unit.stats as source of stat for effects in this function as it can be modified by previous items init,
-    /// instead, sum `Unit.lvl_stats` and `Unit.items_stats`.
+    /// Init `Unit`/`Item` effect variables and temporary effects on the `Unit`. These function should ensure that all effect
+    /// variables used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
+    /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
+    /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
     pub init_item: Option<fn(&mut Unit)>,
 
-    //first &Unit argument is the attacking unit wielding the item, second &UnitStats argument is the target stats
-    //for program correctness, these function should NEVER modify the unit build (because they are called in a hacky way from a loop going through the build items)
-    /// Triggers item actives on the unit and returns dmg done.
+    /// Triggers special actives and returns dmg done.
     pub active: Option<fn(&mut Unit, &UnitStats) -> f32>,
 
-    /// Applies item effects on the unit triggered when a basic spell is casted and updates unit variables accordingly.
+    /// Applies effects triggered when a basic spell is casted (and updates effect variables accordingly).
     pub on_basic_spell_cast: Option<fn(&mut Unit)>,
-    /// Applies item effects on the unit triggered when its ultimate is casted and updates unit variables accordingly.
+    /// Applies effects triggered when ultimate is casted (and updates effect variables accordingly).
     pub on_ultimate_cast: Option<fn(&mut Unit)>,
 
-    /// Returns item on basic spell hit raw dmg and updates the conditionals accordingly in the unit variables.
+    /// Returns on-basic-spell-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
     /// 3rd argument (f32) is the number of targets hit by the spell.
     pub on_basic_spell_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-    /// Returns item on ultimate spell hit raw dmg and updates the conditionals accordingly in the unit variables.
+    /// Returns on-ultimate-spell-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
     /// 3rd argument (f32) is the number of targets hit by the spell.
     pub on_ultimate_spell_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
 
-    /// Returns item bonus dmg multipler for spell dmg and updates unit variables accordingly.
+    //todo: put this in Unitstats
+    /// Returns bonus dmg multipler for spell dmg and updates effect variables accordingly.
     /// Is applied after on spell hit dmg in calculations (affects them too).
     pub spell_coef: Option<fn(&mut Unit) -> f32>,
 
-    /// Returns the static part of on basic attack hit raw dmg of the item.
-    /// On basic attack hit is divided in two parts:
+    /// Returns the static part of on-basic-attack-hit raw dmg.
+    /// on-basic-attack-hit is divided in two parts :
     /// - static: dmg that applies on all targets unconditionally
     ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
     /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
     pub on_basic_attack_hit_static: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
-    /// Returns the dynamic part of on basic attack hit raw dmg of the item.
-    /// On basic attack hit is divided in two parts:
+    /// Returns the dynamic part of on-basic-attack-hit raw dmg.
+    /// on-basic-attack-hit is divided in two parts:
     /// - static: dmg that applies on all targets unconditionally
     ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
     /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
     pub on_basic_attack_hit_dynamic: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
 
-    /// Returns item on any hit raw dmg and updates the conditionals accordingly in the unit variables.
-    /// This function is called every hit, in addition to others on_..._hit functions of the item if it has one.
+    /// Returns on-any-hit raw dmg and updates the conditionals accordingly in the effect variables.
+    /// This function is called every hit, in addition to others on_..._hit functions.
     pub on_any_hit: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
-    // Applies item effects on the unit triggered when ad dmg is done and updates unit variables accordingly.
+    /// Applies effects on the unit triggered when ad dmg is done and updates effect variables accordingly.
     pub on_ad_hit: Option<fn(&mut Unit)>,
 
-    /// Returns item bonus dmg multiplier for ap dmg and true dmg.
-    /// Stacks multiplicatively with `tot_dmg_coef`.
+    /// Returns bonus dmg multiplier for ap dmg and true dmg.
+    /// Stacks additively with itself and multiplicatively with `tot_dmg_coef`.
     pub ap_true_dmg_coef: Option<fn(&mut Unit) -> f32>,
 
-    /// Returns item bonus dmg multipler for any dmg done.
-    /// Stacks multiplicatively with `ap_true_dmg_coef`.
-    /// Is applied last in dmg calculations (lord dominik's regards giant slayer, ...).
+    //todo: put this in Unitstats
+    /// Returns bonus dmg multipler for any dmg done.
+    /// Stacks additively with itself and multiplicatively with `ap_true_dmg_coef`.
+    /// Is applied last in dmg calculations.
     pub tot_dmg_coef: Option<fn(&mut Unit, &UnitStats) -> f32>,
 }
 

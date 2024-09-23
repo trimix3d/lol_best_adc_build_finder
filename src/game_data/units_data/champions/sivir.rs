@@ -197,7 +197,7 @@ const SIVIR_ON_THE_HUNT_MS_LVL_1: TemporaryEffect = TemporaryEffect {
     add_stack: sivir_on_the_hunt_lvl_1_enable,
     remove_every_stack: sivir_on_the_hunt_disable,
     duration: 8.,
-    cooldown: SIVIR_R_BASE_COOLDOWN_BY_SPELL_LVL[0],
+    cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_spell_lvl[0],
 };
 
 const SIVIR_ON_THE_HUNT_MS_LVL_2: TemporaryEffect = TemporaryEffect {
@@ -205,7 +205,7 @@ const SIVIR_ON_THE_HUNT_MS_LVL_2: TemporaryEffect = TemporaryEffect {
     add_stack: sivir_on_the_hunt_lvl_2_enable,
     remove_every_stack: sivir_on_the_hunt_disable,
     duration: 10.,
-    cooldown: SIVIR_R_BASE_COOLDOWN_BY_SPELL_LVL[1],
+    cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_spell_lvl[1],
 };
 
 const SIVIR_ON_THE_HUNT_MS_LVL_3: TemporaryEffect = TemporaryEffect {
@@ -213,7 +213,7 @@ const SIVIR_ON_THE_HUNT_MS_LVL_3: TemporaryEffect = TemporaryEffect {
     add_stack: sivir_on_the_hunt_lvl_3_enable,
     remove_every_stack: sivir_on_the_hunt_disable,
     duration: 12.,
-    cooldown: SIVIR_R_BASE_COOLDOWN_BY_SPELL_LVL[2],
+    cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_spell_lvl[2],
 };
 
 /// Basic spells cooldown refunded by each basic attack when under r effect
@@ -235,7 +235,7 @@ fn sivir_r(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
         ),
         _ => unreachable!(
             "{}'s R lvl is outside of range (using sivir R)",
-            champ.properties_ref.name
+            champ.properties.name
         ),
     };
     0.
@@ -379,11 +379,9 @@ const SIVIR_DEFAULT_BOOTS: [&Item; 3] = [
 
 const SIVIR_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
-const SIVIR_R_BASE_COOLDOWN_BY_SPELL_LVL: [f32; 3] = [120., 100., 80.];
-
 const SIVIR_BASE_AS: f32 = 0.625;
 impl Unit {
-    pub const SIVIR_PROPERTIES_REF: &UnitProperties = &UnitProperties {
+    pub const SIVIR_PROPERTIES: UnitProperties = UnitProperties {
         name: "Sivir",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: SIVIR_BASE_AS,
@@ -450,7 +448,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: None,
-        init_unit: Some(sivir_init_spells),
+        init_abilities: Some(sivir_init_spells),
         basic_attack: sivir_basic_attack,
         q: BasicSpell {
             cast: sivir_q,
@@ -470,22 +468,7 @@ impl Unit {
         r: UltimateSpell {
             cast: sivir_r,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: SIVIR_R_BASE_COOLDOWN_BY_SPELL_LVL,
-        },
-        on_trigger_event: OnTriggerEvent {
-            on_fight_init: vec![],
-            special_active: vec![],
-            on_basic_spell_cast: vec![],
-            on_ultimate_cast: vec![],
-            on_basic_spell_hit: vec![],
-            on_ultimate_spell_hit: vec![],
-            spell_coef: vec![],
-            on_basic_attack_hit_static: vec![],
-            on_basic_attack_hit_dynamic: vec![],
-            on_any_hit: vec![],
-            on_ad_hit: vec![],
-            ap_true_dmg_coef: vec![],
-            tot_dmg_coef: vec![],
+            base_cooldown_by_spell_lvl: [120., 100., 80.],
         },
         fight_scenarios: &[(sivir_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

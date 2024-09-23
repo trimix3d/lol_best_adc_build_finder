@@ -102,9 +102,9 @@ fn template_item_init(champ: &mut Unit) {
 
 fn template_effect_enable(champ: &mut Unit, availability_coef: f32) {
     if champ.effects_values[EffectValueId::TemplateItemEffectStat] == 0. {
-        let some_stat_buff: f32 = availability_coef * some_value;
-        champ.stats.some_stat += some_stat_buff;
-        champ.effects_values[EffectValueId::TemplateItemEffectStat] = some_stat_buff;
+        let some_stat_effect: f32 = availability_coef * some_value;
+        champ.stats.some_stat += some_stat_effect;
+        champ.effects_values[EffectValueId::TemplateItemEffectStat] = some_stat_effect;
     }
 }
 
@@ -1131,7 +1131,7 @@ fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> RawDm
         champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime] = champ.time;
         return (0., 0., 0.);
     }
-    //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
+    //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack (useless since max 2 stacks)
     else if champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks]
         < ECLIPSE_EVER_RISING_MOON_MAX_STACKS - 1
     {
@@ -1563,7 +1563,7 @@ fn guinsoos_rageblade_seething_strike_on_basic_attack_hit(
     }
     //if seething strike is fully stacked and phantom stacks are fully stacked (previous conditions), reset and return phantom hit dmg
     champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] = 0;
-    champ.get_cum_on_basic_attack_hit_static(target_stats)
+    champ.get_on_basic_attack_hit_static(target_stats)
 }
 
 pub const GUINSOOS_RAGEBLADE: Item = Item {
@@ -3876,7 +3876,7 @@ fn runaans_hurricane_winds_fury(champ: &mut Unit, target_stats: &UnitStats) -> R
         on_basic_attack_hit_static_ad_dmg,
         on_basic_attack_hit_static_ap_dmg,
         on_basic_attack_hit_static_true_dmg,
-    ) = champ.get_cum_on_basic_attack_hit_static(target_stats);
+    ) = champ.get_on_basic_attack_hit_static(target_stats);
     (
         RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS
             * (0.55 * champ.stats.ad() * champ.stats.crit_coef()

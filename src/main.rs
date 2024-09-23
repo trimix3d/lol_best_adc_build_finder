@@ -20,7 +20,7 @@ fn champion_test_ground() {
     const TARGET_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no spell (except passing validity checks when creating the dummy)
 
     const TARGET_DUMMY_BASE_AS: f32 = 0.658; //in game default value is 0.658
-    const TARGET_DUMMY_PROPERTIES_REF: &UnitProperties = &UnitProperties {
+    const TARGET_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         name: "target_dummy",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: TARGET_DUMMY_BASE_AS,
@@ -59,13 +59,12 @@ fn champion_test_ground() {
         //no growth stats so they remain constant (lvl doesn't matter)
         growth_stats: UnitStats::const_default(),
         on_lvl_set: None,
-        init_unit: None,
+        init_abilities: None,
         basic_attack: null_basic_attack,
         q: NULL_BASIC_SPELL,
         w: NULL_BASIC_SPELL,
         e: NULL_BASIC_SPELL,
         r: NULL_ULTIMATE_SPELL,
-        on_trigger_event: OnTriggerEvent::const_default(),
         fight_scenarios: &[(null_simulate_fight, "null")],
         unit_defaults: UnitDefaults {
             runes_pages: &TARGET_DUMMY_RUNES_PAGE,
@@ -77,16 +76,16 @@ fn champion_test_ground() {
     };
 
     //creation of target dummy
-    let target_dummy: Unit = Unit::from_defaults(TARGET_DUMMY_PROPERTIES_REF, 6, Build::default())
+    let target_dummy: Unit = Unit::from_defaults(&TARGET_DUMMY_PROPERTIES, 6, Build::default())
         .expect("Failed to create target dummy");
 
     //creation of champion
     let mut champ: Unit = Unit::from_defaults(
-        Unit::ASHE_PROPERTIES_REF,
+        &Unit::VARUS_PROPERTIES,
         6,
         Build([
-            &KRAKEN_SLAYER,
-            &NULL_ITEM,
+            &GUINSOOS_RAGEBLADE,
+            &BERSERKERS_GREAVES,
             &NULL_ITEM,
             &NULL_ITEM,
             &NULL_ITEM,
@@ -97,13 +96,19 @@ fn champion_test_ground() {
 
     //champion actions
     println!("{}", champ);
-    println!("{}", champ.basic_attack(&target_dummy.stats));
-    champ.walk(champ.basic_attack_cd);
-    println!("{}", champ.q(&target_dummy.stats));
+    for i in 0..9 {
+        println!(
+            "{} - {} - {}",
+            i + 1,
+            champ.basic_attack(&target_dummy.stats),
+            champ.sim_results.dmg_done
+        );
+        champ.walk(champ.basic_attack_cd);
+    }
 }
 
 fn main() -> Result<(), ()> {
-    //champion_test_ground();
-    cli::launch_interface();
+    champion_test_ground();
+    //cli::launch_interface();
     Ok(())
 }

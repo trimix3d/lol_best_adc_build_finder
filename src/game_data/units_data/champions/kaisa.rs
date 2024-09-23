@@ -11,8 +11,7 @@ fn kaisa_init_spells(champ: &mut Unit) {
     champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] = 0.;
 
     //Q evolve, items ad/bonus_ad? + base_ad from lvls must be >= 100
-    if champ.items_stats.bonus_ad + champ.lvl_stats.base_ad
-        - champ.properties_ref.base_stats.base_ad
+    if champ.items_stats.bonus_ad + champ.lvl_stats.base_ad - champ.properties.base_stats.base_ad
         >= 100.
     {
         champ.effects_stacks[EffectStackId::KaisaQEvolved] = 1;
@@ -224,7 +223,7 @@ fn kaisa_e(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     let capped_bonus_as: f32 = f32::min(
         1.,
         champ.items_stats.bonus_as + champ.lvl_stats.bonus_as
-            - champ.properties_ref.base_stats.bonus_as,
+            - champ.properties.base_stats.bonus_as,
     );
     let percent_ms_buff: f32 = KAISA_E_MS_PERCENT_BY_E_LVL[e_lvl_idx] * (1. + capped_bonus_as);
     champ.stats.ms_percent += percent_ms_buff;
@@ -383,7 +382,7 @@ const KAISA_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const KAISA_BASE_AS: f32 = 0.644;
 impl Unit {
-    pub const KAISA_PROPERTIES_REF: &UnitProperties = &UnitProperties {
+    pub const KAISA_PROPERTIES: UnitProperties = UnitProperties {
         name: "Kaisa",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: KAISA_BASE_AS, //if not specified, same as base AS
@@ -450,7 +449,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: None,
-        init_unit: Some(kaisa_init_spells),
+        init_abilities: Some(kaisa_init_spells),
         basic_attack: kaisa_basic_attack,
         q: BasicSpell {
             cast: kaisa_q,
@@ -471,21 +470,6 @@ impl Unit {
             cast: kaisa_r,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [130., 100., 70.],
-        },
-        on_trigger_event: OnTriggerEvent {
-            on_fight_init: vec![],
-            special_active: vec![],
-            on_basic_spell_cast: vec![],
-            on_ultimate_cast: vec![],
-            on_basic_spell_hit: vec![],
-            on_ultimate_spell_hit: vec![],
-            spell_coef: vec![],
-            on_basic_attack_hit_static: vec![],
-            on_basic_attack_hit_dynamic: vec![],
-            on_any_hit: vec![],
-            on_ad_hit: vec![],
-            ap_true_dmg_coef: vec![],
-            tot_dmg_coef: vec![],
         },
         fight_scenarios: &[(kaisa_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

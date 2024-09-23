@@ -67,7 +67,7 @@ fn ashe_rangers_focus_disable(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::AsheFocusStacks] = 0;
 }
 
-const ASHE_RANGERS_FOCUS_EFFECT: TemporaryEffect = TemporaryEffect {
+const ASHE_RANGERS_FOCUS_BUFF: TemporaryEffect = TemporaryEffect {
     id: EffectId::AsheRangersFocus,
     add_stack: ashe_rangers_focus_enable,
     remove_every_stack: ashe_rangers_focus_disable,
@@ -76,7 +76,7 @@ const ASHE_RANGERS_FOCUS_EFFECT: TemporaryEffect = TemporaryEffect {
 };
 
 fn ashe_q(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    champ.add_temporary_effect(&ASHE_RANGERS_FOCUS_EFFECT, 0.);
+    champ.add_temporary_effect(&ASHE_RANGERS_FOCUS_BUFF, 0.);
     champ.basic_attack_cd = 0.; //q resets basic attack cd
     0.
 }
@@ -263,7 +263,7 @@ const ASHE_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const ASHE_BASE_AS: f32 = 0.658;
 impl Unit {
-    pub const ASHE_PROPERTIES_REF: &UnitProperties = &UnitProperties {
+    pub const ASHE_PROPERTIES: UnitProperties = UnitProperties {
         name: "Ashe",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: ASHE_BASE_AS, //if not specified, same as base AS
@@ -330,7 +330,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: None,
-        init_unit: Some(ashe_init_spells),
+        init_abilities: Some(ashe_init_spells),
         basic_attack: ashe_basic_attack,
         q: BasicSpell {
             cast: ashe_q,
@@ -351,21 +351,6 @@ impl Unit {
             cast: ashe_r,
             cast_time: 0.25,
             base_cooldown_by_spell_lvl: [100., 80., 60.],
-        },
-        on_trigger_event: OnTriggerEvent {
-            on_fight_init: vec![],
-            special_active: vec![],
-            on_basic_spell_cast: vec![],
-            on_ultimate_cast: vec![],
-            on_basic_spell_hit: vec![],
-            on_ultimate_spell_hit: vec![],
-            spell_coef: vec![],
-            on_basic_attack_hit_static: vec![],
-            on_basic_attack_hit_dynamic: vec![],
-            on_any_hit: vec![],
-            on_ad_hit: vec![],
-            ap_true_dmg_coef: vec![],
-            tot_dmg_coef: vec![],
         },
         fight_scenarios: &[(ashe_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

@@ -333,7 +333,7 @@ const XAYAH_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const XAYAH_BASE_AS: f32 = 0.658;
 impl Unit {
-    pub const XAYAH_PROPERTIES_REF: &UnitProperties = &UnitProperties {
+    pub const XAYAH_PROPERTIES: UnitProperties = UnitProperties {
         name: "Xayah",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: XAYAH_BASE_AS, //if not specified, same as base AS
@@ -400,7 +400,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: None,
-        init_unit: Some(xayah_init_spells),
+        init_abilities: Some(xayah_init_spells),
         basic_attack: xayah_basic_attack,
         q: BasicSpell {
             cast: xayah_q,
@@ -421,21 +421,6 @@ impl Unit {
             cast: xayah_r,
             cast_time: F32_TOL,
             base_cooldown_by_spell_lvl: [140., 120., 100.],
-        },
-        on_trigger_event: OnTriggerEvent {
-            on_fight_init: vec![],
-            special_active: vec![],
-            on_basic_spell_cast: vec![],
-            on_ultimate_cast: vec![],
-            on_basic_spell_hit: vec![],
-            on_ultimate_spell_hit: vec![],
-            spell_coef: vec![],
-            on_basic_attack_hit_static: vec![],
-            on_basic_attack_hit_dynamic: vec![],
-            on_any_hit: vec![],
-            on_ad_hit: vec![],
-            ap_true_dmg_coef: vec![],
-            tot_dmg_coef: vec![],
         },
         fight_scenarios: &[(xayah_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

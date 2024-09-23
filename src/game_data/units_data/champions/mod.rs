@@ -15,17 +15,17 @@ mod xayah;
 
 impl Unit {
     pub const ALL_CHAMPIONS: [&'static UnitProperties; 11] = [
-        Unit::APHELIOS_PROPERTIES_REF,
-        Unit::ASHE_PROPERTIES_REF,
-        Unit::CAITLYN_PROPERTIES_REF,
-        Unit::DRAVEN_PROPERTIES_REF,
-        Unit::EZREAL_PROPERTIES_REF,
-        Unit::JINX_PROPERTIES_REF,
-        Unit::KAISA_PROPERTIES_REF,
-        Unit::LUCIAN_PROPERTIES_REF,
-        Unit::SIVIR_PROPERTIES_REF,
-        Unit::VARUS_PROPERTIES_REF,
-        Unit::XAYAH_PROPERTIES_REF,
+        &Unit::APHELIOS_PROPERTIES,
+        &Unit::ASHE_PROPERTIES,
+        &Unit::CAITLYN_PROPERTIES,
+        &Unit::DRAVEN_PROPERTIES,
+        &Unit::EZREAL_PROPERTIES,
+        &Unit::JINX_PROPERTIES,
+        &Unit::KAISA_PROPERTIES,
+        &Unit::LUCIAN_PROPERTIES,
+        &Unit::SIVIR_PROPERTIES,
+        &Unit::VARUS_PROPERTIES,
+        &Unit::XAYAH_PROPERTIES,
     ];
 }
 

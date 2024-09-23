@@ -198,7 +198,7 @@ const JINX_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const JINX_BASE_AS: f32 = 0.625;
 impl Unit {
-    pub const JINX_PROPERTIES_REF: &UnitProperties = &UnitProperties {
+    pub const JINX_PROPERTIES: UnitProperties = UnitProperties {
         name: "Jinx",
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: 0.9 * JINX_BASE_AS, //rocket launcher scales with 90% of bonus as
@@ -265,7 +265,7 @@ impl Unit {
             omnivamp: 0.,
         },
         on_lvl_set: None,
-        init_unit: None,
+        init_abilities: None,
         basic_attack: jinx_basic_attack,
         q: BasicSpell {
             cast: jinx_q,
@@ -286,21 +286,6 @@ impl Unit {
             cast: jinx_r,
             cast_time: 0.6,
             base_cooldown_by_spell_lvl: [85., 65., 45.],
-        },
-        on_trigger_event: OnTriggerEvent {
-            on_fight_init: vec![],
-            special_active: vec![],
-            on_basic_spell_cast: vec![],
-            on_ultimate_cast: vec![],
-            on_basic_spell_hit: vec![],
-            on_ultimate_spell_hit: vec![],
-            spell_coef: vec![],
-            on_basic_attack_hit_static: vec![],
-            on_basic_attack_hit_dynamic: vec![],
-            on_any_hit: vec![],
-            on_ad_hit: vec![],
-            ap_true_dmg_coef: vec![],
-            tot_dmg_coef: vec![],
         },
         fight_scenarios: &[(
             jinx_fight_scenario,
