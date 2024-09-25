@@ -119,7 +119,7 @@ fn kaisa_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, p_ap_dmg, 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         true,
         1.,
     )
@@ -155,7 +155,7 @@ fn kaisa_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (n_missiles, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         1.,
     )
@@ -186,7 +186,7 @@ fn kaisa_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (0., KAISA_W_HIT_PERCENT * ap_dmg, 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         KAISA_W_HIT_PERCENT,
     )
@@ -417,6 +417,10 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         growth_stats: UnitStats {
             hp: 102.,
@@ -447,29 +451,33 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
         init_abilities: Some(kaisa_init_spells),
         basic_attack: kaisa_basic_attack,
-        q: BasicSpell {
+        q: BasicAbility {
             cast: kaisa_q,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [10., 9., 8., 7., 6., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [10., 9., 8., 7., 6., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: BasicSpell {
+        w: BasicAbility {
             cast: kaisa_w,
             cast_time: 0.4,
-            base_cooldown_by_spell_lvl: [22., 20., 18., 16., 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [22., 20., 18., 16., 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: BasicSpell {
+        e: BasicAbility {
             cast: kaisa_e,
             cast_time: F32_TOL, //e cast time is spend walking in the spell function
-            base_cooldown_by_spell_lvl: [16., 14.5, 13., 11.5, 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [16., 14.5, 13., 11.5, 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: UltimateSpell {
+        r: UltimateAbility {
             cast: kaisa_r,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [130., 100., 70.],
+            base_cooldown_by_ability_lvl: [130., 100., 70.],
         },
         fight_scenarios: &[(kaisa_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

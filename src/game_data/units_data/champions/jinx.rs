@@ -23,7 +23,7 @@ fn jinx_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         true,
         1., //rocket launcher aoe doesnt trigger on hit on additionnal targets
     )
@@ -46,7 +46,7 @@ fn jinx_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (JINX_W_HIT_PERCENT * ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         JINX_W_HIT_PERCENT,
     )
@@ -74,7 +74,7 @@ fn jinx_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (JINX_R_HIT_PERCENT * ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::UltimateSpell,
+        DmgType::Ultimate,
         false,
         JINX_R_AVG_TARGETS * JINX_R_HIT_PERCENT,
     )
@@ -233,6 +233,10 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         growth_stats: UnitStats {
             hp: 105.,
@@ -263,29 +267,33 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
         init_abilities: None,
         basic_attack: jinx_basic_attack,
-        q: BasicSpell {
+        q: BasicAbility {
             cast: jinx_q,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [0.9, 0.9, 0.9, 0.9, 0.9, F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [0.9, 0.9, 0.9, 0.9, 0.9, F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: BasicSpell {
+        w: BasicAbility {
             cast: jinx_w,
             cast_time: 0.55, //averaged value
-            base_cooldown_by_spell_lvl: [8., 7., 6., 5., 4., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [8., 7., 6., 5., 4., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: BasicSpell {
+        e: BasicAbility {
             cast: jinx_e,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [24., 20.5, 17., 13.5, 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [24., 20.5, 17., 13.5, 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: UltimateSpell {
+        r: UltimateAbility {
             cast: jinx_r,
             cast_time: 0.6,
-            base_cooldown_by_spell_lvl: [85., 65., 45.],
+            base_cooldown_by_ability_lvl: [85., 65., 45.],
         },
         fight_scenarios: &[(
             jinx_fight_scenario,

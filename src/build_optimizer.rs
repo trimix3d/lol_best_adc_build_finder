@@ -30,7 +30,7 @@ const OPTIMIZER_DUMMY_RUNES_PAGE: RunesPage = RunesPage {
     shard3: RuneShard::Left,
 };
 
-const OPTIMIZER_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no spell (except passing validity checks when creating the dummy)
+const OPTIMIZER_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no ability (except passing validity checks when creating the dummy)
 
 #[allow(clippy::cast_precision_loss)]
 const MAX_UNIT_LVL_F32: f32 = MAX_UNIT_LVL as f32; //`MAX_UNIT_LVL` is well whithin f32's range to avoid precision loss
@@ -71,6 +71,10 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     growth_stats: UnitStats {
         hp: 104.,
@@ -101,14 +105,18 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     on_lvl_set: None,
     init_abilities: None,
     basic_attack: null_basic_attack,
-    q: NULL_BASIC_SPELL,
-    w: NULL_BASIC_SPELL,
-    e: NULL_BASIC_SPELL,
-    r: NULL_ULTIMATE_SPELL,
+    q: NULL_BASIC_ABILITY,
+    w: NULL_BASIC_ABILITY,
+    e: NULL_BASIC_ABILITY,
+    r: NULL_ULTIMATE_ABILITY,
     fight_scenarios: &[(null_simulate_fight, "null")],
     unit_defaults: UnitDefaults {
         runes_pages: &OPTIMIZER_DUMMY_RUNES_PAGE,
@@ -155,6 +163,10 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     //assumes 1 defensive item in ennemy bruiser build
     growth_stats: UnitStats {
@@ -189,14 +201,18 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     on_lvl_set: None,
     init_abilities: None,
     basic_attack: null_basic_attack,
-    q: NULL_BASIC_SPELL,
-    w: NULL_BASIC_SPELL,
-    e: NULL_BASIC_SPELL,
-    r: NULL_ULTIMATE_SPELL,
+    q: NULL_BASIC_ABILITY,
+    w: NULL_BASIC_ABILITY,
+    e: NULL_BASIC_ABILITY,
+    r: NULL_ULTIMATE_ABILITY,
     fight_scenarios: &[(null_simulate_fight, "null")],
     unit_defaults: UnitDefaults {
         runes_pages: &OPTIMIZER_DUMMY_RUNES_PAGE,
@@ -243,6 +259,10 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     //assumes 2 defensive items in ennemy tank build
     growth_stats: UnitStats {
@@ -280,14 +300,18 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     on_lvl_set: None,
     init_abilities: None,
     basic_attack: null_basic_attack,
-    q: NULL_BASIC_SPELL,
-    w: NULL_BASIC_SPELL,
-    e: NULL_BASIC_SPELL,
-    r: NULL_ULTIMATE_SPELL,
+    q: NULL_BASIC_ABILITY,
+    w: NULL_BASIC_ABILITY,
+    e: NULL_BASIC_ABILITY,
+    r: NULL_ULTIMATE_ABILITY,
     fight_scenarios: &[(null_simulate_fight, "null")],
     unit_defaults: UnitDefaults {
         runes_pages: &OPTIMIZER_DUMMY_RUNES_PAGE,

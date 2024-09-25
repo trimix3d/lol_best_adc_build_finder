@@ -53,7 +53,7 @@ fn caitlyn_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         true,
         1.,
     )
@@ -73,7 +73,7 @@ fn caitlyn_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (CAITLYN_Q_HIT_PERCENT * ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         CAITLYN_Q_N_TARGETS * CAITLYN_Q_HIT_PERCENT,
     )
@@ -98,7 +98,7 @@ fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (0., ap_dmg, 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         1.,
     )
@@ -116,7 +116,7 @@ fn caitlyn_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::UltimateSpell,
+        DmgType::Ultimate,
         false,
         1.,
     )
@@ -290,6 +290,10 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         growth_stats: UnitStats {
             hp: 107.,
@@ -320,29 +324,33 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
         init_abilities: Some(caitlyn_init_spells),
         basic_attack: caitlyn_basic_attack,
-        q: BasicSpell {
+        q: BasicAbility {
             cast: caitlyn_q,
             cast_time: 0.625,
-            base_cooldown_by_spell_lvl: [10., 9., 8., 7., 6., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [10., 9., 8., 7., 6., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: BasicSpell {
+        w: BasicAbility {
             cast: caitlyn_w,
             cast_time: 0.25,
-            base_cooldown_by_spell_lvl: [26., 22., 18., 14., 10., F32_TOL], //recharge time
+            base_cooldown_by_ability_lvl: [26., 22., 18., 14., 10., F32_TOL], //recharge time
         },
-        e: BasicSpell {
+        e: BasicAbility {
             cast: caitlyn_e,
             cast_time: 0.15,
-            base_cooldown_by_spell_lvl: [16., 14., 12., 10., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [16., 14., 12., 10., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: UltimateSpell {
+        r: UltimateAbility {
             cast: caitlyn_r,
             cast_time: 1. + 0.375, //lock time + cast time
-            base_cooldown_by_spell_lvl: [90., 90., 90.],
+            base_cooldown_by_ability_lvl: [90., 90., 90.],
         },
         fight_scenarios: &[(caitlyn_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

@@ -28,7 +28,7 @@ pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
             target_stats,
             (ad_dmg, 0., 0.),
             (5, 1),
-            DmgSource::Other,
+            DmgType::Other,
             true,
             1.,
         )
@@ -42,7 +42,7 @@ pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
             target_stats,
             (ad_dmg, 0., 0.),
             (1, 1),
-            DmgSource::Other,
+            DmgType::Other,
             true,
             1.,
         )
@@ -93,7 +93,7 @@ fn ashe_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         ASHE_W_N_TARGETS,
     )
@@ -116,7 +116,7 @@ fn ashe_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (0., ap_dmg, 0.),
         (1, 1),
-        DmgSource::UltimateSpell,
+        DmgType::Ultimate,
         false,
         1.,
     )
@@ -298,6 +298,10 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         growth_stats: UnitStats {
             hp: 101.,
@@ -328,29 +332,33 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
         init_abilities: Some(ashe_init_spells),
         basic_attack: ashe_basic_attack,
-        q: BasicSpell {
+        q: BasicAbility {
             cast: ashe_q,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: BasicSpell {
+        w: BasicAbility {
             cast: ashe_w,
             cast_time: 0.25,
-            base_cooldown_by_spell_lvl: [18., 14.5, 11., 7.5, 4., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [18., 14.5, 11., 7.5, 4., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: BasicSpell {
+        e: BasicAbility {
             cast: ashe_e,
             cast_time: 0.25,
-            base_cooldown_by_spell_lvl: [90., 80., 70., 60., 50., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [90., 80., 70., 60., 50., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: UltimateSpell {
+        r: UltimateAbility {
             cast: ashe_r,
             cast_time: 0.25,
-            base_cooldown_by_spell_lvl: [100., 80., 60.],
+            base_cooldown_by_ability_lvl: [100., 80., 60.],
         },
         fight_scenarios: &[(ashe_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

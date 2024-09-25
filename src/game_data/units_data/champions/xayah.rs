@@ -35,7 +35,7 @@ fn xayah_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         true,
         1.,
     )
@@ -63,7 +63,7 @@ fn xayah_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (XAYAH_Q_HIT_PERCENT * ad_dmg, 0., 0.),
         (2, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         XAYAH_Q_HIT_PERCENT,
     )
@@ -149,7 +149,7 @@ fn xayah_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (XAYAH_FEATHERS_N_TARGETS * ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         XAYAH_FEATHERS_N_TARGETS,
     )
@@ -174,7 +174,7 @@ fn xayah_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::UltimateSpell,
+        DmgType::Ultimate,
         false,
         1.,
     )
@@ -368,6 +368,10 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         growth_stats: UnitStats {
             hp: 107.,
@@ -398,29 +402,33 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
         init_abilities: Some(xayah_init_spells),
         basic_attack: xayah_basic_attack,
-        q: BasicSpell {
+        q: BasicAbility {
             cast: xayah_q,
             cast_time: 0.2, //average value
-            base_cooldown_by_spell_lvl: [10., 0.5, 9., 8.5, 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [10., 0.5, 9., 8.5, 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: BasicSpell {
+        w: BasicAbility {
             cast: xayah_w,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [20., 19., 18., 17., 16., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [20., 19., 18., 17., 16., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: BasicSpell {
+        e: BasicAbility {
             cast: xayah_e,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [12., 11., 10., 9., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [12., 11., 10., 9., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: UltimateSpell {
+        r: UltimateAbility {
             cast: xayah_r,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [140., 120., 100.],
+            base_cooldown_by_ability_lvl: [140., 120., 100.],
         },
         fight_scenarios: &[(xayah_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

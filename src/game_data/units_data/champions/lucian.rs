@@ -55,7 +55,7 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
             target_stats,
             (ad_dmg, ap_dmg, 0.),
             (2, 2),
-            DmgSource::Other,
+            DmgType::Other,
             true,
             1.,
         )
@@ -77,7 +77,7 @@ fn lucian_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         1.,
     )
@@ -120,7 +120,7 @@ fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (0., ap_dmg, 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         1.,
     )
@@ -146,7 +146,7 @@ fn lucian_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (n_hits as u8, 1),
-        DmgSource::UltimateSpell,
+        DmgType::Ultimate,
         false,
         1.,
     );
@@ -366,6 +366,10 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         growth_stats: UnitStats {
             hp: 100.,
@@ -396,29 +400,33 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
         init_abilities: Some(lucian_init_spells),
         basic_attack: lucian_basic_attack,
-        q: BasicSpell {
+        q: BasicAbility {
             cast: lucian_q,
             cast_time: 0.33, //average between 0.4 and 0,25
-            base_cooldown_by_spell_lvl: [9., 8., 7., 6., 5., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [9., 8., 7., 6., 5., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: BasicSpell {
+        w: BasicAbility {
             cast: lucian_w,
             cast_time: 0.25,
-            base_cooldown_by_spell_lvl: [14., 13., 12., 11., 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [14., 13., 12., 11., 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: BasicSpell {
+        e: BasicAbility {
             cast: lucian_e,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [19., 17.75, 16.5, 15.25, 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [19., 17.75, 16.5, 15.25, 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: UltimateSpell {
+        r: UltimateAbility {
             cast: lucian_r,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [110., 100., 90.],
+            base_cooldown_by_ability_lvl: [110., 100., 90.],
         },
         fight_scenarios: &[
             (lucian_fight_scenario_all_out, "all out"),

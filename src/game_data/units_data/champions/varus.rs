@@ -34,7 +34,7 @@ fn varus_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, ap_dmg, 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         true,
         1.,
     )
@@ -91,7 +91,7 @@ fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
             0.,
         ),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         VARUS_SPELLS_HIT_PERCENT * VARUS_Q_N_TARGETS,
     )
@@ -123,7 +123,7 @@ fn varus_consume_blight_stacks_ap_dmg(champ: &mut Unit, target_stats: &UnitStats
             - n_stacks
                 * VARUS_SPELLS_HIT_PERCENT
                 * VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
-                * champ.properties.q.base_cooldown_by_spell_lvl[usize::from(champ.q_lvl - 1)],
+                * champ.properties.q.base_cooldown_by_ability_lvl[usize::from(champ.q_lvl - 1)],
     );
     champ.w_cd = f32::max(
         0.,
@@ -131,7 +131,7 @@ fn varus_consume_blight_stacks_ap_dmg(champ: &mut Unit, target_stats: &UnitStats
             - n_stacks
                 * VARUS_SPELLS_HIT_PERCENT
                 * VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
-                * champ.properties.w.base_cooldown_by_spell_lvl[usize::from(champ.w_lvl - 1)],
+                * champ.properties.w.base_cooldown_by_ability_lvl[usize::from(champ.w_lvl - 1)],
     );
     champ.e_cd = f32::max(
         0.,
@@ -139,7 +139,7 @@ fn varus_consume_blight_stacks_ap_dmg(champ: &mut Unit, target_stats: &UnitStats
             - n_stacks
                 * VARUS_SPELLS_HIT_PERCENT
                 * VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
-                * champ.properties.e.base_cooldown_by_spell_lvl[usize::from(champ.e_lvl - 1)],
+                * champ.properties.e.base_cooldown_by_ability_lvl[usize::from(champ.e_lvl - 1)],
     );
 
     n_stacks
@@ -164,7 +164,7 @@ fn varus_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
             0.,
         ),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         VARUS_SPELLS_HIT_PERCENT * VARUS_E_N_TARGETS,
     )
@@ -225,7 +225,7 @@ fn varus_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (0., VARUS_SPELLS_HIT_PERCENT * ap_dmg, 0.),
         (1, 1),
-        DmgSource::UltimateSpell,
+        DmgType::Ultimate,
         false,
         VARUS_SPELLS_HIT_PERCENT,
     )
@@ -443,6 +443,10 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         growth_stats: UnitStats {
             hp: 105.,
@@ -473,29 +477,33 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
         init_abilities: Some(varus_init_spells),
         basic_attack: varus_basic_attack,
-        q: BasicSpell {
+        q: BasicAbility {
             cast: varus_q,
             cast_time: F32_TOL, //cast time done inside spell function
-            base_cooldown_by_spell_lvl: [16., 15., 14., 13., 12., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [16., 15., 14., 13., 12., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: BasicSpell {
+        w: BasicAbility {
             cast: varus_w,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [40., 40., 40., 40., 40., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [40., 40., 40., 40., 40., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: BasicSpell {
+        e: BasicAbility {
             cast: varus_e,
             cast_time: 0.2419,
-            base_cooldown_by_spell_lvl: [18., 16., 14., 12., 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [18., 16., 14., 12., 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: UltimateSpell {
+        r: UltimateAbility {
             cast: varus_r,
             cast_time: 0.2419,
-            base_cooldown_by_spell_lvl: [100., 80., 60.],
+            base_cooldown_by_ability_lvl: [100., 80., 60.],
         },
         fight_scenarios: &[
             (varus_fight_scenario_all_out, "all out"),

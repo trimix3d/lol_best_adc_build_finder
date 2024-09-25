@@ -80,7 +80,7 @@ fn draven_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         true,
         1.,
     )
@@ -139,7 +139,7 @@ fn draven_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         1.,
     )
@@ -160,7 +160,7 @@ fn draven_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         ((1. + DRAVEN_R_RETURN_PERCENT) as u8, 1),
-        DmgSource::UltimateSpell,
+        DmgType::Ultimate,
         false,
         DRAVEN_R_N_TARGETS,
     )
@@ -360,6 +360,10 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         growth_stats: UnitStats {
             hp: 104.,
@@ -390,29 +394,33 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
         init_abilities: Some(draven_init_spells),
         basic_attack: draven_basic_attack,
-        q: BasicSpell {
+        q: BasicAbility {
             cast: draven_q,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [12., 11., 10., 9., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [12., 11., 10., 9., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: BasicSpell {
+        w: BasicAbility {
             cast: draven_w,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [12., 12., 12., 12., 12., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [12., 12., 12., 12., 12., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: BasicSpell {
+        e: BasicAbility {
             cast: draven_e,
             cast_time: 0.25,
-            base_cooldown_by_spell_lvl: [18., 17., 16., 15., 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [18., 17., 16., 15., 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: UltimateSpell {
+        r: UltimateAbility {
             cast: draven_r,
             cast_time: 0.5,
-            base_cooldown_by_spell_lvl: [100., 90., 80.],
+            base_cooldown_by_ability_lvl: [100., 90., 80.],
         },
         fight_scenarios: &[
             (draven_fight_scenario_start_with_one_axe, "start with 1 axe"),

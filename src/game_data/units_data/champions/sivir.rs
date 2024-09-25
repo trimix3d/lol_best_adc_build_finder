@@ -73,7 +73,7 @@ pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (basic_attack_ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         true,
         1.,
     );
@@ -90,7 +90,7 @@ pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
             target_stats,
             (ricochet_ad_dmg, 0., 0.),
             (0, 0), //most spells effects don't work with sivir ricochets (known exception: shojin), so putting 0 instances cancels their effects -> adapt items pool as a fail safe
-            DmgSource::BasicSpell, //spells coef (shojin) will still run even with 0 instances
+            DmgType::Ability, //spells coef (shojin) will still run even with 0 instances
             false,
             1.,
         );
@@ -116,7 +116,7 @@ fn sivir_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1 + (SIVIR_Q_RETURN_PERCENT as u8), 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         SIVIR_Q_N_TARGETS,
     )
@@ -197,7 +197,7 @@ const SIVIR_ON_THE_HUNT_MS_LVL_1: TemporaryEffect = TemporaryEffect {
     add_stack: sivir_on_the_hunt_lvl_1_enable,
     remove_every_stack: sivir_on_the_hunt_disable,
     duration: 8.,
-    cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_spell_lvl[0],
+    cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_ability_lvl[0],
 };
 
 const SIVIR_ON_THE_HUNT_MS_LVL_2: TemporaryEffect = TemporaryEffect {
@@ -205,7 +205,7 @@ const SIVIR_ON_THE_HUNT_MS_LVL_2: TemporaryEffect = TemporaryEffect {
     add_stack: sivir_on_the_hunt_lvl_2_enable,
     remove_every_stack: sivir_on_the_hunt_disable,
     duration: 10.,
-    cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_spell_lvl[1],
+    cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_ability_lvl[1],
 };
 
 const SIVIR_ON_THE_HUNT_MS_LVL_3: TemporaryEffect = TemporaryEffect {
@@ -213,7 +213,7 @@ const SIVIR_ON_THE_HUNT_MS_LVL_3: TemporaryEffect = TemporaryEffect {
     add_stack: sivir_on_the_hunt_lvl_3_enable,
     remove_every_stack: sivir_on_the_hunt_disable,
     duration: 12.,
-    cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_spell_lvl[2],
+    cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_ability_lvl[2],
 };
 
 /// Basic spells cooldown refunded by each basic attack when under r effect
@@ -416,6 +416,10 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         growth_stats: UnitStats {
             hp: 104.,
@@ -446,29 +450,33 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
         init_abilities: Some(sivir_init_spells),
         basic_attack: sivir_basic_attack,
-        q: BasicSpell {
+        q: BasicAbility {
             cast: sivir_q,
             cast_time: 0.175,
-            base_cooldown_by_spell_lvl: [10., 9.5, 9., 8.5, 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [10., 9.5, 9., 8.5, 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        w: BasicSpell {
+        w: BasicAbility {
             cast: sivir_w,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [12., 12., 12., 12., 12., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [12., 12., 12., 12., 12., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        e: BasicSpell {
+        e: BasicAbility {
             cast: sivir_e,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [24., 22.5, 21., 19.5, 18., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [24., 22.5, 21., 19.5, 18., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
         },
-        r: UltimateSpell {
+        r: UltimateAbility {
             cast: sivir_r,
             cast_time: F32_TOL,
-            base_cooldown_by_spell_lvl: [120., 100., 80.],
+            base_cooldown_by_ability_lvl: [120., 100., 80.],
         },
         fight_scenarios: &[(sivir_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {

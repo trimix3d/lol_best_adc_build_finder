@@ -17,7 +17,7 @@ fn champion_test_ground() {
         shard2: RuneShard::Left,
         shard3: RuneShard::Left,
     };
-    const TARGET_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no spell (except passing validity checks when creating the dummy)
+    const TARGET_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no ability (except passing validity checks when creating the dummy)
 
     const TARGET_DUMMY_BASE_AS: f32 = 0.658; //in game default value is 0.658
     const TARGET_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
@@ -55,16 +55,20 @@ fn champion_test_ground() {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         //no growth stats so they remain constant (lvl doesn't matter)
         growth_stats: UnitStats::const_default(),
         on_lvl_set: None,
         init_abilities: None,
         basic_attack: null_basic_attack,
-        q: NULL_BASIC_SPELL,
-        w: NULL_BASIC_SPELL,
-        e: NULL_BASIC_SPELL,
-        r: NULL_ULTIMATE_SPELL,
+        q: NULL_BASIC_ABILITY,
+        w: NULL_BASIC_ABILITY,
+        e: NULL_BASIC_ABILITY,
+        r: NULL_ULTIMATE_ABILITY,
         fight_scenarios: &[(null_simulate_fight, "null")],
         unit_defaults: UnitDefaults {
             runes_pages: &TARGET_DUMMY_RUNES_PAGE,
@@ -81,15 +85,15 @@ fn champion_test_ground() {
 
     //creation of champion
     let mut champ: Unit = Unit::from_defaults(
-        &Unit::VARUS_PROPERTIES,
+        &Unit::LUCIAN_PROPERTIES,
         6,
         Build([
-            &GUINSOOS_RAGEBLADE,
-            &BERSERKERS_GREAVES,
-            &NULL_ITEM,
-            &NULL_ITEM,
-            &NULL_ITEM,
-            &NULL_ITEM,
+            &RIFTMAKER,
+            &LIANDRYS_TORMENT,
+            &INFINITY_EDGE,
+            &LORD_DOMINIKS_REGARDS,
+            &ESSENCE_REAVER,
+            &IMMORTAL_SHIELDBOW,
         ]),
     )
     .expect("Failed to create unit");

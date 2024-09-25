@@ -7,7 +7,7 @@ use core::hash::{Hash, Hasher};
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Enum)]
 pub enum EffectId {
     //the convention to name variants is to write, in CamelCase (with no extra space between them), the following in order :
-    // - the name of the source of the passive/active effect (either an item or a champion spell)
+    // - the name of the source of the passive/active effect (either an item or a champion ability)
     // - the name of the passive/active effect
     //exemple: YoumuusGhostbladeWraithStep
     AsheRangersFocus,
@@ -29,7 +29,7 @@ pub enum EffectId {
     SivirFleetOfFoot,
     SivirOnTheHuntMS,
     SivirRicochet,
-    StormsurgeStormraiderMS,
+    StormsurgeSquall,
     StridebreakerBreakingShockwaveMS,
     StridebreakerTemper,
     TerminusJuxtapositionLight,
@@ -47,7 +47,7 @@ pub enum EffectId {
 #[derive(Debug, enum_map::Enum, Clone, Copy)]
 pub enum EffectStackId {
     //the convention to name variants is to write, in CamelCase (with no extra space between them), the following in order :
-    // - the name of the source of the passive/active effect (either an item or a champion spell)
+    // - the name of the source of the passive/active effect (either an item or a champion ability)
     // - the name of the passive/active effect
     // - "Stacks" at the end (+optionally, additionnal relevant information)
     //exemple: KrakenSlayerBringItDownStacks
@@ -114,6 +114,7 @@ pub enum EffectValueId {
     KrakenSlayerBringItDownLastStackTime,
     LiandrysTormentTormentLastApplicationTime,
     LiandrysTormentSufferingCombatStartTime,
+    LiandrysTormentSufferingTotDmgModifier,
     LiandrysTormentSufferingLastHitTime,
     LucianArdentBlazeMsFlat,
     LudensCompanionFireLastConsumeTime,

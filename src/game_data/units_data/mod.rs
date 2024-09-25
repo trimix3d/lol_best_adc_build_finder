@@ -100,34 +100,38 @@ fn runes_hp_by_lvl(lvl: NonZeroU8) -> f32 {
 
 #[derive(Debug, Clone, Copy)]
 pub struct UnitStats {
-    pub hp: f32,                //health points
-    pub mana: f32,              //mana
-    pub base_ad: f32,           //base attack damage
-    pub bonus_ad: f32,          //bonus attack damage
-    pub ap_flat: f32,           //ability power
-    pub ap_coef: f32,           //ap coef
-    pub armor: f32,             //armor
-    pub mr: f32,                //magic resistance
-    pub base_as: f32,           //base attack speed
-    pub bonus_as: f32,          //bonus attack speed
-    pub ability_haste: f32,     //ability haste
-    pub basic_haste: f32,       //basic ability haste (only affects basic spells)
-    pub ultimate_haste: f32,    //ultimate haste (only affects ultimate)
-    pub item_haste: f32,        //item haste
-    pub crit_chance: f32,       //crit chance
-    pub crit_dmg: f32,          //crit damage
-    pub ms_flat: f32,           //flat movement speed
-    pub ms_percent: f32,        //% movement speed
-    pub lethality: f32,         //lethality (kinda "flat armor penetration")
-    pub armor_pen_percent: f32, //% armor penetration
-    pub magic_pen_flat: f32,    //flat magic penetration
-    pub magic_pen_percent: f32, //% magic penetration
-    pub armor_red_flat: f32,    //flat armor reduction
-    pub armor_red_percent: f32, //% armor reduction
-    pub mr_red_flat: f32,       //flat magic reduction
-    pub mr_red_percent: f32,    //% magic reduction
-    pub life_steal: f32,        //life steal
-    pub omnivamp: f32,          //omnivamp
+    pub hp: f32,                 //health points
+    pub mana: f32,               //mana
+    pub base_ad: f32,            //base attack damage
+    pub bonus_ad: f32,           //bonus attack damage
+    pub ap_flat: f32,            //ability power
+    pub ap_coef: f32,            //ap coef
+    pub armor: f32,              //armor
+    pub mr: f32,                 //magic resistance
+    pub base_as: f32,            //base attack speed
+    pub bonus_as: f32,           //bonus attack speed
+    pub ability_haste: f32,      //ability haste
+    pub basic_haste: f32,        //basic ability haste (only affects basic spells)
+    pub ultimate_haste: f32,     //ultimate haste (only affects ultimate)
+    pub item_haste: f32,         //item haste
+    pub crit_chance: f32,        //crit chance
+    pub crit_dmg: f32,           //crit damage
+    pub ms_flat: f32,            //flat movement speed
+    pub ms_percent: f32,         //% movement speed
+    pub lethality: f32,          //lethality (kinda "flat armor penetration")
+    pub armor_pen_percent: f32,  //% armor penetration, stacks multiplicatively
+    pub magic_pen_flat: f32,     //flat magic penetration
+    pub magic_pen_percent: f32,  //% magic penetration, stacks multiplicatively
+    pub armor_red_flat: f32,     //flat armor reduction
+    pub armor_red_percent: f32,  //% armor reduction, stacks multiplicatively
+    pub mr_red_flat: f32,        //flat magic reduction
+    pub mr_red_percent: f32,     //% magic reduction, stacks multiplicatively
+    pub life_steal: f32,         //life steal
+    pub omnivamp: f32,           //omnivamp
+    pub phys_dmg_modifier: f32,  //physical dmg modifier, stacks multiplicatively
+    pub magic_dmg_modifier: f32, //magic dmg modifier, stacks multiplicatively
+    pub true_dmg_modifier: f32,  //true dmg modifier, stacks multiplicatively
+    pub tot_dmg_modifier: f32,   //total dmg modifier, stacks multiplicatively
 }
 
 impl Default for UnitStats {
@@ -169,6 +173,10 @@ impl UnitStats {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         }
     }
 
@@ -253,17 +261,21 @@ impl UnitStats {
         self.ms_flat += other_ref.ms_flat;
         self.ms_percent += other_ref.ms_percent;
         self.lethality += other_ref.lethality;
-        self.armor_pen_percent += other_ref.armor_pen_percent * (1. - self.armor_pen_percent); //stacks multiplicatively
+        self.armor_pen_percent += (1. - self.armor_pen_percent) * other_ref.armor_pen_percent; //stacks multiplicatively
         self.magic_pen_flat += other_ref.magic_pen_flat;
-        self.magic_pen_percent += other_ref.magic_pen_percent * (1. - self.magic_pen_percent); //stacks multiplicatively
+        self.magic_pen_percent += (1. - self.magic_pen_percent) * other_ref.magic_pen_percent; //stacks multiplicatively
         self.armor_red_flat += other_ref.armor_red_flat;
-        self.armor_red_percent += other_ref.armor_red_percent * (1. - self.armor_red_percent); //stacks multiplicatively
+        self.armor_red_percent += (1. - self.armor_red_percent) * other_ref.armor_red_percent; //stacks multiplicatively
         self.mr_red_flat += other_ref.mr_red_flat;
-        self.mr_red_percent += other_ref.mr_red_percent * (1. - self.mr_red_percent); //stacks multiplicatively
+        self.mr_red_percent += (1. - self.mr_red_percent) * other_ref.mr_red_percent; //stacks multiplicatively
         self.life_steal += other_ref.life_steal;
         self.omnivamp += other_ref.omnivamp;
+        self.phys_dmg_modifier += (1. + self.phys_dmg_modifier) * other_ref.phys_dmg_modifier; //stacks multiplicatively
+        self.magic_dmg_modifier += (1. + self.magic_dmg_modifier) * other_ref.magic_dmg_modifier; //stacks multiplicatively
+        self.true_dmg_modifier += (1. + self.true_dmg_modifier) * other_ref.true_dmg_modifier; //stacks multiplicatively
+        self.tot_dmg_modifier += (1. + self.tot_dmg_modifier) * other_ref.tot_dmg_modifier; //stacks multiplicatively
 
-        self.crit_chance = f32::min(1., self.crit_chance); //cr capped at 100%
+        self.crit_chance = f32::min(1., self.crit_chance); //crit chance capped at 100%
     }
 
     fn store_add(&mut self, ref_a: &Self, ref_b: &Self) {
@@ -281,7 +293,7 @@ impl UnitStats {
         self.basic_haste = ref_a.basic_haste + ref_b.basic_haste;
         self.ultimate_haste = ref_a.ultimate_haste + ref_b.ultimate_haste;
         self.item_haste = ref_a.item_haste + ref_b.item_haste;
-        self.crit_chance = f32::min(1., ref_a.crit_chance + ref_b.crit_chance); //cr capped at 100%
+        self.crit_chance = f32::min(1., ref_a.crit_chance + ref_b.crit_chance); //crit chance capped at 100%
         self.crit_dmg = ref_a.crit_dmg + ref_b.crit_dmg;
         self.ms_flat = ref_a.ms_flat + ref_b.ms_flat;
         self.ms_percent = ref_a.ms_percent + ref_b.ms_percent;
@@ -299,6 +311,18 @@ impl UnitStats {
             - ref_a.mr_red_percent * ref_b.mr_red_percent; //stacks multiplicatively
         self.life_steal = ref_a.life_steal + ref_b.life_steal;
         self.omnivamp = ref_a.omnivamp + ref_b.omnivamp;
+        self.phys_dmg_modifier = ref_a.phys_dmg_modifier
+            + ref_b.phys_dmg_modifier
+            + ref_a.phys_dmg_modifier * ref_b.phys_dmg_modifier; //stacks multiplicatively
+        self.magic_dmg_modifier = ref_a.magic_dmg_modifier
+            + ref_b.magic_dmg_modifier
+            + ref_a.magic_dmg_modifier * ref_b.magic_dmg_modifier; //stacks multiplicatively
+        self.true_dmg_modifier = ref_a.true_dmg_modifier
+            + ref_b.true_dmg_modifier
+            + ref_a.true_dmg_modifier * ref_b.true_dmg_modifier; //stacks multiplicatively
+        self.tot_dmg_modifier = ref_a.tot_dmg_modifier
+            + ref_b.tot_dmg_modifier
+            + ref_a.tot_dmg_modifier * ref_b.tot_dmg_modifier; //stacks multiplicatively
     }
 
     fn clear(&mut self) {
@@ -307,21 +331,21 @@ impl UnitStats {
 }
 
 #[derive(Debug)]
-pub struct BasicSpell {
+pub struct BasicAbility {
     /// Returns spell dmg and triggers effects.
     /// Should call `Unit.dmg_on_target()` only for the return value at the end of the function !
     cast: fn(&mut Unit, &UnitStats) -> f32,
     cast_time: f32,
-    base_cooldown_by_spell_lvl: [f32; 6], //length 6 to account aphelios case, normal spells only use the first 5 values
+    base_cooldown_by_ability_lvl: [f32; 6], //length 6 to account aphelios case, normal spells only use the first 5 values
 }
 
 #[derive(Debug)]
-pub struct UltimateSpell {
+pub struct UltimateAbility {
     /// Returns spell dmg and triggers effects.
     /// Should call `Unit.dmg_on_target()` only for the return value at the end of the function !
     cast: fn(&mut Unit, &UnitStats) -> f32,
     cast_time: f32,
-    base_cooldown_by_spell_lvl: [f32; 3], //ultimate has 3 lvls
+    base_cooldown_by_ability_lvl: [f32; 3], //ultimate has 3 lvls
 }
 
 #[derive(Debug)]
@@ -354,10 +378,10 @@ pub struct UnitProperties {
     pub init_abilities: Option<fn(&mut Unit)>,
     pub basic_attack: fn(&mut Unit, &UnitStats) -> f32, //returns basic attack dmg and triggers effects
     //no field for passive (incorporated in Unit spells instead)
-    pub q: BasicSpell, //todo: maybe put this in Unit for better cache locality
-    pub w: BasicSpell,
-    pub e: BasicSpell,
-    pub r: UltimateSpell,
+    pub q: BasicAbility, //todo: maybe put this in Unit for better cache locality
+    pub w: BasicAbility,
+    pub e: BasicAbility,
+    pub r: UltimateAbility,
     pub fight_scenarios: &'static [FightScenario],
     pub unit_defaults: UnitDefaults,
 }
@@ -663,15 +687,37 @@ impl fmt::Display for Unit {
         writeln!(f, "flat mr red: {:.0}", self.stats.mr_red_flat)?;
         writeln!(f, "% mr red: {:.0}%", 100. * self.stats.mr_red_percent)?;
         writeln!(f, "life steal: {:.0}%", 100. * self.stats.life_steal)?;
-        writeln!(f, "omnivamp: {:.0}%", 100. * self.stats.omnivamp)
+        writeln!(f, "omnivamp: {:.0}%", 100. * self.stats.omnivamp)?;
+        writeln!(
+            f,
+            "physical dmg modifier: {:.0}%",
+            100. * self.stats.phys_dmg_modifier
+        )?;
+        writeln!(
+            f,
+            "magic dmg modifier: {:.0}%",
+            100. * self.stats.magic_dmg_modifier
+        )?;
+        writeln!(
+            f,
+            "true dmg modifier: {:.0}%",
+            100. * self.stats.true_dmg_modifier
+        )?;
+        writeln!(
+            f,
+            "total dmg modifier: {:.0}%",
+            100. * self.stats.tot_dmg_modifier
+        )
     }
 }
 
-/// Indicates if a dmg instance is from a basic or an ultimate spell.
+//todo: add basic attack (+ remove bool arg that indicates if trigger on basic attack effects ìn dmg_on_target()) + add dot
+//todo: create enum set
+/// Indicates the type of a damage instance.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum DmgSource {
-    BasicSpell,
-    UltimateSpell,
+pub enum DmgType {
+    Ability,
+    Ultimate,
     Other,
 }
 
@@ -706,7 +752,7 @@ impl Unit {
         //for similar reasons cooldowns must be >= F32_TOL
         if properties_ref
             .q
-            .base_cooldown_by_spell_lvl
+            .base_cooldown_by_ability_lvl
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
@@ -714,7 +760,7 @@ impl Unit {
         }
         if properties_ref
             .w
-            .base_cooldown_by_spell_lvl
+            .base_cooldown_by_ability_lvl
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
@@ -722,7 +768,7 @@ impl Unit {
         }
         if properties_ref
             .e
-            .base_cooldown_by_spell_lvl
+            .base_cooldown_by_ability_lvl
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
@@ -730,7 +776,7 @@ impl Unit {
         }
         if properties_ref
             .r
-            .base_cooldown_by_spell_lvl
+            .base_cooldown_by_ability_lvl
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
@@ -893,6 +939,14 @@ impl Unit {
         self.lvl_stats.life_steal =
             growth_stat_formula(self.lvl, base.life_steal, growth.life_steal);
         self.lvl_stats.omnivamp = growth_stat_formula(self.lvl, base.omnivamp, growth.omnivamp);
+        self.lvl_stats.phys_dmg_modifier =
+            growth_stat_formula(self.lvl, base.phys_dmg_modifier, growth.phys_dmg_modifier);
+        self.lvl_stats.magic_dmg_modifier =
+            growth_stat_formula(self.lvl, base.magic_dmg_modifier, growth.magic_dmg_modifier);
+        self.lvl_stats.true_dmg_modifier =
+            growth_stat_formula(self.lvl, base.true_dmg_modifier, growth.true_dmg_modifier);
+        self.lvl_stats.tot_dmg_modifier =
+            growth_stat_formula(self.lvl, base.tot_dmg_modifier, growth.tot_dmg_modifier);
 
         //perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to lvl_stats)
         if let Some(on_lvl_set) = self.properties.on_lvl_set {
@@ -1151,7 +1205,7 @@ impl Unit {
         target_stats: &UnitStats,
         (mut ad_dmg, mut ap_dmg, mut true_dmg): RawDmg,
         (n_dmg_instances, n_stacking_instances): (u8, u8),
-        dmg_source: DmgSource,
+        dmg_type: DmgType,
         triggers_on_basic_attack_effects: bool,
         n_targets: f32,
     ) -> f32 {
@@ -1184,8 +1238,8 @@ impl Unit {
         }
 
         //on spell hit and spell coef, must be done before on basic attack hit because of muramana shock that applies spell part first
-        match dmg_source {
-            DmgSource::BasicSpell => {
+        match dmg_type {
+            DmgType::Ability => {
                 //on basic spell hit
                 //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
                 //this is hacky but the init function should never change self.build
@@ -1209,7 +1263,7 @@ impl Unit {
                 ap_dmg *= coef;
                 true_dmg *= coef;
             }
-            DmgSource::UltimateSpell => {
+            DmgType::Ultimate => {
                 //on ultimate spell hit
                 for i in 0..MAX_UNIT_ITEMS {
                     if let Some(on_ultimate_spell_hit) = self.build[i].on_ultimate_spell_hit {
@@ -1231,7 +1285,7 @@ impl Unit {
                 ap_dmg *= coef;
                 true_dmg *= coef;
             }
-            DmgSource::Other => (),
+            DmgType::Other => (),
         }
 
         //on basic attack hit, divided in two parts:
@@ -1306,13 +1360,10 @@ impl Unit {
         }
 
         //total dmg coef
-        let mut tot_coef: f32 = 1.;
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(tot_dmg_coef) = self.build[i].tot_dmg_coef {
-                tot_coef += (tot_dmg_coef)(self, target_stats); //stacks additively
-            }
-        }
-        let tot_dmg: f32 = (ad_dmg * armor_coef + ap_dmg * mr_coef + true_dmg) * tot_coef;
+        let tot_dmg: f32 = (ad_dmg * (1. + self.stats.phys_dmg_modifier) * armor_coef
+            + ap_dmg * (1. + self.stats.magic_dmg_modifier) * mr_coef
+            + true_dmg * (1. + self.stats.true_dmg_modifier))
+            * (1. + self.stats.tot_dmg_modifier);
 
         //lifesteal and omnivamp
         self.sim_results.life_vamped += tot_dmg * self.stats.omnivamp; //omnivamp
@@ -1388,7 +1439,7 @@ impl Unit {
         }
         //set cd
         self.q_cd = haste_formula(self.stats.ability_haste_basic())
-            * self.properties.q.base_cooldown_by_spell_lvl[usize::from(self.q_lvl - 1)];
+            * self.properties.q.base_cooldown_by_ability_lvl[usize::from(self.q_lvl - 1)];
 
         //return dmg
         (self.properties.q.cast)(self, target_stats)
@@ -1412,7 +1463,7 @@ impl Unit {
         }
         //set cd
         self.w_cd = haste_formula(self.stats.ability_haste_basic())
-            * self.properties.w.base_cooldown_by_spell_lvl[usize::from(self.w_lvl - 1)];
+            * self.properties.w.base_cooldown_by_ability_lvl[usize::from(self.w_lvl - 1)];
 
         //return dmg
         (self.properties.w.cast)(self, target_stats)
@@ -1436,7 +1487,7 @@ impl Unit {
         }
         //set cd
         self.e_cd = haste_formula(self.stats.ability_haste_basic())
-            * self.properties.e.base_cooldown_by_spell_lvl[usize::from(self.e_lvl - 1)];
+            * self.properties.e.base_cooldown_by_ability_lvl[usize::from(self.e_lvl - 1)];
 
         //return dmg
         (self.properties.e.cast)(self, target_stats)
@@ -1460,7 +1511,7 @@ impl Unit {
         }
         //set cd
         self.r_cd = haste_formula(self.stats.ability_haste_ultimate())
-            * self.properties.r.base_cooldown_by_spell_lvl[usize::from(self.r_lvl - 1)];
+            * self.properties.r.base_cooldown_by_ability_lvl[usize::from(self.r_lvl - 1)];
 
         //return dmg
         (self.properties.r.cast)(self, target_stats)
@@ -1506,7 +1557,7 @@ impl Unit {
             target_stats,
             (ad_dmg, 0., 0.),
             (1, 1),
-            DmgSource::Other,
+            DmgType::Other,
             true,
             1.,
         )
@@ -1525,20 +1576,20 @@ pub fn null_basic_attack(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
 ///
 /// This is to avoid checking an Option everytime a spell is called, since the majority of spells aren't null
 /// and the user should know in advance if said unit spell is null or not.
-pub const NULL_BASIC_SPELL: BasicSpell = BasicSpell {
+pub const NULL_BASIC_ABILITY: BasicAbility = BasicAbility {
     cast: null_spell_cast,
     cast_time: F32_TOL,
-    base_cooldown_by_spell_lvl: [F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL],
+    base_cooldown_by_ability_lvl: [F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL],
 };
 
 /// For performance reasons, we use a `NULL_ULTIMATE_SPELL` constant (that should never be used) instead of an Option, for units that do not have one.
 ///
 /// This is to avoid checking an Option everytime a spell is called, since the majority of spells aren't null
 /// and the user should know in advance if said unit spell is null or not.
-pub const NULL_ULTIMATE_SPELL: UltimateSpell = UltimateSpell {
+pub const NULL_ULTIMATE_ABILITY: UltimateAbility = UltimateAbility {
     cast: null_spell_cast,
     cast_time: F32_TOL,
-    base_cooldown_by_spell_lvl: [F32_TOL, F32_TOL, F32_TOL],
+    base_cooldown_by_ability_lvl: [F32_TOL, F32_TOL, F32_TOL],
 };
 
 fn null_spell_cast(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {

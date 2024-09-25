@@ -2,7 +2,7 @@ use super::{Item, ItemGroups, ItemId, ItemUtils};
 use crate::game_data::*;
 
 use effects_data::{EffectId, EffectStackId, EffectValueId, TemporaryEffect};
-use units_data::{capped_ms, DmgSource, RawDmg, Unit, UnitStats, MAX_UNIT_LVL};
+use units_data::{capped_ms, DmgType, RawDmg, Unit, UnitStats, MAX_UNIT_LVL};
 
 use enumset::{enum_set, EnumSet};
 
@@ -13,8 +13,10 @@ use enumset::{enum_set, EnumSet};
 const ABYSSAL_MASK_UNMAKE_AVG_TARGETS_IN_RANGE: f32 = 1.;
 /// Percentage of dmg that is done in the passive range and profit from mr reduction.
 const ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE: f32 = 0.80;
-///x*x, where x is the % of hp under which it crits
+///x*x, where x is the % of hp under which it crits.
 const SHADOWFLAME_CINDERBLOOM_COEF: f32 = 0.40 * 0.40;
+///x*x, where x is the % of hp under which the passive activates.
+const STORMSURGE_STORMRAIDER_COEF: f32 = 0.75 * 0.75;
 /// Percentage of target missing hp to account for the average dmg calculation.
 const KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT: f32 = 0.30;
 /// Actual duration of Malignance hatefog curse on the ennemy
@@ -157,6 +159,10 @@ pub const TEMPLATE_ITEM: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        physical_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -238,6 +244,10 @@ pub const NULL_ITEM: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -299,6 +309,10 @@ pub const ABYSSAL_MASK: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(abyssal_mask_init),
     active: None,
@@ -356,6 +370,10 @@ pub const AXIOM_ARC: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -409,6 +427,10 @@ pub const BANSHEES_VEIL: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -519,6 +541,10 @@ pub const BLACK_CLEAVER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(black_cleaver_init),
     active: None,
@@ -596,6 +622,10 @@ pub const BLACKFIRE_TORCH: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(blackfire_torch_init),
     active: None,
@@ -658,6 +688,10 @@ pub const BLADE_OF_THE_RUINED_KING: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.10,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -737,6 +771,10 @@ pub const BLOODTHIRSTER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.15,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(bloodthirster_init),
     active: None,
@@ -790,6 +828,10 @@ pub const CHEMPUNK_CHAINSWORD: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -899,6 +941,10 @@ pub const COSMIC_DRIVE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(cosmic_drive_init),
     active: None,
@@ -952,6 +998,10 @@ pub const CRYPTBLOOM: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -1032,6 +1082,10 @@ pub const DEAD_MANS_PLATE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(dead_mans_plate_init),
     active: None,
@@ -1085,6 +1139,10 @@ pub const DEATHS_DANCE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -1183,6 +1241,10 @@ pub const ECLIPSE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(eclipse_init),
     active: None,
@@ -1236,6 +1298,10 @@ pub const EDGE_OF_NIGHT: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -1289,6 +1355,10 @@ pub const ESSENCE_REAVER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -1380,6 +1450,10 @@ pub const EXPERIMENTAL_HEXPLATE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(experimental_hexplate_init),
     active: None,
@@ -1437,6 +1511,10 @@ pub const FROZEN_HEART: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -1490,6 +1568,10 @@ pub const GUARDIAN_ANGEL: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -1602,6 +1684,10 @@ pub const GUINSOOS_RAGEBLADE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(guinsoos_rageblade_init),
     active: None,
@@ -1630,7 +1716,7 @@ fn hextech_rocketbelt_supersonic(champ: &mut Unit, target_stats: &UnitStats) -> 
         target_stats,
         (0., ap_dmg, 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         1.,
     )
@@ -1672,6 +1758,10 @@ pub const HEXTECH_ROCKETBELT: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: Some(hextech_rocketbelt_supersonic),
@@ -1731,6 +1821,10 @@ pub const HORIZON_FOCUS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -1784,6 +1878,10 @@ pub const HUBRIS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -1864,6 +1962,10 @@ pub const HULLBREAKER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(hullbreaker_init),
     active: None,
@@ -1939,6 +2041,10 @@ pub const ICEBORN_GAUNTLET: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(spellblade_init),
     active: None,
@@ -2021,6 +2127,10 @@ pub const IMMORTAL_SHIELDBOW: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(immortal_shieldbow_init),
     active: None,
@@ -2076,6 +2186,10 @@ pub const INFINITY_EDGE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -2129,6 +2243,10 @@ pub const JAKSHO: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -2188,6 +2306,10 @@ pub const KAENIC_ROOKERN: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(kaenic_rookern_init),
     active: None,
@@ -2292,6 +2414,10 @@ pub const KRAKEN_SLAYER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(kraken_slayer_init),
     active: None,
@@ -2308,6 +2434,7 @@ pub const KRAKEN_SLAYER: Item = Item {
     tot_dmg_coef: None,
 };
 
+//todo: check tot_dmg_coef passive + interaction with riftmaker
 //Lidandry's torment
 const LIANDRYS_TORMENT_TORMENT_DOT_DURATION: f32 = 3.;
 const LIANDRYS_TORMENT_SUFFERING_DELAY: f32 = 3.; //duration after which passive deactivates
@@ -2317,6 +2444,7 @@ fn liandrys_torment_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime] = 0.;
     champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime] =
         -(LIANDRYS_TORMENT_SUFFERING_DELAY + F32_TOL); //to allow for effect at time == 0
+    champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = 0.;
 }
 
 fn liandrys_torment_torment(champ: &mut Unit, target_stats: &UnitStats, n_targets: f32) -> RawDmg {
@@ -2332,24 +2460,34 @@ fn liandrys_torment_torment(champ: &mut Unit, target_stats: &UnitStats, n_target
     )
 }
 
-fn liandrys_torment_suffering(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn liandrys_torment_suffering(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //if last hit from too long ago, reset combat
     if champ.time - champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime]
         >= LIANDRYS_TORMENT_SUFFERING_DELAY
     {
         champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime] = champ.time;
         champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime] = champ.time;
-        return 0.;
+        champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
+            / (1. + champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier])
+            - 1.; //remove tot dmg multiplier, stacks multiplicatively
+        champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = 0.;
     }
-    //if last hit is recent enough (previous condition), return dmg coef based on the last combat start time
+    //if last hit is recent enough (previous condition), update dmg modifier based on the last combat start time
     champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime] = champ.time;
-    f32::min(
+    champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
+        / (1. + champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier])
+        - 1.; //remove current tot dmg multiplier temporarly
+    let tot_dmg_modifier: f32 = f32::min(
         0.06,
         0.02 * f32::round(
             champ.time
                 - champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime],
         ),
-    ) //as of patch 14.06, using round is the correct way to get the value
+    ); //as of patch 14.06, using round is the correct way to get the value //todo: test passive
+    champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = tot_dmg_modifier;
+    champ.stats.tot_dmg_modifier += (1. + champ.stats.tot_dmg_modifier) * tot_dmg_modifier;
+    //add updated tot dmg multiplier, stacks multiplicatively
+    (0., 0., 0.)
 }
 
 pub const LIANDRYS_TORMENT: Item = Item {
@@ -2388,6 +2526,10 @@ pub const LIANDRYS_TORMENT: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(liandrys_torment_init),
     active: None,
@@ -2398,10 +2540,10 @@ pub const LIANDRYS_TORMENT: Item = Item {
     on_ultimate_spell_hit: Some(liandrys_torment_torment),
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
-    on_any_hit: None,
+    on_any_hit: Some(liandrys_torment_suffering),
     on_ad_hit: None,
     ap_true_dmg_coef: None,
-    tot_dmg_coef: Some(liandrys_torment_suffering),
+    tot_dmg_coef: None,
 };
 
 //Lich bane
@@ -2477,6 +2619,10 @@ pub const LICH_BANE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(spellblade_init),
     active: None,
@@ -2532,6 +2678,10 @@ pub const LORD_DOMINIKS_REGARDS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -2612,6 +2762,10 @@ pub const LUDENS_COMPANION: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(ludens_companion_init),
     active: None,
@@ -2704,6 +2858,10 @@ pub const MALIGNANCE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(malignance_init),
     active: None,
@@ -2769,6 +2927,10 @@ pub const MAW_OF_MALMORTIUS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(maw_of_malmortius_init),
     active: None,
@@ -2824,6 +2986,10 @@ pub const MERCURIAL_SCIMITAR: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.10,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -2881,6 +3047,10 @@ pub const MORELLONOMICON: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -2934,6 +3104,10 @@ pub const MORTAL_REMINDER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -2951,6 +3125,7 @@ pub const MORTAL_REMINDER: Item = Item {
 };
 
 //Muramana
+//todo: test shock on hit vs on spell behavior after on action fn changes
 fn muramana_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] = -F32_TOL; //to allow for effect at time == 0
 
@@ -3018,6 +3193,10 @@ pub const MURAMANA: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(muramana_init),
     active: None,
@@ -3075,6 +3254,10 @@ pub const NASHORS_TOOTH: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -3136,6 +3319,10 @@ pub const NAVORI_FLICKERBLADE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -3241,6 +3428,10 @@ pub const OPPORTUNITY: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(opportunity_init),
     active: None,
@@ -3301,6 +3492,10 @@ pub const OVERLORDS_BLOODMAIL: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(overlords_bloodmail_init),
     active: None,
@@ -3354,6 +3549,10 @@ pub const PHANTOM_DANCER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -3377,7 +3576,7 @@ fn _profane_hydra_heretical_cleave(champ: &mut Unit, target_stats: &UnitStats) -
         target_stats,
         (champ.stats.ad(), 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         false,
         1.,
     ) //assumes the target is not under 50% hp (worst case scenario)
@@ -3428,6 +3627,10 @@ pub const PROFANE_HYDRA: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None, //Some(profane_hydra_heretical_cleave), //active not used for ranged champions
@@ -3481,6 +3684,10 @@ pub const RABADONS_DEATHCAP: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -3534,6 +3741,10 @@ pub const RANDUINS_OMEN: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -3608,6 +3819,10 @@ pub const RAPID_FIRECANNON: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(rapid_firecannon_init),
     active: None,
@@ -3631,7 +3846,7 @@ fn _ravenous_hydra_ravenous_crescent(champ: &mut Unit, target_stats: &UnitStats)
         target_stats,
         (champ.stats.ad(), 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         false,
         1.,
     )
@@ -3682,6 +3897,10 @@ pub const RAVENOUS_HYDRA: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.12,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None, //Some(ravenous_hydra_ravenous_crescent), //active not used for ranged champions
@@ -3700,6 +3919,7 @@ pub const RAVENOUS_HYDRA: Item = Item {
 
 //Redemption (useless?)
 
+//todo: check tot_dmg_coef passive + interaction with liandrys
 //Riftmaker
 const RIFTMAKER_VOID_CORRUPTION_NOT_IN_COMBAT_TIME_VALUE: f32 = -1.; //special value to indicate that the unit is not in combat, MUST BE NEGATIVE to not interfere with an actual combat start time value
 fn riftmaker_init(champ: &mut Unit) {
@@ -3800,6 +4020,10 @@ pub const RIFTMAKER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(riftmaker_init),
     active: None,
@@ -3854,6 +4078,10 @@ pub const ROD_OF_AGES: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -3922,6 +4150,10 @@ pub const RUNAANS_HURRICANE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -3975,6 +4207,10 @@ pub const RYLAIS_CRYSTAL_SCEPTER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -4043,6 +4279,10 @@ pub const SERAPHS_EMBRACE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(seraphs_embrace_init),
     active: None,
@@ -4096,6 +4336,10 @@ pub const SERPENTS_FANG: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -4154,6 +4398,10 @@ pub const SERYLDAS_GRUDGE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(seryldas_grudge_init),
     active: None,
@@ -4170,10 +4418,12 @@ pub const SERYLDAS_GRUDGE: Item = Item {
     tot_dmg_coef: None,
 };
 
+//todo: test shadowflame crit passive with ap on hit items
 //Shadowflame
-fn shadowflame_cinderbloom(champ: &mut Unit) -> f32 {
-    SHADOWFLAME_CINDERBLOOM_COEF * (0.2 * (1. + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG))
-    //crit dmg above BASE_CRIT_DMG only affects only the bonus dmg of shadowflame not the entire dmg instance
+fn shadowflame_init(champ: &mut Unit) {
+    champ.stats.magic_dmg_modifier += (1. + champ.stats.magic_dmg_modifier)
+        * SHADOWFLAME_CINDERBLOOM_COEF
+        * (0.2 * (1. + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)); //crit dmg above BASE_CRIT_DMG only affects only the bonus dmg of shadowflame not the entire dmg instance
 }
 
 pub const SHADOWFLAME: Item = Item {
@@ -4212,8 +4462,12 @@ pub const SHADOWFLAME: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
-    init_item: None,
+    init_item: Some(shadowflame_init),
     active: None,
     on_basic_spell_cast: None,
     on_ultimate_cast: None,
@@ -4224,7 +4478,7 @@ pub const SHADOWFLAME: Item = Item {
     on_basic_attack_hit_dynamic: None,
     on_any_hit: None,
     on_ad_hit: None,
-    ap_true_dmg_coef: Some(shadowflame_cinderbloom),
+    ap_true_dmg_coef: None,
     tot_dmg_coef: None,
 };
 
@@ -4295,6 +4549,10 @@ pub const SPEAR_OF_SHOJIN: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(spear_of_shojin_init),
     active: None,
@@ -4352,6 +4610,10 @@ pub const STATIKK_SHIV: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -4420,6 +4682,10 @@ pub const STERAKS_GAGE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(steraks_gage_init),
     active: None,
@@ -4436,44 +4702,49 @@ pub const STERAKS_GAGE: Item = Item {
     tot_dmg_coef: None,
 };
 
-//Stormsurge (assumes passive is always triggered)
+//todo: check item behavior
+//stormsurge
 fn stormsurge_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] = 0.;
     champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] = 0;
 }
 
-fn stormsurge_stormraider_ms_enable(champ: &mut Unit, availability_coef: f32) {
+fn stormsurge_squall_enable(champ: &mut Unit, availability_coef: f32) {
     if champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] == 0. {
-        let percent_ms_buff: f32 = availability_coef * 0.35;
+        let percent_ms_buff: f32 = STORMSURGE_STORMRAIDER_COEF * availability_coef * 0.35;
         champ.stats.ms_percent += percent_ms_buff;
         champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] = percent_ms_buff;
     }
 }
 
-fn stormsurge_stormraider_ms_disable(champ: &mut Unit) {
+fn stormsurge_squall_disable(champ: &mut Unit) {
     champ.stats.ms_percent -= champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent];
     champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] = 0.;
 }
 
-const STORMSURGE_STORMRAIDER_MS_COOLDOWN: f32 = 30.;
-const STORMSURGE_STORMRAIDER_MS: TemporaryEffect = TemporaryEffect {
-    id: EffectId::StormsurgeStormraiderMS,
-    add_stack: stormsurge_stormraider_ms_enable,
-    remove_every_stack: stormsurge_stormraider_ms_disable,
+const STORMSURGE_SQUALL: TemporaryEffect = TemporaryEffect {
+    id: EffectId::StormsurgeSquall,
+    add_stack: stormsurge_squall_enable,
+    remove_every_stack: stormsurge_squall_disable,
     duration: 2.0,
-    cooldown: STORMSURGE_STORMRAIDER_MS_COOLDOWN,
+    cooldown: STORMSURGE_STORMRAIDER_COOLDOWN,
 };
 
-fn stormsurge_stormraider(champ: &mut Unit, _target_stats: &UnitStats) -> (f32, f32, f32) {
+const STORMSURGE_STORMRAIDER_COOLDOWN: f32 = 30.;
+fn stormsurge_stormraider(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //stormraider passive, triggers once, by a default 2.5sec after the first dmg instance since we don't record dmg done over time and cannot check the real activation condition
     if champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] == 0 && champ.time > 2.5
     {
         champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] = 1;
-        champ.add_temporary_effect(&STORMSURGE_STORMRAIDER_MS, champ.stats.item_haste);
+        champ.add_temporary_effect(&STORMSURGE_SQUALL, champ.stats.item_haste);
         let avalability_coef: f32 = effect_availability_formula(
-            STORMSURGE_STORMRAIDER_MS_COOLDOWN * haste_formula(champ.stats.item_haste),
+            STORMSURGE_STORMRAIDER_COOLDOWN * haste_formula(champ.stats.item_haste),
         );
-        return (0., avalability_coef * (140. + 0.20 * champ.stats.ap()), 0.);
+        return (
+            0.,
+            STORMSURGE_STORMRAIDER_COEF * avalability_coef * (140. + 0.20 * champ.stats.ap()),
+            0.,
+        );
     }
     (0., 0., 0.)
 }
@@ -4514,6 +4785,10 @@ pub const STORMSURGE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(stormsurge_init),
     active: None,
@@ -4564,7 +4839,7 @@ fn stridebreaker_breaking_shockwave(champ: &mut Unit, target_stats: &UnitStats) 
         target_stats,
         (0.8 * champ.stats.ad(), 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         false,
         1.,
     ); //calculate dmg before ms boost
@@ -4642,6 +4917,10 @@ pub const STRIDEBREAKER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(stridebreaker_init),
     active: Some(stridebreaker_breaking_shockwave),
@@ -4717,6 +4996,10 @@ pub const SUNDERED_SKY: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(sundered_sky_init),
     active: None,
@@ -4877,6 +5160,10 @@ pub const TERMINUS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(terminus_init),
     active: None,
@@ -4899,7 +5186,7 @@ fn the_collector_init(champ: &mut Unit) {
 }
 
 const THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD: f32 = 0.05;
-fn the_collector_death(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn the_collector_death(champ: &mut Unit, target_stats: &UnitStats) -> RawDmg {
     if champ.effects_stacks[EffectStackId::TheCollectorExecuted] != 1
         && champ.sim_results.dmg_done
             >= (1. - THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD) * target_stats.hp
@@ -4907,7 +5194,7 @@ fn the_collector_death(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         champ.sim_results.dmg_done += THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD * target_stats.hp;
         champ.effects_stacks[EffectStackId::TheCollectorExecuted] = 1;
     }
-    0.
+    (0., 0., 0.)
 }
 
 pub const THE_COLLECTOR: Item = Item {
@@ -4946,6 +5233,10 @@ pub const THE_COLLECTOR: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(the_collector_init),
     active: None,
@@ -4956,10 +5247,10 @@ pub const THE_COLLECTOR: Item = Item {
     on_ultimate_spell_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
-    on_any_hit: None,
+    on_any_hit: Some(the_collector_death),
     on_ad_hit: None,
     ap_true_dmg_coef: None,
-    tot_dmg_coef: Some(the_collector_death),
+    tot_dmg_coef: None,
 };
 
 //Thornmail (useless?)
@@ -4975,7 +5266,7 @@ fn titanic_hydra_titanic_crescent(champ: &mut Unit, target_stats: &UnitStats) ->
             0.,
         ),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         false,
         1. + TITANIC_HYDRA_CLEAVE_AVG_TARGETS,
     ) //value for ranged champions
@@ -5031,6 +5322,10 @@ pub const TITANIC_HYDRA: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: Some(titanic_hydra_titanic_crescent),
@@ -5140,6 +5435,10 @@ pub const TRINITY_FORCE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(trinity_force_init),
     active: None,
@@ -5193,6 +5492,10 @@ pub const UMBRAL_GLAIVE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -5250,6 +5553,10 @@ pub const VOID_STAFF: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -5324,6 +5631,10 @@ pub const VOLTAIC_CYCLOSWORD: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(voltaic_cyclosword_init),
     active: None,
@@ -5410,6 +5721,10 @@ pub const WITS_END: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -5494,6 +5809,10 @@ pub const YOUMUUS_GHOSTBLADE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: Some(youmuus_ghostblade_init),
     active: Some(youmuus_ghostblade_wraith_step_active),
@@ -5511,7 +5830,7 @@ pub const YOUMUUS_GHOSTBLADE: Item = Item {
 };
 
 //Yun Tal Wildarrows
-fn yun_tal_serrated_edge(champ: &mut Unit, _target_stats: &UnitStats) -> (f32, f32, f32) {
+fn yun_tal_serrated_edge(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     (
         champ.stats.crit_chance * (2. / 0.5) * 0.0875 * champ.stats.ad(),
         0.,
@@ -5555,6 +5874,10 @@ pub const YUN_TAL_WILDARROWS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -5612,6 +5935,10 @@ pub const ZHONYAS_HOURGLASS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -5669,6 +5996,10 @@ pub const BERSERKERS_GREAVES: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -5722,6 +6053,10 @@ pub const BOOTS_OF_SWIFTNESS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -5775,6 +6110,10 @@ pub const IONIAN_BOOTS_OF_LUCIDITY: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -5828,6 +6167,10 @@ pub const MERCURYS_TREADS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -5881,6 +6224,10 @@ pub const PLATED_STEELCAPS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,
@@ -5934,6 +6281,10 @@ pub const SORCERERS_SHOES: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
     },
     init_item: None,
     active: None,

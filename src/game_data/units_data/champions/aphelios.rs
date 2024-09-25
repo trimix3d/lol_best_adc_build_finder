@@ -25,7 +25,7 @@ fn aphelios_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         true,
         1.,
     )
@@ -265,7 +265,7 @@ fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     basic_attack_ad_dmg +=
         1. / 5. * APHELIOS_Q_INFERNUM_N_TARGETS * champ.stats.ad() * champ.stats.crit_coef(); //additionnal basic attack dmg (no on_hit applied because we don't want to stack those effects since we consider the average q_cast)
 
-    //crescendum weighted 1/5, considered spell dmg
+    //crescendum weighted 1/5, considered ability dmg
     ad_dmg += 1. / 5.
         * APHELIOS_Q_CRESCENDUM_N_SENTRY_ATTACKS
         * (APHELIOS_Q_CRESCENDUM_AD_DMG_BY_LVL[lvl_idx]
@@ -273,19 +273,19 @@ fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
             + 0.5 * champ.stats.ap())
         * champ.stats.crit_coef();
 
-    //consider 2 hits: initial spell + basic attack (severum, infernum)
+    //consider 2 hits: initial ability + basic attack (severum, infernum)
     champ.dmg_on_target(
         target_stats,
         (ad_dmg, ap_dmg, 0.),
         (1, 1),
-        DmgSource::BasicSpell,
+        DmgType::Ability,
         false,
         (2. + APHELIOS_Q_CALIBRUM_HIT_PERCENT + APHELIOS_Q_INFERNUM_N_TARGETS) / 5.,
     ) + champ.dmg_on_target(
         target_stats,
         (basic_attack_ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         true,
         (1. + APHELIOS_Q_CALIBRUM_HIT_PERCENT + APHELIOS_Q_INFERNUM_N_TARGETS) / 5.,
     )
@@ -324,7 +324,7 @@ fn aphelios_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //infernum, AoE dmg weighted 1/5
     let mut infernum_ad_dmg: f32 = 1. / 5.
         * APHELIOS_R_N_TARGETS
-        * (APHELIOS_R_INFERNUM_AD_DMG_BY_R_LVL[r_lvl_idx] + 0.25 * champ.stats.bonus_ad); //initial spell additionnal dmg
+        * (APHELIOS_R_INFERNUM_AD_DMG_BY_R_LVL[r_lvl_idx] + 0.25 * champ.stats.bonus_ad); //initial ability additionnal dmg
     infernum_ad_dmg += 1. / 5. * (APHELIOS_R_N_TARGETS - 1.) * (0.9 * basic_attack_ad_dmg); //infernum 200 years AoE dmgs coming from other targets hit
 
     //crescendum, chakrams not taken into account
@@ -334,14 +334,14 @@ fn aphelios_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (ad_dmg + infernum_ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::UltimateSpell,
+        DmgType::Ultimate,
         false,
         APHELIOS_R_N_TARGETS,
     ) + champ.dmg_on_target(
         target_stats,
         (basic_attack_ad_dmg + mark_ad_dmg, 0., 0.),
         (1, 1),
-        DmgSource::Other,
+        DmgType::Other,
         true,
         APHELIOS_R_N_TARGETS,
     )
@@ -512,6 +512,10 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         growth_stats: UnitStats {
             hp: 102.,
@@ -542,21 +546,25 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            phys_dmg_modifier: 0.,
+            magic_dmg_modifier: 0.,
+            true_dmg_modifier: 0.,
+            tot_dmg_modifier: 0.,
         },
         on_lvl_set: Some(aphelios_on_lvl_set),
         init_abilities: None,
         basic_attack: aphelios_basic_attack,
-        q: BasicSpell {
+        q: BasicAbility {
             cast: aphelios_q,
             cast_time: 0.62,
-            base_cooldown_by_spell_lvl: [8.4, 8.4, 8.4, 8.4, 8.4, 8.4], //mean cd for all weapons at lvl 9 (aphelios q_lvl gives bonus_ad and doesn't affect cd)
+            base_cooldown_by_ability_lvl: [8.4, 8.4, 8.4, 8.4, 8.4, 8.4], //mean cd for all weapons at lvl 9 (aphelios q_lvl gives bonus_ad and doesn't affect cd)
         },
-        w: NULL_BASIC_SPELL,
-        e: NULL_BASIC_SPELL,
-        r: UltimateSpell {
+        w: NULL_BASIC_ABILITY,
+        e: NULL_BASIC_ABILITY,
+        r: UltimateAbility {
             cast: aphelios_r,
             cast_time: 0.6,
-            base_cooldown_by_spell_lvl: [120., 110., 100.],
+            base_cooldown_by_ability_lvl: [120., 110., 100.],
         },
         fight_scenarios: &[(aphelios_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {
