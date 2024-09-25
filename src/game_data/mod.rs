@@ -22,7 +22,7 @@ pub const HP_GOLD_VALUE: f32 = 2.67;
 /// Amount of gold that one point of armor is worth.
 pub const ARMOR_GOLD_VALUE: f32 = 20.;
 /// Amount of gold that one point of mr is worth.
-pub const MR_GOLD_VALUE: f32 = 18.;
+pub const MR_GOLD_VALUE: f32 = 20.;
 /// Starting golds on summoners rift.
 pub const STARTING_GOLDS: f32 = 500.;
 /// Passive gold generation per minute on summoners rift.
