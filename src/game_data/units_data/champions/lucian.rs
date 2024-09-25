@@ -6,7 +6,7 @@ const LUCIAN_N_VIGILANCE_PROCS: u8 = 1;
 /// Percentage of the r that hits its target, must be between 0. and 1.
 const LUCIAN_R_HIT_PERCENT: f32 = 0.75;
 
-fn lucian_init_spells(champ: &mut Unit) {
+fn lucian_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 0;
     champ.effects_stacks[EffectStackId::LucianVigilanceProcsRemaning] = LUCIAN_N_VIGILANCE_PROCS;
     champ.effects_values[EffectValueId::LucianArdentBlazeMsFlat] = 0.;
@@ -39,21 +39,21 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         champ.e_cd = f32::max(0., champ.e_cd - 4.); //double basic attack reduce e_cd by 2sec for each hit
 
         //vigilance passive
-        let ap_dmg: f32 = if champ.effects_stacks[EffectStackId::LucianVigilanceProcsRemaning] != 0
-        {
-            champ.effects_stacks[EffectStackId::LucianVigilanceProcsRemaning] -= 1;
-            2. * (15. + 0.20 * champ.stats.ad())
-        } else {
-            0.
-        };
+        let magic_dmg: f32 =
+            if champ.effects_stacks[EffectStackId::LucianVigilanceProcsRemaning] != 0 {
+                champ.effects_stacks[EffectStackId::LucianVigilanceProcsRemaning] -= 1;
+                2. * (15. + 0.20 * champ.stats.ad())
+            } else {
+                0.
+            };
 
-        let ad_dmg: f32 = (1.
+        let phys_dmg: f32 = (1.
             + LUCIAN_LIGHTSLINGER_BASIC_ATTACKS_AD_RATIO_BY_LVL[usize::from(champ.lvl.get() - 1)])
             * champ.stats.ad()
             * champ.stats.crit_coef();
         champ.dmg_on_target(
             target_stats,
-            (ad_dmg, ap_dmg, 0.),
+            (phys_dmg, magic_dmg, 0.),
             (2, 2),
             DmgType::Other,
             true,
@@ -64,18 +64,18 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     }
 }
 
-const LUCIAN_Q_AD_DMG_BY_Q_LVL: [f32; 5] = [85., 115., 145., 175., 205.];
+const LUCIAN_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [85., 115., 145., 175., 205.];
 const LUCIAN_Q_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.60, 0.75, 0.90, 1.05, 1.20];
 fn lucian_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index spell ratios by lvl
-    let ad_dmg: f32 = LUCIAN_Q_AD_DMG_BY_Q_LVL[q_lvl_idx]
+    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
+    let phys_dmg: f32 = LUCIAN_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
         + LUCIAN_Q_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx] * champ.stats.bonus_ad;
 
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
 
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -106,10 +106,10 @@ const LUCIAN_ARDENT_BLAZE_MS: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-const LUCIAN_W_AP_DMG_BY_W_LVL: [f32; 5] = [75., 110., 145., 180., 215.];
+const LUCIAN_W_MAGIC_DMG_BY_W_LVL: [f32; 5] = [75., 110., 145., 180., 215.];
 fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index spell ratios by lvl
-    let ap_dmg: f32 = LUCIAN_W_AP_DMG_BY_W_LVL[w_lvl_idx] + 0.9 * champ.stats.ap();
+    let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
+    let magic_dmg: f32 = LUCIAN_W_MAGIC_DMG_BY_W_LVL[w_lvl_idx] + 0.9 * champ.stats.ap();
 
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
 
@@ -118,7 +118,7 @@ fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (0., ap_dmg, 0.),
+        (0., magic_dmg, 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -132,19 +132,21 @@ fn lucian_e(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     0.
 }
 
-const LUCIAN_R_AD_DMG_BY_R_LVL: [f32; 3] = [15., 30., 45.]; //dmg on champions
+const LUCIAN_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [15., 30., 45.]; //dmg on champions
 fn lucian_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index spell ratios by lvl
+    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     let n_hits: f32 = LUCIAN_R_HIT_PERCENT * (22. + champ.stats.crit_chance / 0.04);
-    let ad_dmg: f32 = n_hits
-        * (LUCIAN_R_AD_DMG_BY_R_LVL[r_lvl_idx] + 0.25 * champ.stats.ad() + 0.15 * champ.stats.ap());
+    let phys_dmg: f32 = n_hits
+        * (LUCIAN_R_PHYS_DMG_BY_R_LVL[r_lvl_idx]
+            + 0.25 * champ.stats.ad()
+            + 0.15 * champ.stats.ap());
 
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
 
     let r_dmg: f32 = champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (n_hits as u8, 1),
         DmgType::Ultimate,
         false,
@@ -343,7 +345,7 @@ impl Unit {
             base_ad: 60.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 28.,
             mr: 30.,
             base_as: LUCIAN_BASE_AS,
@@ -366,6 +368,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -377,7 +380,7 @@ impl Unit {
             base_ad: 2.9,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 4.2,
             mr: 1.3,
             base_as: 0.,
@@ -400,28 +403,29 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
-        init_abilities: Some(lucian_init_spells),
+        init_abilities: Some(lucian_init_abilities),
         basic_attack: lucian_basic_attack,
         q: BasicAbility {
             cast: lucian_q,
             cast_time: 0.33, //average between 0.4 and 0,25
-            base_cooldown_by_ability_lvl: [9., 8., 7., 6., 5., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [9., 8., 7., 6., 5., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         w: BasicAbility {
             cast: lucian_w,
             cast_time: 0.25,
-            base_cooldown_by_ability_lvl: [14., 13., 12., 11., 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [14., 13., 12., 11., 10., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         e: BasicAbility {
             cast: lucian_e,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [19., 17.75, 16.5, 15.25, 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [19., 17.75, 16.5, 15.25, 14., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         r: UltimateAbility {
             cast: lucian_r,

@@ -9,10 +9,10 @@ use enumset::{enum_set, EnumSet};
 // This is the file containing every items stats + effects
 
 //items parameters:
-/// Average number of targets affected by the unmake passive.
-const ABYSSAL_MASK_UNMAKE_AVG_TARGETS_IN_RANGE: f32 = 1.;
 /// Percentage of dmg that is done in the passive range and profit from mr reduction.
 const ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE: f32 = 0.80;
+/// Percentage of abilities that benefits from the increased dmg modifier.
+const HORIZON_FOCUS_HYPERSHOT_ABILITIES_TRIGGER_PERCENT: f32 = 0.60;
 ///x*x, where x is the % of hp under which it crits.
 const SHADOWFLAME_CINDERBLOOM_COEF: f32 = 0.40 * 0.40;
 ///x*x, where x is the % of hp under which the passive activates.
@@ -25,13 +25,13 @@ const MALIGNANCE_HATEFOG_CURSE_TIME: f32 = 0.8;
 pub const RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS: f32 = 0.25;
 /// Number of targets hit by profane hydra cleave aoe on average
 const PROFANE_HYDRA_CLEAVE_AVG_TARGETS: f32 =
-    basic_attack_aoe_effect_avg_additionnal_targets!(PROFANE_HYDRA_CLEAVE_RANGE);
+    basic_attack_aoe_effect_avg_additionnal_targets!(PROFANE_HYDRA_CLEAVE_RADIUS);
 /// Number of targets hit by ravenous hydra cleave aoe on average
 const RAVENOUS_HYDRA_CLEAVE_AVG_TARGETS: f32 =
-    basic_attack_aoe_effect_avg_additionnal_targets!(RAVENOUS_HYDRA_CLEAVE_RANGE);
+    basic_attack_aoe_effect_avg_additionnal_targets!(RAVENOUS_HYDRA_CLEAVE_RADIUS);
 /// Number of targets hit by stridebreaker cleave aoe on average
 const STRIDEBREAKER_CLEAVE_AVG_TARGETS: f32 =
-    basic_attack_aoe_effect_avg_additionnal_targets!(STRIDEBREAKER_CLEAVE_RANGE);
+    basic_attack_aoe_effect_avg_additionnal_targets!(STRIDEBREAKER_CLEAVE_RADIUS);
 /// Number of targets hit by titanic hydra cleave aoe on average
 const TITANIC_HYDRA_CLEAVE_AVG_TARGETS: f32 = 0.5;
 /// % of mana considered during the activation of the shield (1. = 100%)
@@ -71,14 +71,14 @@ fn template_item_spellblade_on_basic_attack_hit(champ: &mut Unit, _target_stats:
     if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
     }
-    //if empowered (previous condition) but last spell cast from too long ago, reset spellblade
+    //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
     else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
         return (0., 0., 0.);
     }
-    //if empowered and last spell cast is recent enough (previous condition), reset and trigger spellblade
+    //if empowered and last ability cast is recent enough (previous condition), reset and trigger spellblade
     champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
     champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
     (
@@ -136,7 +136,7 @@ pub const TEMPLATE_ITEM: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -159,24 +159,24 @@ pub const TEMPLATE_ITEM: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
-        physical_dmg_modifier: 0.,
+        ability_dmg_modifier: 0.,
+        phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 */
 
@@ -221,7 +221,7 @@ pub const NULL_ITEM: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -244,24 +244,24 @@ pub const NULL_ITEM: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //todo: support items?
@@ -269,15 +269,15 @@ pub const NULL_ITEM: Item = Item {
 //Abyssal mask
 fn abyssal_mask_init(champ: &mut Unit) {
     //unmake passive
-    champ.stats.mr += ABYSSAL_MASK_UNMAKE_AVG_TARGETS_IN_RANGE * 10.;
     champ.stats.mr_red_percent += ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE * 0.30;
+    //todo: check stat stacking
 }
 
 pub const ABYSSAL_MASK: Item = Item {
     id: ItemId::AbyssalMask,
     full_name: "Abyssal_mask",
     short_name: "Abyssal_mask",
-    cost: 2500.,
+    cost: 2650.,
     item_groups: enum_set!(ItemGroups::Blight),
     utils: enum_set!(),
     stats: UnitStats {
@@ -286,12 +286,12 @@ pub const ABYSSAL_MASK: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
-        mr: 50.,
+        mr: 45.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 10.,
+        ability_haste: 15.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -309,24 +309,24 @@ pub const ABYSSAL_MASK: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(abyssal_mask_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(abyssal_mask_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Archangel staff not implemented (Seraph's embrace takes its place)
@@ -347,12 +347,12 @@ pub const AXIOM_ARC: Item = Item {
         base_ad: 0.,
         bonus_ad: 55.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 25.,
+        ability_haste: 20.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -370,24 +370,24 @@ pub const AXIOM_ARC: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Banshee's veil
@@ -395,7 +395,7 @@ pub const BANSHEES_VEIL: Item = Item {
     id: ItemId::BansheesVeil,
     full_name: "Banshees_veil",
     short_name: "Banshees",
-    cost: 3100.,
+    cost: 3000.,
     item_groups: enum_set!(ItemGroups::Annul),
     utils: enum_set!(ItemUtils::Survivability), //annul spellshield
     stats: UnitStats {
@@ -403,10 +403,10 @@ pub const BANSHEES_VEIL: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 120.,
-        ap_coef: 0.,
+        ap_flat: 105.,
+        ap_percent: 0.,
         armor: 0.,
-        mr: 50.,
+        mr: 40.,
         base_as: 0.,
         bonus_as: 0.,
         ability_haste: 0.,
@@ -427,24 +427,24 @@ pub const BANSHEES_VEIL: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Black cleaver
@@ -500,7 +500,7 @@ const BLACK_CLEAVER_FERVOR: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn black_cleaver_on_ad_hit(champ: &mut Unit) {
+fn black_cleaver_on_phys_hit(champ: &mut Unit) {
     champ.add_temporary_effect(&BLACK_CLEAVER_CARVE, champ.stats.item_haste);
     champ.add_temporary_effect(&BLACK_CLEAVER_FERVOR, champ.stats.item_haste);
 }
@@ -516,9 +516,9 @@ pub const BLACK_CLEAVER: Item = Item {
         hp: 400.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 55.,
+        bonus_ad: 40.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -541,24 +541,24 @@ pub const BLACK_CLEAVER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(black_cleaver_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(black_cleaver_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: Some(black_cleaver_on_phys_hit),
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: Some(black_cleaver_on_ad_hit),
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Blackfire torch
@@ -577,11 +577,11 @@ fn blackfire_torch_baleful_blaze(
         BLACKFIRE_TORCH_BALEFUL_BLAZE_DOT_DURATION,
         champ.time
             - champ.effects_values[EffectValueId::BlackfireTorchBalefulBlazeLastApplicationTime],
-    ); //account for DoT overlap with the previous spell hit
+    ); //account for DoT overlap with the previous ability hit
     champ.effects_values[EffectValueId::BlackfireTorchBalefulBlazeLastApplicationTime] = champ.time;
     (
         0.,
-        n_targets * dot_time * (7.5 + 0.015 * champ.stats.ap()) * (1. / 0.5),
+        n_targets * dot_time * (10. + 0.01 * champ.stats.ap()) * (1. / 0.5),
         0.,
     )
 }
@@ -598,13 +598,13 @@ pub const BLACKFIRE_TORCH: Item = Item {
         mana: 600.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 90.,
-        ap_coef: 0.04, //assumes 1 ennemy is affected by passive
+        ap_flat: 80.,
+        ap_percent: 0.04, //assumes 1 ennemy is affected by passive
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 25.,
+        ability_haste: 20.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -622,34 +622,30 @@ pub const BLACKFIRE_TORCH: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(blackfire_torch_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(blackfire_torch_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: Some(blackfire_torch_baleful_blaze),
-    on_ultimate_spell_hit: Some(blackfire_torch_baleful_blaze),
+    on_ability_hit: Some(blackfire_torch_baleful_blaze),
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Blade of the ruined king
 fn blade_of_the_ruined_king_mists_edge(_champion: &mut Unit, target_stats: &UnitStats) -> RawDmg {
-    //when the champion attacks, target HP decreases, hence mists edge dmg also decreases over time
-    //since we do not keep track of the target current HP, we need to find an average hp percent value to work with
-    //this value depends on a number of factors (target resistances and champ basic attack damages, ...)
-    //based on some analysis and by taking the worst case scenario (to ensure the item is good when the optimizer picks it)
-    //average mists edge dmg would be roughly equivalent as if the target had constantly 40% hp
-    (0.40 * 0.06 * target_stats.hp, 0., 0.) //value for ranged champions
+    //assuming the pdf for ennemy hp % is f(x)=x on ]0, 1], the mean hp % is 66.667%
+    (2. / 3. * 0.06 * target_stats.hp, 0., 0.) //value for ranged champions
 }
 
 pub const BLADE_OF_THE_RUINED_KING: Item = Item {
@@ -663,9 +659,9 @@ pub const BLADE_OF_THE_RUINED_KING: Item = Item {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 50.,
+        bonus_ad: 40.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -688,24 +684,24 @@ pub const BLADE_OF_THE_RUINED_KING: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.10,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(blade_of_the_ruined_king_mists_edge),
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Bloodthirster
@@ -748,7 +744,7 @@ pub const BLOODTHIRSTER: Item = Item {
         base_ad: 0.,
         bonus_ad: 80.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -771,24 +767,24 @@ pub const BLOODTHIRSTER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.15,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(bloodthirster_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(bloodthirster_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Chempunk chainsword
@@ -796,16 +792,16 @@ pub const CHEMPUNK_CHAINSWORD: Item = Item {
     id: ItemId::ChempunkChainsword,
     full_name: "Chempunk_chainsword",
     short_name: "Chempunk_chainsword",
-    cost: 2800.,
+    cost: 3100.,
     item_groups: enum_set!(),
     utils: enum_set!(ItemUtils::AntiHealShield),
     stats: UnitStats {
-        hp: 250.,
+        hp: 450.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 55.,
+        bonus_ad: 45.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -828,24 +824,24 @@ pub const CHEMPUNK_CHAINSWORD: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Cosmic drive
@@ -853,31 +849,9 @@ fn cosmic_drive_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::CosmicDriveSpellDanceMsFlat] = 0.;
 }
 
-const COSMIC_DRIVE_SPELLDANCE_MS_FLAT_BY_LVL: [f32; MAX_UNIT_LVL] = [
-    40., //lvl 1
-    40., //lvl 2
-    40., //lvl 3
-    40., //lvl 4
-    40., //lvl 5
-    40., //lvl 6
-    40., //lvl 7
-    40., //lvl 8
-    42., //lvl 9
-    44., //lvl 10
-    46., //lvl 11
-    48., //lvl 12
-    50., //lvl 13
-    52., //lvl 14
-    54., //lvl 15
-    56., //lvl 16
-    58., //lvl 17
-    60., //lvl 18
-];
-
 fn cosmic_drive_spelldance_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::CosmicDriveSpellDanceMsFlat] == 0. {
-        let flat_ms_buff: f32 =
-            COSMIC_DRIVE_SPELLDANCE_MS_FLAT_BY_LVL[usize::from(champ.lvl.get() - 1)];
+        let flat_ms_buff: f32 = 20.;
         champ.stats.ms_flat += flat_ms_buff;
         champ.effects_values[EffectValueId::CosmicDriveSpellDanceMsFlat] = flat_ms_buff;
     }
@@ -892,17 +866,12 @@ const COSMIC_DRIVE_SPELLDANCE: TemporaryEffect = TemporaryEffect {
     id: EffectId::CosmicDriveSpellDance,
     add_stack: cosmic_drive_spelldance_enable,
     remove_every_stack: cosmic_drive_spelldance_disable,
-    duration: 2.,
+    duration: 4.,
     cooldown: 0.,
 };
 
-fn cosmic_drive_spelldance_on_spell_hit(
-    champ: &mut Unit,
-    _target_stats: &UnitStats,
-    _n_targets: f32,
-) -> RawDmg {
+fn cosmic_drive_spelldance_on_magic_or_true_dmg_hit(champ: &mut Unit) {
     champ.add_temporary_effect(&COSMIC_DRIVE_SPELLDANCE, champ.stats.item_haste);
-    (0., 0., 0.)
 }
 
 pub const COSMIC_DRIVE: Item = Item {
@@ -917,8 +886,8 @@ pub const COSMIC_DRIVE: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 80.,
-        ap_coef: 0.,
+        ap_flat: 70.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -930,7 +899,7 @@ pub const COSMIC_DRIVE: Item = Item {
         crit_chance: 0.,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.05,
+        ms_percent: 0.04,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
@@ -941,24 +910,24 @@ pub const COSMIC_DRIVE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(cosmic_drive_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(cosmic_drive_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: Some(cosmic_drive_spelldance_on_spell_hit),
-    on_ultimate_spell_hit: Some(cosmic_drive_spelldance_on_spell_hit),
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: Some(cosmic_drive_spelldance_on_magic_or_true_dmg_hit), //todo: test passive
+    on_true_dmg_hit: Some(cosmic_drive_spelldance_on_magic_or_true_dmg_hit),
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Cryptbloom
@@ -974,8 +943,8 @@ pub const CRYPTBLOOM: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 70.,
-        ap_coef: 0.,
+        ap_flat: 60.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -998,24 +967,24 @@ pub const CRYPTBLOOM: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Dawncore (useless?) (need to add mana regen & heals_shields power (with Unit::heal_shield_on_ally fn?))
@@ -1054,13 +1023,13 @@ pub const DEAD_MANS_PLATE: Item = Item {
     item_groups: enum_set!(ItemGroups::Momentum),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 300.,
+        hp: 350.,
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
-        armor: 45.,
+        ap_percent: 0.,
+        armor: 55.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
@@ -1071,7 +1040,7 @@ pub const DEAD_MANS_PLATE: Item = Item {
         crit_chance: 0.,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.05,
+        ms_percent: 0.04,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
@@ -1082,24 +1051,24 @@ pub const DEAD_MANS_PLATE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(dead_mans_plate_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(dead_mans_plate_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(dead_mans_plate_shipwrecker),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Death's dance
@@ -1107,7 +1076,7 @@ pub const DEATHS_DANCE: Item = Item {
     id: ItemId::DeathsDance,
     full_name: "Deaths_dance",
     short_name: "Deaths_dance",
-    cost: 3200.,
+    cost: 3300.,
     item_groups: enum_set!(),
     utils: enum_set!(), //ignore pain passive not big enough utility
     stats: UnitStats {
@@ -1116,7 +1085,7 @@ pub const DEATHS_DANCE: Item = Item {
         base_ad: 0.,
         bonus_ad: 60.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 50.,
         mr: 0.,
         base_as: 0.,
@@ -1139,24 +1108,24 @@ pub const DEATHS_DANCE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Echoes of helia (useless?) (need to add Unit::heal_shield_on_ally fct & on_shield attributes to items)
@@ -1209,16 +1178,16 @@ pub const ECLIPSE: Item = Item {
     id: ItemId::Eclipse,
     full_name: "Eclipse",
     short_name: "Eclipse",
-    cost: 2800.,
+    cost: 2900.,
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 70.,
+        bonus_ad: 60.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -1241,24 +1210,24 @@ pub const ECLIPSE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(eclipse_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(eclipse_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: Some(eclipse_ever_rising_moon),
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Edge of night
@@ -1266,7 +1235,7 @@ pub const EDGE_OF_NIGHT: Item = Item {
     id: ItemId::EdgeOfNight,
     full_name: "Edge_of_night",
     short_name: "Edge_of_night",
-    cost: 2800.,
+    cost: 3000.,
     item_groups: enum_set!(ItemGroups::Annul),
     utils: enum_set!(ItemUtils::Survivability), //annul spellshield
     stats: UnitStats {
@@ -1275,7 +1244,7 @@ pub const EDGE_OF_NIGHT: Item = Item {
         base_ad: 0.,
         bonus_ad: 50.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -1298,24 +1267,24 @@ pub const EDGE_OF_NIGHT: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Essence reaver
@@ -1323,21 +1292,21 @@ pub const ESSENCE_REAVER: Item = Item {
     id: ItemId::EssenceReaver,
     full_name: "Essence_reaver",
     short_name: "ER",
-    cost: 3100.,
+    cost: 3150.,
     item_groups: enum_set!(),
     utils: enum_set!(ItemUtils::Special), //essence drain passive mana refund
     stats: UnitStats {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 70.,
+        bonus_ad: 65.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 25.,
+        ability_haste: 20.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -1355,24 +1324,24 @@ pub const ESSENCE_REAVER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Experimental hexplate
@@ -1422,16 +1391,16 @@ pub const EXPERIMENTAL_HEXPLATE: Item = Item {
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 300.,
+        hp: 450.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 55.,
+        bonus_ad: 40.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
-        bonus_as: 0.25,
+        bonus_as: 0.20,
         ability_haste: 0.,
         basic_haste: 0.,
         ultimate_haste: 30., //hexcharged passive
@@ -1450,24 +1419,24 @@ pub const EXPERIMENTAL_HEXPLATE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(experimental_hexplate_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(experimental_hexplate_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: Some(experimental_hexplate_overdrive_on_r_cast),
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Fimbulwinter (useless?)
@@ -1481,15 +1450,15 @@ pub const FROZEN_HEART: Item = Item {
     short_name: "Frozen_heart",
     cost: 2500.,
     item_groups: enum_set!(),
-    utils: enum_set!(), //rock solid dmg mitigation passive not big enough
+    utils: enum_set!(), //winter's caress passive not big enough
     stats: UnitStats {
         hp: 0.,
         mana: 400.,
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
-        armor: 65.,
+        ap_percent: 0.,
+        armor: 75.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
@@ -1511,24 +1480,24 @@ pub const FROZEN_HEART: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Guardian angel
@@ -1545,7 +1514,7 @@ pub const GUARDIAN_ANGEL: Item = Item {
         base_ad: 0.,
         bonus_ad: 55.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 45.,
         mr: 0.,
         base_as: 0.,
@@ -1568,24 +1537,24 @@ pub const GUARDIAN_ANGEL: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Guinsoo's rageblade
@@ -1659,9 +1628,9 @@ pub const GUINSOOS_RAGEBLADE: Item = Item {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 35.,
-        ap_flat: 35.,
-        ap_coef: 0.,
+        bonus_ad: 30.,
+        ap_flat: 30.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -1684,24 +1653,24 @@ pub const GUINSOOS_RAGEBLADE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(guinsoos_rageblade_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(guinsoos_rageblade_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(guinsoos_rageblade_wrath),
     on_basic_attack_hit_dynamic: Some(guinsoos_rageblade_seething_strike_on_basic_attack_hit),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Heartsteel (useless?)
@@ -1711,10 +1680,10 @@ fn hextech_rocketbelt_supersonic(champ: &mut Unit, target_stats: &UnitStats) -> 
     let availability_coef: f32 =
         effect_availability_formula(40. * haste_formula(champ.stats.item_haste));
     champ.sim_results.units_travelled += availability_coef * 275.; //maximum dash distance
-    let ap_dmg: f32 = availability_coef * (100. + 0.1 * champ.stats.ap());
+    let magic_dmg: f32 = availability_coef * (100. + 0.1 * champ.stats.ap());
     champ.dmg_on_target(
         target_stats,
-        (0., ap_dmg, 0.),
+        (0., magic_dmg, 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -1730,12 +1699,12 @@ pub const HEXTECH_ROCKETBELT: Item = Item {
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 400.,
+        hp: 350.,
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 70.,
-        ap_coef: 0.,
+        ap_flat: 60.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -1758,33 +1727,29 @@ pub const HEXTECH_ROCKETBELT: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: Some(hextech_rocketbelt_supersonic),
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: Some(hextech_rocketbelt_supersonic),
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Hollow radiance (useless?)
 
-//Horizon focus, hypershot passive is implemented as a spell coef
-fn horizon_focus_hypershot_spell_coef(_champ: &mut Unit) -> f32 {
-    0.05 //less than the real value since we don't know if the spell hits at a far enough distance
-}
-
+//Horizon focus
 pub const HORIZON_FOCUS: Item = Item {
     id: ItemId::HorizonFocus,
     full_name: "Horizon_focus",
@@ -1797,13 +1762,13 @@ pub const HORIZON_FOCUS: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 90.,
-        ap_coef: 0.,
+        ap_flat: 75.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 20.,
+        ability_haste: 25.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -1821,24 +1786,24 @@ pub const HORIZON_FOCUS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: HORIZON_FOCUS_HYPERSHOT_ABILITIES_TRIGGER_PERCENT * 0.10, //hypershot passive is treated as an ability dmg modifier because most basick attacks won't trigger it, less than the real value since we don't know if the ability hits at a far enough distance //todo: test value stacking with shojin
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: Some(horizon_focus_hypershot_spell_coef),
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Hubris, ego passive not implemented (too situationnal)
@@ -1855,12 +1820,12 @@ pub const HUBRIS: Item = Item {
         base_ad: 0.,
         bonus_ad: 60.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 15.,
+        ability_haste: 10.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -1878,24 +1843,24 @@ pub const HUBRIS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Hullbreaker, doesn't take into account skipper bonus dmg on structures
@@ -1923,7 +1888,7 @@ fn hullbreaker_skipper(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     }
     //if fully stacked, (previous conditions) reset stacks and return skipper dmg
     champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] = 0;
-    (0.7 * champ.stats.base_ad + 0.035 * champ.stats.hp, 0., 0.) //value for ranged champions
+    (0.84 * champ.stats.base_ad + 0.035 * champ.stats.hp, 0., 0.) //value for ranged champions
 }
 
 pub const HULLBREAKER: Item = Item {
@@ -1932,14 +1897,14 @@ pub const HULLBREAKER: Item = Item {
     short_name: "Hullbreaker",
     cost: 3000.,
     item_groups: enum_set!(),
-    utils: enum_set!(),
+    utils: enum_set!(), //boarding party passive kinda wathever for ADCs?
     stats: UnitStats {
-        hp: 350.,
+        hp: 500.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 65.,
+        bonus_ad: 40.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -1951,7 +1916,7 @@ pub const HULLBREAKER: Item = Item {
         crit_chance: 0.,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.05,
+        ms_percent: 0.04,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
@@ -1962,24 +1927,24 @@ pub const HULLBREAKER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(hullbreaker_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(hullbreaker_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(hullbreaker_skipper),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Iceborn gauntlet
@@ -1992,24 +1957,24 @@ fn iceborn_gauntlet_spellblade_on_basic_attack_hit(
     if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
     }
-    //if empowered (previous condition) but last spell cast from too long ago, reset spellblade
+    //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
     else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
         return (0., 0., 0.);
     }
-    //if empowered and last spell cast is recent enough (previous condition), reset and trigger spellblade
+    //if empowered and last ability cast is recent enough (previous condition), reset and trigger spellblade
     champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
     champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
-    (champ.stats.base_ad, 0., 0.)
+    (1.5 * champ.stats.base_ad, 0., 0.)
 }
 
 pub const ICEBORN_GAUNTLET: Item = Item {
     id: ItemId::IcebornGauntlet,
     full_name: "Iceborn_gauntlet",
     short_name: "Iceborn_gauntlet",
-    cost: 2600.,
+    cost: 2900.,
     item_groups: enum_set!(ItemGroups::Spellblade),
     utils: enum_set!(),
     stats: UnitStats {
@@ -2018,7 +1983,7 @@ pub const ICEBORN_GAUNTLET: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 50.,
         mr: 0.,
         base_as: 0.,
@@ -2041,24 +2006,24 @@ pub const ICEBORN_GAUNTLET: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(spellblade_init),
-    active: None,
-    on_basic_spell_cast: Some(spellblade_on_spell_cast),
-    on_ultimate_cast: Some(spellblade_on_spell_cast),
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    init: Some(spellblade_init),
+    special_active: None,
+    on_ability_cast: Some(spellblade_on_spell_cast),
+    on_ultimate_cast: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(iceborn_gauntlet_spellblade_on_basic_attack_hit),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Immortal shieldbow
@@ -2104,7 +2069,7 @@ pub const IMMORTAL_SHIELDBOW: Item = Item {
         base_ad: 0.,
         bonus_ad: 55.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -2127,24 +2092,24 @@ pub const IMMORTAL_SHIELDBOW: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(immortal_shieldbow_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(immortal_shieldbow_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Imperial mandate (useless?)
@@ -2154,16 +2119,16 @@ pub const INFINITY_EDGE: Item = Item {
     id: ItemId::InfinityEdge,
     full_name: "Infinity_edge",
     short_name: "IE",
-    cost: 3400.,
+    cost: 3600.,
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 80.,
+        bonus_ad: 70.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -2186,24 +2151,24 @@ pub const INFINITY_EDGE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Jak'sho, voidborn resilience passive not implemented since i find it takes too much time to kick in for a dps
@@ -2215,14 +2180,14 @@ pub const JAKSHO: Item = Item {
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 300.,
+        hp: 350.,
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
-        armor: 50.,
-        mr: 50.,
+        ap_percent: 0.,
+        armor: 45.,
+        mr: 45.,
         base_as: 0.,
         bonus_as: 0.,
         ability_haste: 0.,
@@ -2243,30 +2208,30 @@ pub const JAKSHO: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Kaenic Rookern
 fn kaenic_rookern_init(champ: &mut Unit) {
     //magebane passive
-    champ.sim_results.heals_shields += 0.18 * (champ.lvl_stats.hp + champ.items_stats.hp);
+    champ.sim_results.heals_shields += 0.15 * (champ.lvl_stats.hp + champ.items_stats.hp);
 }
 
 pub const KAENIC_ROOKERN: Item = Item {
@@ -2277,13 +2242,13 @@ pub const KAENIC_ROOKERN: Item = Item {
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
-        //todo: missing 150% base hp regeneration stat
+        //todo: missing base hp regeneration stat
         hp: 400.,
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 80.,
         base_as: 0.,
@@ -2306,24 +2271,24 @@ pub const KAENIC_ROOKERN: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(kaenic_rookern_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(kaenic_rookern_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Knight's vow (useles?)
@@ -2336,25 +2301,25 @@ fn kraken_slayer_init(champ: &mut Unit) {
         -(KRAKEN_SLAYER_BRING_IT_DOWN_DELAY + F32_TOL); //to allow for effect at time == 0
 }
 
-const KRAKEN_SLAYER_BRING_IT_DOWN_AD_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
-    140., //lvl 1
-    140., //lvl 2
-    140., //lvl 3
-    140., //lvl 4
-    140., //lvl 5
-    140., //lvl 6
-    140., //lvl 7
-    140., //lvl 8
-    157., //lvl 9
-    174., //lvl 10
-    191., //lvl 11
-    208., //lvl 12
-    225., //lvl 13
-    242., //lvl 14
-    259., //lvl 15
-    276., //lvl 16
-    293., //lvl 17
-    310., //lvl 18
+const KRAKEN_SLAYER_BRING_IT_DOWN_PHYS_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
+    120., //lvl 1
+    120., //lvl 2
+    120., //lvl 3
+    120., //lvl 4
+    120., //lvl 5
+    120., //lvl 6
+    120., //lvl 7
+    120., //lvl 8
+    124., //lvl 9
+    128., //lvl 10
+    132., //lvl 11
+    136., //lvl 12
+    140., //lvl 13
+    144., //lvl 14
+    148., //lvl 15
+    152., //lvl 16
+    156., //lvl 17
+    160., //lvl 18
 ];
 fn kraken_slayer_bring_it_down(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     //if last hit from too long ago, reset stacks and add 1
@@ -2373,9 +2338,9 @@ fn kraken_slayer_bring_it_down(champ: &mut Unit, _target_stats: &UnitStats) -> R
     }
     //if fully stacked (previous conditions), reset stacks, update coef and return bring it down dmg
     champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] = 0;
-    let ad_dmg: f32 = (1. + 0.5 * KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT)
-        * KRAKEN_SLAYER_BRING_IT_DOWN_AD_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)];
-    (0.80 * ad_dmg, 0., 0.) //value for ranged champions
+    let phys_dmg: f32 = (1. + 0.5 * KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT)
+        * KRAKEN_SLAYER_BRING_IT_DOWN_PHYS_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)];
+    (0.80 * phys_dmg, 0., 0.) //value for ranged champions
 }
 
 pub const KRAKEN_SLAYER: Item = Item {
@@ -2389,9 +2354,9 @@ pub const KRAKEN_SLAYER: Item = Item {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 50.,
+        bonus_ad: 45.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -2403,7 +2368,7 @@ pub const KRAKEN_SLAYER: Item = Item {
         crit_chance: 0.,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.05,
+        ms_percent: 0.04,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
@@ -2414,36 +2379,35 @@ pub const KRAKEN_SLAYER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(kraken_slayer_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(kraken_slayer_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(kraken_slayer_bring_it_down),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //todo: check tot_dmg_coef passive + interaction with riftmaker
 //Lidandry's torment
-const LIANDRYS_TORMENT_TORMENT_DOT_DURATION: f32 = 3.;
-const LIANDRYS_TORMENT_SUFFERING_DELAY: f32 = 3.; //duration after which passive deactivates
+const LIANDRYS_TORMENT_TORMENT_DOT_DURATION: f32 = 3.; //todo: test if dot count as in combat
+const LIANDRYS_TORMENT_SUFFERING_OUTSIDE_COMBAT_TIME_VALUE: f32 = -1.; //special value to indicate that the unit is not in combat, MUST BE NEGATIVE to not interfere with an actual combat start time value
 fn liandrys_torment_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::LiandrysTormentTormentLastApplicationTime] =
         -(LIANDRYS_TORMENT_TORMENT_DOT_DURATION + F32_TOL); //to allow for effect at time == 0
-    champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime] = 0.;
-    champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime] =
-        -(LIANDRYS_TORMENT_SUFFERING_DELAY + F32_TOL); //to allow for effect at time == 0
+    champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime] =
+        LIANDRYS_TORMENT_SUFFERING_OUTSIDE_COMBAT_TIME_VALUE;
     champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = 0.;
 }
 
@@ -2451,7 +2415,7 @@ fn liandrys_torment_torment(champ: &mut Unit, target_stats: &UnitStats, n_target
     let dot_time: f32 = f32::min(
         LIANDRYS_TORMENT_TORMENT_DOT_DURATION,
         champ.time - champ.effects_values[EffectValueId::LiandrysTormentTormentLastApplicationTime],
-    ); //account for DoT overlap with the previous spell hit
+    ); //account for DoT overlap with the previous ability hit
     champ.effects_values[EffectValueId::LiandrysTormentTormentLastApplicationTime] = champ.time;
     (
         0.,
@@ -2460,20 +2424,17 @@ fn liandrys_torment_torment(champ: &mut Unit, target_stats: &UnitStats, n_target
     )
 }
 
-fn liandrys_torment_suffering(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
-    //if last hit from too long ago, reset combat
-    if champ.time - champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime]
-        >= LIANDRYS_TORMENT_SUFFERING_DELAY
+fn liandrys_torment_suffering_refresh(champ: &mut Unit, _availability_coef: f32) {
+    //test if it's the first refresh of the effect, reset combat start time if so
+    if champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime]
+        == LIANDRYS_TORMENT_SUFFERING_OUTSIDE_COMBAT_TIME_VALUE
     {
         champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime] = champ.time;
-        champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime] = champ.time;
-        champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
-            / (1. + champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier])
-            - 1.; //remove tot dmg multiplier, stacks multiplicatively
-        champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = 0.;
+        //todo: test if dmg modifier is applied instantly and adjust
+        return;
     }
-    //if last hit is recent enough (previous condition), update dmg modifier based on the last combat start time
-    champ.effects_values[EffectValueId::LiandrysTormentSufferingLastHitTime] = champ.time;
+
+    //if not the first refresh (previous condition), update tot dmg modifier
     champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
         / (1. + champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier])
         - 1.; //remove current tot dmg multiplier temporarly
@@ -2486,7 +2447,28 @@ fn liandrys_torment_suffering(champ: &mut Unit, _target_stats: &UnitStats) -> Ra
     ); //as of patch 14.06, using round is the correct way to get the value //todo: test passive
     champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = tot_dmg_modifier;
     champ.stats.tot_dmg_modifier += (1. + champ.stats.tot_dmg_modifier) * tot_dmg_modifier;
-    //add updated tot dmg multiplier, stacks multiplicatively
+    //add updated ability dmg multiplier
+}
+
+fn liandrys_torment_suffering_disable(champ: &mut Unit) {
+    champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime] =
+        LIANDRYS_TORMENT_SUFFERING_OUTSIDE_COMBAT_TIME_VALUE;
+    champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
+        / (1. + champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier])
+        - 1.; //remove tot dmg multiplier, stacks multiplicatively
+    champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = 0.;
+}
+
+const LIANDRYS_TORMENT_SUFFERING: TemporaryEffect = TemporaryEffect {
+    id: EffectId::LiandrysTormentSuffering,
+    add_stack: liandrys_torment_suffering_refresh,
+    remove_every_stack: liandrys_torment_suffering_disable,
+    duration: 3.,
+    cooldown: 0.,
+};
+
+fn liandrys_torment_suffering(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+    champ.add_temporary_effect(&LIANDRYS_TORMENT_SUFFERING, champ.stats.item_haste);
     (0., 0., 0.)
 }
 
@@ -2502,8 +2484,8 @@ pub const LIANDRYS_TORMENT: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 90.,
-        ap_coef: 0.,
+        ap_flat: 70.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -2526,24 +2508,24 @@ pub const LIANDRYS_TORMENT: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(liandrys_torment_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(liandrys_torment_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: Some(liandrys_torment_torment),
-    on_ultimate_spell_hit: Some(liandrys_torment_torment),
+    on_ability_hit: Some(liandrys_torment_torment),
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: Some(liandrys_torment_suffering),
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Lich bane
@@ -2568,7 +2550,7 @@ fn lich_bane_spellblade_on_basic_attack_hit(champ: &mut Unit, _target_stats: &Un
     if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
     }
-    //if empowered (previous condition) but last spell cast from too long ago, reset spellblade
+    //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
     else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
@@ -2576,18 +2558,18 @@ fn lich_bane_spellblade_on_basic_attack_hit(champ: &mut Unit, _target_stats: &Un
         champ.stats.bonus_as -= LICH_BANE_SPELLBLADE_BONUS_AS;
         return (0., 0., 0.);
     }
-    //if empowered and last spell cast is recent enough (previous condition), reset and trigger spellblade
+    //if empowered and last ability cast is recent enough (previous condition), reset and trigger spellblade
     champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
     champ.stats.bonus_as -= LICH_BANE_SPELLBLADE_BONUS_AS;
     champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
-    (0., 0.75 * champ.stats.base_ad + 0.45 * champ.stats.ap(), 0.)
+    (0., 0.75 * champ.stats.base_ad + 0.4 * champ.stats.ap(), 0.)
 }
 
 pub const LICH_BANE: Item = Item {
     id: ItemId::LichBane,
     full_name: "Lich_bane",
     short_name: "Lich_bane",
-    cost: 3100.,
+    cost: 3200.,
     item_groups: enum_set!(ItemGroups::Spellblade),
     utils: enum_set!(),
     stats: UnitStats {
@@ -2595,20 +2577,20 @@ pub const LICH_BANE: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 100.,
-        ap_coef: 0.,
+        ap_flat: 115.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 15.,
+        ability_haste: 10.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
         crit_chance: 0.,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.08,
+        ms_percent: 0.04,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
@@ -2619,24 +2601,24 @@ pub const LICH_BANE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(spellblade_init),
-    active: None,
-    on_basic_spell_cast: Some(lich_bane_spellblade_on_spell_cast),
-    on_ultimate_cast: Some(lich_bane_spellblade_on_spell_cast),
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    init: Some(spellblade_init),
+    special_active: None,
+    on_ability_cast: Some(lich_bane_spellblade_on_spell_cast),
+    on_ultimate_cast: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(lich_bane_spellblade_on_basic_attack_hit),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Locket of the iron solari (useless?)
@@ -2653,9 +2635,9 @@ pub const LORD_DOMINIKS_REGARDS: Item = Item {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 45.,
+        bonus_ad: 35.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -2678,24 +2660,24 @@ pub const LORD_DOMINIKS_REGARDS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Luden's companion
@@ -2739,12 +2721,12 @@ pub const LUDENS_COMPANION: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 100.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 20.,
+        ability_haste: 10.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -2762,24 +2744,24 @@ pub const LUDENS_COMPANION: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(ludens_companion_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(ludens_companion_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: Some(ludens_companion_fire),
-    on_ultimate_spell_hit: Some(ludens_companion_fire),
+    on_ability_hit: Some(ludens_companion_fire),
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Malignance
@@ -2834,13 +2816,13 @@ pub const MALIGNANCE: Item = Item {
         mana: 600.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 80.,
-        ap_coef: 0.,
+        ap_flat: 85.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 25.,
+        ability_haste: 15.,
         basic_haste: 0.,
         ultimate_haste: 20.,
         item_haste: 0.,
@@ -2858,33 +2840,33 @@ pub const MALIGNANCE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(malignance_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(malignance_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: Some(malignance_hatefog),
+    on_ability_hit: None,
+    on_ultimate_hit: Some(malignance_hatefog),
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Manamune not implemented (Muramana takes its place)
 
 //Maw of malmortius
 fn maw_of_malmortius_init(champ: &mut Unit) {
-    //lifeline passive
+    //lifeline passive (omnivamp not implemented)
     champ.sim_results.heals_shields += (150.
-        + 1.6875 * (champ.lvl_stats.bonus_ad + champ.items_stats.bonus_ad))
+        + 1.125 * (champ.lvl_stats.bonus_ad + champ.items_stats.bonus_ad))
         * effect_availability_formula(
             90. * haste_formula(champ.lvl_stats.item_haste + champ.items_stats.item_haste),
         );
@@ -2902,9 +2884,9 @@ pub const MAW_OF_MALMORTIUS: Item = Item {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 70.,
+        bonus_ad: 60.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 40.,
         base_as: 0.,
@@ -2927,24 +2909,24 @@ pub const MAW_OF_MALMORTIUS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(maw_of_malmortius_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(maw_of_malmortius_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Mejai's soulstealer not implemented (too situationnal)
@@ -2954,7 +2936,7 @@ pub const MERCURIAL_SCIMITAR: Item = Item {
     id: ItemId::MercurialScimitar,
     full_name: "Mercurial_scimitar",
     short_name: "Mercurial",
-    cost: 3300.,
+    cost: 3200.,
     item_groups: enum_set!(ItemGroups::Quicksilver),
     utils: enum_set!(ItemUtils::Survivability),
     stats: UnitStats {
@@ -2963,9 +2945,9 @@ pub const MERCURIAL_SCIMITAR: Item = Item {
         base_ad: 0.,
         bonus_ad: 40.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
-        mr: 50.,
+        mr: 40.,
         base_as: 0.,
         bonus_as: 0.,
         ability_haste: 0.,
@@ -2986,24 +2968,24 @@ pub const MERCURIAL_SCIMITAR: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.10,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Mikael's blessing (useless?)
@@ -3015,16 +2997,16 @@ pub const MORELLONOMICON: Item = Item {
     id: ItemId::Morellonomicon,
     full_name: "Morellonomicon",
     short_name: "Morello",
-    cost: 2200.,
+    cost: 2950.,
     item_groups: enum_set!(),
     utils: enum_set!(ItemUtils::AntiHealShield),
     stats: UnitStats {
-        hp: 0.,
+        hp: 350.,
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 90.,
-        ap_coef: 0.,
+        ap_flat: 75.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -3047,24 +3029,24 @@ pub const MORELLONOMICON: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Mortal reminder
@@ -3072,7 +3054,7 @@ pub const MORTAL_REMINDER: Item = Item {
     id: ItemId::MortalReminder,
     full_name: "Mortal_reminder",
     short_name: "Mortal_reminder",
-    cost: 3000.,
+    cost: 3200.,
     item_groups: enum_set!(ItemGroups::Fatality),
     utils: enum_set!(ItemUtils::AntiHealShield),
     stats: UnitStats {
@@ -3081,7 +3063,7 @@ pub const MORTAL_REMINDER: Item = Item {
         base_ad: 0.,
         bonus_ad: 35.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -3095,7 +3077,7 @@ pub const MORTAL_REMINDER: Item = Item {
         ms_flat: 0.,
         ms_percent: 0.,
         lethality: 0.,
-        armor_pen_percent: 0.35,
+        armor_pen_percent: 0.30,
         magic_pen_flat: 0.,
         magic_pen_percent: 0.,
         armor_red_flat: 0.,
@@ -3104,33 +3086,33 @@ pub const MORTAL_REMINDER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Muramana
-//todo: test shock on hit vs on spell behavior after on action fn changes
+//todo: test shock on hit vs on ability behavior after on action fn changes
 fn muramana_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] = -F32_TOL; //to allow for effect at time == 0
 
     //awe passive
-    champ.stats.bonus_ad += 0.025 * (champ.lvl_stats.mana + champ.items_stats.mana);
+    champ.stats.bonus_ad += 0.02 * (champ.lvl_stats.mana + champ.items_stats.mana);
 }
 
 fn muramana_shock_on_spell_hit(
@@ -3138,13 +3120,9 @@ fn muramana_shock_on_spell_hit(
     _target_stats: &UnitStats,
     n_targets: f32,
 ) -> RawDmg {
-    //set shock last spell hit, to prevent potential on basic attack hit effects triggered by this ability to apply shock twice
+    //set shock last ability hit, to prevent potential on basic attack hit effects triggered by this ability to apply shock twice
     champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] = champ.time;
-    (
-        n_targets * (0.027 * champ.stats.mana + 0.06 * champ.stats.ad()),
-        0.,
-        0.,
-    ) //value for ranged champions
+    (n_targets * 0.03 * champ.stats.mana, 0., 0.) //value for ranged champions
 }
 
 fn muramana_shock_on_basic_attack_hit(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
@@ -3153,8 +3131,8 @@ fn muramana_shock_on_basic_attack_hit(champ: &mut Unit, _target_stats: &UnitStat
     if champ.time == champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] {
         return (0., 0., 0.);
     }
-    //if not the same instance, return dmg (no need to update shock last spell hit time since spells effects are called first)
-    (0.015 * champ.stats.mana, 0., 0.)
+    //if not the same instance, return dmg (no need to update shock last ability hit time since ability effects are called first)
+    (0.012 * champ.stats.mana, 0., 0.)
 }
 
 pub const MURAMANA: Item = Item {
@@ -3170,7 +3148,7 @@ pub const MURAMANA: Item = Item {
         base_ad: 0.,
         bonus_ad: 35.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -3193,29 +3171,29 @@ pub const MURAMANA: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(muramana_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(muramana_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: Some(muramana_shock_on_spell_hit),
-    on_ultimate_spell_hit: Some(muramana_shock_on_spell_hit),
+    on_ability_hit: Some(muramana_shock_on_spell_hit),
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(muramana_shock_on_basic_attack_hit),
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Nashor's tooth
 fn nashors_tooth_icathian_bite(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
-    (0., 15. + 0.2 * champ.stats.ap(), 0.)
+    (0., 15. + 0.15 * champ.stats.ap(), 0.)
 }
 
 pub const NASHORS_TOOTH: Item = Item {
@@ -3230,8 +3208,8 @@ pub const NASHORS_TOOTH: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 90.,
-        ap_coef: 0.,
+        ap_flat: 80.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -3254,24 +3232,24 @@ pub const NASHORS_TOOTH: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(nashors_tooth_icathian_bite),
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Navori flickerblade
@@ -3287,7 +3265,7 @@ pub const NAVORI_FLICKERBLADE: Item = Item {
     id: ItemId::NavoriFlickerblade,
     full_name: "Navori_flickerblade",
     short_name: "Navori",
-    cost: 2600.,
+    cost: 2650.,
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
@@ -3296,7 +3274,7 @@ pub const NAVORI_FLICKERBLADE: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -3308,7 +3286,7 @@ pub const NAVORI_FLICKERBLADE: Item = Item {
         crit_chance: 0.25,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.07,
+        ms_percent: 0.04,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
@@ -3319,24 +3297,24 @@ pub const NAVORI_FLICKERBLADE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(navori_flickerblade_transcendence),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Opportunity, extration passive not implemented (too situationnal)
@@ -3350,30 +3328,9 @@ fn opportunity_init(champ: &mut Unit) {
     );
 }
 
-const OPPORTUNITY_PREPARATION_LETHALITY_BY_LVL: [f32; MAX_UNIT_LVL] = [
-    3.,  //lvl 1
-    3.,  //lvl 2
-    3.,  //lvl 3
-    3.,  //lvl 4
-    3.,  //lvl 5
-    3.,  //lvl 6
-    3.,  //lvl 7
-    3.3, //lvl 8
-    3.6, //lvl 9
-    3.9, //lvl 10
-    4.2, //lvl 11
-    4.5, //lvl 12
-    4.8, //lvl 13
-    5.1, //lvl 14
-    5.4, //lvl 15
-    5.7, //lvl 16
-    6.0, //lvl 17
-    6.3, //lvl 18
-]; //assumes ranged value
 fn opportunity_preparation_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::OpportunityPreparationLethality] == 0. {
-        let lethality_buff: f32 =
-            OPPORTUNITY_PREPARATION_LETHALITY_BY_LVL[usize::from(champ.lvl.get() - 1)];
+        let lethality_buff: f32 = 6.; //ranged value
         champ.stats.lethality += lethality_buff;
         champ.effects_values[EffectValueId::OpportunityPreparationLethality] = lethality_buff;
     }
@@ -3403,9 +3360,9 @@ pub const OPPORTUNITY: Item = Item {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 55.,
+        bonus_ad: 50.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -3417,8 +3374,8 @@ pub const OPPORTUNITY: Item = Item {
         crit_chance: 0.,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.05,
-        lethality: 18.,
+        ms_percent: 0.04,
+        lethality: 15.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
         magic_pen_percent: 0.,
@@ -3428,24 +3385,24 @@ pub const OPPORTUNITY: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(opportunity_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(opportunity_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Overlord's bloodmail
@@ -3464,12 +3421,12 @@ pub const OVERLORDS_BLOODMAIL: Item = Item {
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 500.,
+        hp: 550.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 40.,
+        bonus_ad: 30.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -3492,24 +3449,24 @@ pub const OVERLORDS_BLOODMAIL: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(overlords_bloodmail_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(overlords_bloodmail_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Phantom dancer
@@ -3517,7 +3474,7 @@ pub const PHANTOM_DANCER: Item = Item {
     id: ItemId::PhantomDancer,
     full_name: "Phantom_dancer",
     short_name: "PD",
-    cost: 2600.,
+    cost: 2650.,
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
@@ -3526,7 +3483,7 @@ pub const PHANTOM_DANCER: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -3538,7 +3495,7 @@ pub const PHANTOM_DANCER: Item = Item {
         crit_chance: 0.25,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.12,
+        ms_percent: 0.08,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
@@ -3549,24 +3506,24 @@ pub const PHANTOM_DANCER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Profane hydra
@@ -3574,7 +3531,7 @@ fn _profane_hydra_heretical_cleave(champ: &mut Unit, target_stats: &UnitStats) -
     //we do not reduce the dmg value because the cd is short enough (10 sec, as of patch 14.06)
     champ.dmg_on_target(
         target_stats,
-        (champ.stats.ad(), 0., 0.),
+        (0.8 * champ.stats.ad(), 0., 0.),
         (1, 1),
         DmgType::Other,
         false,
@@ -3584,18 +3541,18 @@ fn _profane_hydra_heretical_cleave(champ: &mut Unit, target_stats: &UnitStats) -
 
 fn profane_hydra_cleave(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     (
-        PROFANE_HYDRA_CLEAVE_AVG_TARGETS * 0.25 * champ.stats.ad(),
+        PROFANE_HYDRA_CLEAVE_AVG_TARGETS * 0.20 * champ.stats.ad(),
         0.,
         0.,
     ) //value for ranged champions
 }
 
-pub const PROFANE_HYDRA_CLEAVE_RANGE: f32 = 450.; //used to determine how much targets are hit by cleave
+pub const PROFANE_HYDRA_CLEAVE_RADIUS: f32 = 350.; //used to determine how much targets are hit by cleave
 pub const PROFANE_HYDRA: Item = Item {
     id: ItemId::ProfaneHydra,
     full_name: "Profane_hydra",
     short_name: "Profane_hydra",
-    cost: 3300.,
+    cost: 3200.,
     item_groups: enum_set!(ItemGroups::Hydra),
     utils: enum_set!(),
     stats: UnitStats {
@@ -3604,12 +3561,12 @@ pub const PROFANE_HYDRA: Item = Item {
         base_ad: 0.,
         bonus_ad: 60.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 20.,
+        ability_haste: 10.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -3627,24 +3584,24 @@ pub const PROFANE_HYDRA: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None, //Some(profane_hydra_heretical_cleave), //active not used for ranged champions
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None, //Some(profane_hydra_heretical_cleave), //active not used for ranged champions
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(profane_hydra_cleave),
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Rabadon's deathcap
@@ -3660,8 +3617,8 @@ pub const RABADONS_DEATHCAP: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 140.,
-        ap_coef: 0.35,
+        ap_flat: 130.,
+        ap_percent: 0.30,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -3684,24 +3641,24 @@ pub const RABADONS_DEATHCAP: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Randuin's omen
@@ -3718,7 +3675,7 @@ pub const RANDUINS_OMEN: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 75.,
         mr: 0.,
         base_as: 0.,
@@ -3741,24 +3698,24 @@ pub const RANDUINS_OMEN: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Rapid firecannon
@@ -3780,14 +3737,14 @@ fn rapid_firecannon_sharpshooter(champ: &mut Unit, _target_stats: &UnitStats) ->
     //if enough energy (previous condition), trigger energized attack
     champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance] =
         champ.sim_results.units_travelled;
-    (0., 60., 0.)
+    (0., 40., 0.)
 }
 
 pub const RAPID_FIRECANNON: Item = Item {
     id: ItemId::RapidFirecannon,
     full_name: "Rapid_firecannon",
     short_name: "RFC",
-    cost: 2600.,
+    cost: 2650.,
     item_groups: enum_set!(),
     utils: enum_set!(ItemUtils::Special), //sharpshooter bonus range
     stats: UnitStats {
@@ -3796,7 +3753,7 @@ pub const RAPID_FIRECANNON: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -3808,7 +3765,7 @@ pub const RAPID_FIRECANNON: Item = Item {
         crit_chance: 0.25,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.07,
+        ms_percent: 0.04,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
@@ -3819,37 +3776,39 @@ pub const RAPID_FIRECANNON: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(rapid_firecannon_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(rapid_firecannon_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(rapid_firecannon_sharpshooter),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Ravenous hydra
 fn _ravenous_hydra_ravenous_crescent(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //we do not reduce the dmg value because the cd is short enough (10 sec, as of patch 14.06)
-    champ.dmg_on_target(
+    let dmg: f32 = champ.dmg_on_target(
         target_stats,
-        (champ.stats.ad(), 0., 0.),
+        (0.8 * champ.stats.ad(), 0., 0.),
         (1, 1),
         DmgType::Other,
         false,
         1.,
-    )
+    );
+    champ.sim_results.life_vamped += dmg * champ.stats.life_steal; //life steal applies to crescent
+    dmg
 }
 
 fn ravenous_hydra_cleave(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
@@ -3860,7 +3819,7 @@ fn ravenous_hydra_cleave(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg 
     ) //value for ranged champions
 }
 
-pub const RAVENOUS_HYDRA_CLEAVE_RANGE: f32 = 350.; //used to determine how much targets are hit by cleave
+pub const RAVENOUS_HYDRA_CLEAVE_RADIUS: f32 = 350.; //used to determine how much targets are hit by cleave
 pub const RAVENOUS_HYDRA: Item = Item {
     id: ItemId::RavenousHydra,
     full_name: "Ravenous_hydra",
@@ -3872,14 +3831,14 @@ pub const RAVENOUS_HYDRA: Item = Item {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 70.,
+        bonus_ad: 65.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 20.,
+        ability_haste: 15.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -3897,65 +3856,69 @@ pub const RAVENOUS_HYDRA: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.12,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None, //Some(ravenous_hydra_ravenous_crescent), //active not used for ranged champions
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None, //Some(ravenous_hydra_ravenous_crescent), //active not used for ranged champions
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(ravenous_hydra_cleave),
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Redemption (useless?)
 
 //todo: check tot_dmg_coef passive + interaction with liandrys
 //Riftmaker
-const RIFTMAKER_VOID_CORRUPTION_NOT_IN_COMBAT_TIME_VALUE: f32 = -1.; //special value to indicate that the unit is not in combat, MUST BE NEGATIVE to not interfere with an actual combat start time value
+const RIFTMAKER_VOID_CORRUPTION_OUTSIDE_COMBAT_TIME_VALUE: f32 = -1.; //special value to indicate that the unit is not in combat, MUST BE NEGATIVE to not interfere with an actual combat start time value
 fn riftmaker_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp] = 0.;
-    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef] = 0.;
     champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime] =
-        RIFTMAKER_VOID_CORRUPTION_NOT_IN_COMBAT_TIME_VALUE;
+        RIFTMAKER_VOID_CORRUPTION_OUTSIDE_COMBAT_TIME_VALUE;
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier] = 0.;
 
     //void infusion passive
     champ.stats.ap_flat += 0.02 * champ.items_stats.hp;
 }
 
-const RIFTMAKER_VOID_CORRUPTION_MAX_COEF: f32 = 0.10;
+const RIFTMAKER_VOID_CORRUPTION_MAX_COEF: f32 = 0.08;
 const RIFTMAKER_VOID_CORRUPTION_OMNIVAMP: f32 = 0.06; //value for ranged champions
 fn riftmaker_void_corruption_refresh(champ: &mut Unit, _availability_coef: f32) {
     //test if it's the first refresh of the effect, reset combat start time if so
     if champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime]
-        == RIFTMAKER_VOID_CORRUPTION_NOT_IN_COMBAT_TIME_VALUE
+        == RIFTMAKER_VOID_CORRUPTION_OUTSIDE_COMBAT_TIME_VALUE
     {
         champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime] = champ.time;
-        champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef] = 0.;
+        //todo: test if dmg modifier is applied instantly and adjust
         return;
     }
-    //if not the first refresh (previous condition), update coef
-    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef] = f32::min(
+    //if not the first refresh (previous condition), update tot dmg modifier
+    champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
+        / (1. + champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier])
+        - 1.; //remove current tot dmg multiplier temporarly
+    let tot_dmg_modifier: f32 = f32::min(
         RIFTMAKER_VOID_CORRUPTION_MAX_COEF,
         0.02 * f32::trunc(
             champ.time
                 - champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime],
         ),
-    ); //as of patch 14.06, using trunc is the correct way to get the value
+    ); //as of patch 14.06, using trunc is the correct way to get the value //todo: test passive
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier] = tot_dmg_modifier;
+    champ.stats.tot_dmg_modifier += (1. + champ.stats.tot_dmg_modifier) * tot_dmg_modifier; //add updated ability dmg multiplier
 
     //gain omnivamp if fully stacked
     if (champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp] == 0.)
-        && champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef]
-            == RIFTMAKER_VOID_CORRUPTION_MAX_COEF
+        && (tot_dmg_modifier == RIFTMAKER_VOID_CORRUPTION_MAX_COEF)
     {
         champ.stats.omnivamp += RIFTMAKER_VOID_CORRUPTION_OMNIVAMP;
         champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp] =
@@ -3966,9 +3929,12 @@ fn riftmaker_void_corruption_refresh(champ: &mut Unit, _availability_coef: f32) 
 fn riftmaker_void_corruption_disable(champ: &mut Unit) {
     champ.stats.omnivamp -= champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp];
     champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp] = 0.;
-    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef] = 0.; //useless since we init it when refreshing effect for the first time but we do it for debug consistency
     champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime] =
-        RIFTMAKER_VOID_CORRUPTION_NOT_IN_COMBAT_TIME_VALUE;
+        RIFTMAKER_VOID_CORRUPTION_OUTSIDE_COMBAT_TIME_VALUE;
+    champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
+        / (1. + champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier])
+        - 1.; //remove tot dmg multiplier, stacks multiplicatively
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier] = 0.;
 }
 
 const RIFTMAKER_VOID_CORRUPTION: TemporaryEffect = TemporaryEffect {
@@ -3979,9 +3945,9 @@ const RIFTMAKER_VOID_CORRUPTION: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn riftmaker_void_corruption(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn riftmaker_void_corruption(champ: &mut Unit, _target_stats: &UnitStats) -> (f32, f32, f32) {
     champ.add_temporary_effect(&RIFTMAKER_VOID_CORRUPTION, champ.stats.item_haste);
-    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCoef]
+    (0., 0., 0.)
 }
 
 pub const RIFTMAKER: Item = Item {
@@ -3996,8 +3962,8 @@ pub const RIFTMAKER: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 80.,
-        ap_coef: 0.,
+        ap_flat: 70.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -4020,24 +3986,24 @@ pub const RIFTMAKER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(riftmaker_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(riftmaker_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
-    on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: Some(riftmaker_void_corruption),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
+    on_any_hit: Some(riftmaker_void_corruption),
 };
 
 //Rod of ages, timeless and eternity passives too complicated to implement
@@ -4050,12 +4016,12 @@ pub const ROD_OF_AGES: Item = Item {
     item_groups: enum_set!(ItemGroups::Eternity),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 400. + ROD_OF_AGES_TIMELESS_COEF * 200.,
+        hp: 400. + ROD_OF_AGES_TIMELESS_COEF * 100.,
         mana: 400. + ROD_OF_AGES_TIMELESS_COEF * 200.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 50. + ROD_OF_AGES_TIMELESS_COEF * 40.,
-        ap_coef: 0.,
+        ap_flat: 50. + ROD_OF_AGES_TIMELESS_COEF * 30.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -4078,38 +4044,38 @@ pub const ROD_OF_AGES: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Runaan's hurricane
 fn runaans_hurricane_winds_fury(champ: &mut Unit, target_stats: &UnitStats) -> RawDmg {
     let (
-        on_basic_attack_hit_static_ad_dmg,
-        on_basic_attack_hit_static_ap_dmg,
+        on_basic_attack_hit_static_phys_dmg,
+        on_basic_attack_hit_static_magic_dmg,
         on_basic_attack_hit_static_true_dmg,
     ) = champ.get_on_basic_attack_hit_static(target_stats);
     (
         RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS
             * (0.55 * champ.stats.ad() * champ.stats.crit_coef()
-                + on_basic_attack_hit_static_ad_dmg),
-        RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS * on_basic_attack_hit_static_ap_dmg,
+                + on_basic_attack_hit_static_phys_dmg),
+        RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS * on_basic_attack_hit_static_magic_dmg,
         RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS * on_basic_attack_hit_static_true_dmg,
     )
 }
@@ -4118,7 +4084,7 @@ pub const RUNAANS_HURRICANE: Item = Item {
     id: ItemId::RunaansHurricane,
     full_name: "Runaans_hurricane",
     short_name: "Runaans",
-    cost: 2600.,
+    cost: 2650.,
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
@@ -4127,7 +4093,7 @@ pub const RUNAANS_HURRICANE: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -4139,7 +4105,7 @@ pub const RUNAANS_HURRICANE: Item = Item {
         crit_chance: 0.25,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.07,
+        ms_percent: 0.04,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
@@ -4150,24 +4116,24 @@ pub const RUNAANS_HURRICANE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(runaans_hurricane_winds_fury),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Rylais crystal scepter
@@ -4183,8 +4149,8 @@ pub const RYLAIS_CRYSTAL_SCEPTER: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 75.,
-        ap_coef: 0.,
+        ap_flat: 65.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -4207,24 +4173,24 @@ pub const RYLAIS_CRYSTAL_SCEPTER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Seraph's_embrace
@@ -4233,7 +4199,7 @@ fn seraphs_embrace_init(champ: &mut Unit) {
     champ.stats.ap_flat += 0.02 * champ.items_stats.mana; //only take bonus mana into account
 
     //lifeline passive
-    champ.sim_results.heals_shields += (250.
+    champ.sim_results.heals_shields += (200.
         + SERAPHS_EMBRACE_LIFELINE_MANA_PERCENT
             * 0.2
             * (champ.lvl_stats.mana + champ.items_stats.mana))
@@ -4255,8 +4221,8 @@ pub const SERAPHS_EMBRACE: Item = Item {
         mana: 1000.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 80.,
-        ap_coef: 0.,
+        ap_flat: 70.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -4279,24 +4245,24 @@ pub const SERAPHS_EMBRACE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(seraphs_embrace_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(seraphs_embrace_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Serpent's fang
@@ -4313,7 +4279,7 @@ pub const SERPENTS_FANG: Item = Item {
         base_ad: 0.,
         bonus_ad: 55.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -4336,37 +4302,32 @@ pub const SERPENTS_FANG: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Serylda's grudge
-fn seryldas_grudge_init(champ: &mut Unit) {
-    champ.stats.armor_pen_percent +=
-        0.0011 * (champ.lvl_stats.lethality + champ.items_stats.lethality);
-}
-
 pub const SERYLDAS_GRUDGE: Item = Item {
     id: ItemId::SeryldasGrudge,
     full_name: "Seryldas_grudge",
     short_name: "Seryldas",
-    cost: 3200.,
+    cost: 3000.,
     item_groups: enum_set!(ItemGroups::Fatality),
     utils: enum_set!(), //bitter cold passive slow not big enough
     stats: UnitStats {
@@ -4375,12 +4336,12 @@ pub const SERYLDAS_GRUDGE: Item = Item {
         base_ad: 0.,
         bonus_ad: 45.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 15.,
+        ability_haste: 20.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -4389,7 +4350,7 @@ pub const SERYLDAS_GRUDGE: Item = Item {
         ms_flat: 0.,
         ms_percent: 0.,
         lethality: 15.,
-        armor_pen_percent: 0.25,
+        armor_pen_percent: 0.30,
         magic_pen_flat: 0.,
         magic_pen_percent: 0.,
         armor_red_flat: 0.,
@@ -4398,32 +4359,34 @@ pub const SERYLDAS_GRUDGE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(seryldas_grudge_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //todo: test shadowflame crit passive with ap on hit items
 //Shadowflame
 fn shadowflame_init(champ: &mut Unit) {
-    champ.stats.magic_dmg_modifier += (1. + champ.stats.magic_dmg_modifier)
-        * SHADOWFLAME_CINDERBLOOM_COEF
-        * (0.2 * (1. + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)); //crit dmg above BASE_CRIT_DMG only affects only the bonus dmg of shadowflame not the entire dmg instance
+    let modifier: f32 =
+        SHADOWFLAME_CINDERBLOOM_COEF * (0.2 * (1. + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)); //crit dmg above BASE_CRIT_DMG only affects only the bonus dmg of shadowflame not the entire dmg instance
+    champ.stats.magic_dmg_modifier += (1. + champ.stats.magic_dmg_modifier) * modifier; //stacks multiplicatively
+    champ.stats.true_dmg_modifier += (1. + champ.stats.true_dmg_modifier) * modifier;
+    //stacks multiplicatively
 }
 
 pub const SHADOWFLAME: Item = Item {
@@ -4438,8 +4401,8 @@ pub const SHADOWFLAME: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 115.,
-        ap_coef: 0.,
+        ap_flat: 110.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -4462,24 +4425,24 @@ pub const SHADOWFLAME: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(shadowflame_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(shadowflame_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Shurelya's Battlesong (useless?)
@@ -4487,31 +4450,55 @@ pub const SHADOWFLAME: Item = Item {
 //Solstice sleigh (useless?)
 
 //Spear of shojin
-const SPEAR_OF_SHOJIN_FOCUSED_WILL_DELAY: f32 = 6.; //stack duration
 fn spear_of_shojin_init(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] = 0;
-    champ.effects_values[EffectValueId::SpearOfShojinFocusedWillLastHitTime] =
-        -(SPEAR_OF_SHOJIN_FOCUSED_WILL_DELAY + F32_TOL); //to allow for effect at time==0
 }
 
 const SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK: f32 = 0.03;
-fn spear_of_shojin_focused_will(champ: &mut Unit) -> f32 {
-    //if last hit from too long ago, refresh duration and reset stacks
-    if champ.time - champ.effects_values[EffectValueId::SpearOfShojinFocusedWillLastHitTime]
-        > SPEAR_OF_SHOJIN_FOCUSED_WILL_DELAY
-    {
-        champ.effects_values[EffectValueId::SpearOfShojinFocusedWillLastHitTime] = champ.time;
-        champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] = 0; //first instance has 0 stack
-        return 0.;
-    }
-    //if last hit is recent enough (previous condition), refresh duration and return coef (add 1 stack if not fully stacked)
-    else if champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] < 4 {
-        champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] += 1;
-    }
-    champ.effects_values[EffectValueId::SpearOfShojinFocusedWillLastHitTime] = champ.time;
-    f32::from(champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks])
-        * SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK //use value after adding a stack
+fn spear_of_shojin_focused_will(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+) -> (f32, f32, f32) {
+    champ.add_temporary_effect(&SPEAR_OF_SHOJIN_FOCUSED_WILL, champ.stats.item_haste);
+    (0., 0., 0.)
 }
+
+//todo: test if ability dmg use prior or current number of stacks
+fn spear_of_shojin_focused_will_add_stack(champ: &mut Unit, _availability_coef: f32) {
+    //if not fully stacked, add 1 stack and update ability dmg modifier
+    if champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] < 4 {
+        champ.stats.ability_dmg_modifier = (1. + champ.stats.ability_dmg_modifier)
+            / (1.
+                + (SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK
+                    * f32::from(
+                        champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks],
+                    )))
+            - 1.; //remove current ability dmg multiplier temporarly
+        champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] += 1;
+        champ.stats.ability_dmg_modifier += (1. + champ.stats.ability_dmg_modifier)
+            * (SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK
+                * f32::from(champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks]));
+        //add updated ability dmg multiplier
+    }
+}
+
+fn spear_of_shojin_focused_will_disable(champ: &mut Unit) {
+    champ.stats.ability_dmg_modifier = (1. + champ.stats.ability_dmg_modifier)
+        / (1.
+            + (SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK
+                * f32::from(champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks])))
+        - 1.; //remove ability dmg multiplier, stacks multiplicatively
+    champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] = 0;
+}
+
+const SPEAR_OF_SHOJIN_FOCUSED_WILL: TemporaryEffect = TemporaryEffect {
+    id: EffectId::SpearOfShojinFocusedWill,
+    add_stack: spear_of_shojin_focused_will_add_stack,
+    remove_every_stack: spear_of_shojin_focused_will_disable,
+    duration: 6.,
+    cooldown: 0.,
+};
 
 pub const SPEAR_OF_SHOJIN: Item = Item {
     id: ItemId::SpearOfShojin,
@@ -4521,18 +4508,18 @@ pub const SPEAR_OF_SHOJIN: Item = Item {
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 300.,
+        hp: 450.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 55.,
+        bonus_ad: 45.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 20.,
-        basic_haste: 15.,
+        ability_haste: 0.,
+        basic_haste: 25.,
         ultimate_haste: 0.,
         item_haste: 0.,
         crit_chance: 0.,
@@ -4549,24 +4536,24 @@ pub const SPEAR_OF_SHOJIN: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(spear_of_shojin_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(spear_of_shojin_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: Some(spear_of_shojin_focused_will),
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: Some(spear_of_shojin_focused_will),
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Spirit visage (useless?) (need to add heals_shields power)
@@ -4585,13 +4572,13 @@ pub const STATIKK_SHIV: Item = Item {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 55.,
+        bonus_ad: 50.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
-        bonus_as: 0.45,
+        bonus_as: 0.40,
         ability_haste: 0.,
         basic_haste: 0.,
         ultimate_haste: 0.,
@@ -4599,7 +4586,7 @@ pub const STATIKK_SHIV: Item = Item {
         crit_chance: 0.,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.05,
+        ms_percent: 0.04,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
@@ -4610,35 +4597,35 @@ pub const STATIKK_SHIV: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Sterak's gage
 fn steraks_gage_init(champ: &mut Unit) {
     //the claw that catch passive
-    champ.stats.bonus_ad += 0.5 * (champ.lvl_stats.base_ad + champ.items_stats.base_ad);
+    champ.stats.bonus_ad += 0.45 * (champ.lvl_stats.base_ad + champ.items_stats.base_ad);
 
     //lifeline passive
     champ.sim_results.heals_shields += 0.5
-        * 0.8
-        * (champ.items_stats.hp)
+        * 0.6
+        * champ.items_stats.hp
         * effect_availability_formula(
             90. * haste_formula(champ.lvl_stats.item_haste + champ.items_stats.item_haste),
         );
@@ -4659,7 +4646,7 @@ pub const STERAKS_GAGE: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -4682,24 +4669,24 @@ pub const STERAKS_GAGE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(steraks_gage_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(steraks_gage_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //todo: check item behavior
@@ -4709,40 +4696,40 @@ fn stormsurge_init(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] = 0;
 }
 
-fn stormsurge_squall_enable(champ: &mut Unit, availability_coef: f32) {
+fn stormsurge_stormraider_ms_enable(champ: &mut Unit, availability_coef: f32) {
     if champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] == 0. {
-        let percent_ms_buff: f32 = STORMSURGE_STORMRAIDER_COEF * availability_coef * 0.35;
+        let percent_ms_buff: f32 = STORMSURGE_STORMRAIDER_COEF * availability_coef * 0.25;
         champ.stats.ms_percent += percent_ms_buff;
         champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] = percent_ms_buff;
     }
 }
 
-fn stormsurge_squall_disable(champ: &mut Unit) {
+fn stormsurge_stormraider_ms_disable(champ: &mut Unit) {
     champ.stats.ms_percent -= champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent];
     champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] = 0.;
 }
 
-const STORMSURGE_SQUALL: TemporaryEffect = TemporaryEffect {
-    id: EffectId::StormsurgeSquall,
-    add_stack: stormsurge_squall_enable,
-    remove_every_stack: stormsurge_squall_disable,
-    duration: 2.0,
+const STORMSURGE_STORMRAIDER_MS: TemporaryEffect = TemporaryEffect {
+    id: EffectId::StormsurgeStormraiderMS,
+    add_stack: stormsurge_stormraider_ms_enable,
+    remove_every_stack: stormsurge_stormraider_ms_disable,
+    duration: 1.5,
     cooldown: STORMSURGE_STORMRAIDER_COOLDOWN,
 };
 
 const STORMSURGE_STORMRAIDER_COOLDOWN: f32 = 30.;
 fn stormsurge_stormraider(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
-    //stormraider passive, triggers once, by a default 2.5sec after the first dmg instance since we don't record dmg done over time and cannot check the real activation condition
-    if champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] == 0 && champ.time > 2.5
+    //stormraider passive, triggers once, after a fixed time after the first dmg instance since we don't record dmg done over time and cannot check the real activation condition
+    if champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] == 0 && champ.time > 2.0
     {
         champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] = 1;
-        champ.add_temporary_effect(&STORMSURGE_SQUALL, champ.stats.item_haste);
+        champ.add_temporary_effect(&STORMSURGE_STORMRAIDER_MS, champ.stats.item_haste);
         let avalability_coef: f32 = effect_availability_formula(
             STORMSURGE_STORMRAIDER_COOLDOWN * haste_formula(champ.stats.item_haste),
         );
         return (
             0.,
-            STORMSURGE_STORMRAIDER_COEF * avalability_coef * (140. + 0.20 * champ.stats.ap()),
+            STORMSURGE_STORMRAIDER_COEF * avalability_coef * (150. + 0.15 * champ.stats.ap()),
             0.,
         );
     }
@@ -4762,7 +4749,7 @@ pub const STORMSURGE: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 95.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -4774,7 +4761,7 @@ pub const STORMSURGE: Item = Item {
         crit_chance: 0.,
         crit_dmg: 0.,
         ms_flat: 0.,
-        ms_percent: 0.05,
+        ms_percent: 0.04,
         lethality: 0.,
         armor_pen_percent: 0.,
         magic_pen_flat: 15.,
@@ -4785,24 +4772,24 @@ pub const STORMSURGE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(stormsurge_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(stormsurge_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: Some(stormsurge_stormraider),
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Stridebreaker
@@ -4855,32 +4842,33 @@ fn stridebreaker_cleave(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
     ) //value for ranged champions
 }
 
-fn stridebreaker_temper_enable(champ: &mut Unit, _availability_coef: f32) {
-    if champ.effects_values[EffectValueId::StridebreakerTemperMsFlat] == 0. {
-        let flat_ms_buff: f32 = 20.;
-        champ.stats.ms_flat += flat_ms_buff;
-        champ.effects_values[EffectValueId::StridebreakerTemperMsFlat] = flat_ms_buff;
-    }
-}
+//temper passive removed in patch 14.19 (keep this in case it gets reverted)
+//fn stridebreaker_temper_enable(champ: &mut Unit, _availability_coef: f32) {
+//    if champ.effects_values[EffectValueId::StridebreakerTemperMsFlat] == 0. {
+//        let flat_ms_buff: f32 = 20.;
+//        champ.stats.ms_flat += flat_ms_buff;
+//        champ.effects_values[EffectValueId::StridebreakerTemperMsFlat] = flat_ms_buff;
+//    }
+//}
+//
+//fn stridebreaker_temper_disable(champ: &mut Unit) {
+//    champ.stats.ms_flat -= champ.effects_values[EffectValueId::StridebreakerTemperMsFlat];
+//    champ.effects_values[EffectValueId::StridebreakerTemperMsFlat] = 0.;
+//}
+//
+//const STRIDEBREAKER_TEMPER: TemporaryEffect = TemporaryEffect {
+//    id: EffectId::StridebreakerTemper,
+//    add_stack: stridebreaker_temper_enable,
+//    remove_every_stack: stridebreaker_temper_disable,
+//    duration: 2.,
+//    cooldown: 0.,
+//};
 
-fn stridebreaker_temper_disable(champ: &mut Unit) {
-    champ.stats.ms_flat -= champ.effects_values[EffectValueId::StridebreakerTemperMsFlat];
-    champ.effects_values[EffectValueId::StridebreakerTemperMsFlat] = 0.;
-}
+//fn stridebreaker_temper_on_phys_hit(champ: &mut Unit) {
+//    champ.add_temporary_effect(&STRIDEBREAKER_TEMPER, champ.stats.item_haste);
+//}
 
-const STRIDEBREAKER_TEMPER: TemporaryEffect = TemporaryEffect {
-    id: EffectId::StridebreakerTemper,
-    add_stack: stridebreaker_temper_enable,
-    remove_every_stack: stridebreaker_temper_disable,
-    duration: 2.,
-    cooldown: 0.,
-};
-
-fn stridebreaker_temper_on_ad_hit(champ: &mut Unit) {
-    champ.add_temporary_effect(&STRIDEBREAKER_TEMPER, champ.stats.item_haste);
-}
-
-pub const STRIDEBREAKER_CLEAVE_RANGE: f32 = 350.;
+pub const STRIDEBREAKER_CLEAVE_RADIUS: f32 = 350.;
 pub const STRIDEBREAKER: Item = Item {
     id: ItemId::Stridebreaker,
     full_name: "Stridebreaker",
@@ -4892,13 +4880,13 @@ pub const STRIDEBREAKER: Item = Item {
         hp: 450.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 50.,
+        bonus_ad: 40.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
-        bonus_as: 0.30,
+        bonus_as: 0.25,
         ability_haste: 0.,
         basic_haste: 0.,
         ultimate_haste: 0.,
@@ -4917,24 +4905,24 @@ pub const STRIDEBREAKER: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(stridebreaker_init),
-    active: Some(stridebreaker_breaking_shockwave),
-    on_basic_spell_cast: None,
+    init: Some(stridebreaker_init),
+    special_active: Some(stridebreaker_breaking_shockwave),
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(stridebreaker_cleave),
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None, //Some(stridebreaker_temper_on_phys_hit),
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: Some(stridebreaker_temper_on_ad_hit),
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Sundered sky
@@ -4953,11 +4941,11 @@ fn sundered_sky_lightshield_strike(champ: &mut Unit, _target_stats: &UnitStats) 
     }
     //if not on cooldown, put on cooldown and trigger effect
     champ.effects_values[EffectValueId::SunderedSkyLastTriggerTime] = champ.time;
-    champ.sim_results.heals_shields += 1.2 * champ.stats.base_ad
-        + SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP * 0.06 * champ.stats.hp;
-    let ad_dmg: f32 =
+    champ.sim_results.heals_shields +=
+        champ.stats.base_ad + SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP * 0.06 * champ.stats.hp;
+    let phys_dmg: f32 =
         champ.stats.ad() * (1. - champ.stats.crit_chance) * (champ.stats.crit_dmg - 1.); //bonus dmg from a basic attack with 100% crit chance compared to an average basic_attack
-    (ad_dmg, 0., 0.)
+    (phys_dmg, 0., 0.)
 }
 
 pub const SUNDERED_SKY: Item = Item {
@@ -4968,17 +4956,17 @@ pub const SUNDERED_SKY: Item = Item {
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 450.,
+        hp: 400.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 45.,
+        bonus_ad: 40.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 15.,
+        ability_haste: 10.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -4996,24 +4984,24 @@ pub const SUNDERED_SKY: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(sundered_sky_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(sundered_sky_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(sundered_sky_lightshield_strike),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Sunfire aegis (useless?)
@@ -5135,9 +5123,9 @@ pub const TERMINUS: Item = Item {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 35.,
+        bonus_ad: 30.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -5160,24 +5148,24 @@ pub const TERMINUS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(terminus_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(terminus_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(terminus_shadow),
     on_basic_attack_hit_dynamic: Some(terminus_juxtaposition),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //The collector
@@ -5201,7 +5189,7 @@ pub const THE_COLLECTOR: Item = Item {
     id: ItemId::TheCollector,
     full_name: "The_collector",
     short_name: "Collector",
-    cost: 3200.,
+    cost: 3400.,
     item_groups: enum_set!(),
     utils: enum_set!(), //taxes passive not big enough and too situationnal
     stats: UnitStats {
@@ -5210,7 +5198,7 @@ pub const THE_COLLECTOR: Item = Item {
         base_ad: 0.,
         bonus_ad: 60.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -5223,7 +5211,7 @@ pub const THE_COLLECTOR: Item = Item {
         crit_dmg: 0.,
         ms_flat: 0.,
         ms_percent: 0.,
-        lethality: 12.,
+        lethality: 10.,
         armor_pen_percent: 0.,
         magic_pen_flat: 0.,
         magic_pen_percent: 0.,
@@ -5233,24 +5221,24 @@ pub const THE_COLLECTOR: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(the_collector_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(the_collector_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: Some(the_collector_death),
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Thornmail (useless?)
@@ -5273,7 +5261,7 @@ fn titanic_hydra_titanic_crescent(champ: &mut Unit, target_stats: &UnitStats) ->
 }
 
 fn titanic_hydra_cleave_static(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
-    (0.0075 * champ.stats.hp, 0., 0.) //value for ranged champions
+    (0.005 * champ.stats.hp, 0., 0.) //value for ranged champions
 }
 
 //AoE is dynamic because the area hits behind the target -> we consider that the areas won't overlap when hitting multiple targets
@@ -5294,12 +5282,12 @@ pub const TITANIC_HYDRA: Item = Item {
     item_groups: enum_set!(ItemGroups::Hydra),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 550.,
+        hp: 600.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 50.,
+        bonus_ad: 40.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -5322,24 +5310,24 @@ pub const TITANIC_HYDRA: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: Some(titanic_hydra_titanic_crescent),
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: Some(titanic_hydra_titanic_crescent),
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(titanic_hydra_cleave_static),
     on_basic_attack_hit_dynamic: Some(titanic_hydra_cleave_dynamic),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Trailblazer (useless?)
@@ -5386,14 +5374,14 @@ fn trinity_force_spellblade_on_basic_attack_hit(
     if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
     }
-    //if empowered (previous condition) but last spell cast from too long ago, reset spellblade
+    //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
     else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
         return (0., 0., 0.);
     }
-    //if empowered and last spell cast is recent enough (previous condition), reset and trigger spellblade
+    //if empowered and last ability cast is recent enough (previous condition), reset and trigger spellblade
     champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
     champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
     (2. * champ.stats.base_ad, 0., 0.)
@@ -5407,17 +5395,17 @@ pub const TRINITY_FORCE: Item = Item {
     item_groups: enum_set!(ItemGroups::Spellblade),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 300.,
+        hp: 333.,
         mana: 0.,
         base_ad: 0.,
-        bonus_ad: 45.,
+        bonus_ad: 36.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
-        bonus_as: 0.33,
-        ability_haste: 20.,
+        bonus_as: 0.30,
+        ability_haste: 15.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -5435,24 +5423,24 @@ pub const TRINITY_FORCE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(trinity_force_init),
-    active: None,
-    on_basic_spell_cast: Some(spellblade_on_spell_cast),
-    on_ultimate_cast: Some(spellblade_on_spell_cast),
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    init: Some(trinity_force_init),
+    special_active: None,
+    on_ability_cast: Some(spellblade_on_spell_cast),
+    on_ultimate_cast: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(trinity_force_spellblade_on_basic_attack_hit),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Umbral glaive
@@ -5469,12 +5457,12 @@ pub const UMBRAL_GLAIVE: Item = Item {
         base_ad: 0.,
         bonus_ad: 50.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 15.,
+        ability_haste: 10.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -5492,24 +5480,24 @@ pub const UMBRAL_GLAIVE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Unending despair (useless?)
@@ -5530,7 +5518,7 @@ pub const VOID_STAFF: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 95.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -5553,24 +5541,24 @@ pub const VOID_STAFF: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Voltaic cyclosword
@@ -5599,7 +5587,7 @@ pub const VOLTAIC_CYCLOSWORD: Item = Item {
     id: ItemId::VoltaicCyclosword,
     full_name: "Voltaic_cyclosword",
     short_name: "Voltaic_cyclosword",
-    cost: 2900.,
+    cost: 3000.,
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
@@ -5608,12 +5596,12 @@ pub const VOLTAIC_CYCLOSWORD: Item = Item {
         base_ad: 0.,
         bonus_ad: 55.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 15.,
+        ability_haste: 10.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -5631,24 +5619,24 @@ pub const VOLTAIC_CYCLOSWORD: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(voltaic_cyclosword_init),
-    active: None,
-    on_basic_spell_cast: None,
+    init: Some(voltaic_cyclosword_init),
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: Some(voltaic_cyclosword_firmament),
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Warmog's armor (useless?)
@@ -5656,32 +5644,8 @@ pub const VOLTAIC_CYCLOSWORD: Item = Item {
 //Winter's approach not implemented (Fimbulwinter takes its place)
 
 //Wit's end
-const WITS_END_FRAY_AP_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
-    40., //lvl 1
-    40., //lvl 2
-    40., //lvl 3
-    40., //lvl 4
-    40., //lvl 5
-    40., //lvl 6
-    40., //lvl 7
-    40., //lvl 8
-    44., //lvl 9
-    48., //lvl 10
-    52., //lvl 11
-    56., //lvl 12
-    60., //lvl 13
-    64., //lvl 14
-    68., //lvl 15
-    72., //lvl 16
-    76., //lvl 17
-    80., //lvl 18
-];
-fn wits_end_fray(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
-    (
-        0.,
-        WITS_END_FRAY_AP_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)],
-        0.,
-    )
+fn wits_end_fray(_champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+    (0., 45., 0.)
 }
 
 pub const WITS_END: Item = Item {
@@ -5698,11 +5662,11 @@ pub const WITS_END: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
-        mr: 50.,
+        mr: 45.,
         base_as: 0.,
-        bonus_as: 0.55,
+        bonus_as: 0.50,
         ability_haste: 0.,
         basic_haste: 0.,
         ultimate_haste: 0.,
@@ -5721,24 +5685,24 @@ pub const WITS_END: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(wits_end_fray),
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Youmuu's ghostblade, haunt passive not implemented
@@ -5777,7 +5741,7 @@ pub const YOUMUUS_GHOSTBLADE: Item = Item {
     id: ItemId::YoumuusGhostblade,
     full_name: "Youmuus_ghostblade",
     short_name: "Youmuus",
-    cost: 2700.,
+    cost: 2800.,
     item_groups: enum_set!(),
     utils: enum_set!(),
     stats: UnitStats {
@@ -5786,7 +5750,7 @@ pub const YOUMUUS_GHOSTBLADE: Item = Item {
         base_ad: 0.,
         bonus_ad: 60.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -5809,33 +5773,29 @@ pub const YOUMUUS_GHOSTBLADE: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: Some(youmuus_ghostblade_init),
-    active: Some(youmuus_ghostblade_wraith_step_active),
-    on_basic_spell_cast: None,
+    init: Some(youmuus_ghostblade_init),
+    special_active: Some(youmuus_ghostblade_wraith_step_active),
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Yun Tal Wildarrows
 fn yun_tal_serrated_edge(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
-    (
-        champ.stats.crit_chance * (2. / 0.5) * 0.0875 * champ.stats.ad(),
-        0.,
-        0.,
-    )
+    (champ.stats.crit_chance * 70., 0., 0.)
 }
 
 pub const YUN_TAL_WILDARROWS: Item = Item {
@@ -5851,7 +5811,7 @@ pub const YUN_TAL_WILDARROWS: Item = Item {
         base_ad: 0.,
         bonus_ad: 65.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -5874,24 +5834,24 @@ pub const YUN_TAL_WILDARROWS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: Some(yun_tal_serrated_edge),
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Zak'Zak's realmspike
@@ -5911,8 +5871,8 @@ pub const ZHONYAS_HOURGLASS: Item = Item {
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 120.,
-        ap_coef: 0.,
+        ap_flat: 105.,
+        ap_percent: 0.,
         armor: 50.,
         mr: 0.,
         base_as: 0.,
@@ -5935,24 +5895,24 @@ pub const ZHONYAS_HOURGLASS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //
@@ -5973,11 +5933,11 @@ pub const BERSERKERS_GREAVES: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
-        bonus_as: 0.30,
+        bonus_as: 0.25,
         ability_haste: 0.,
         basic_haste: 0.,
         ultimate_haste: 0.,
@@ -5996,24 +5956,24 @@ pub const BERSERKERS_GREAVES: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Boots of swiftness
@@ -6030,7 +5990,7 @@ pub const BOOTS_OF_SWIFTNESS: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -6053,24 +6013,24 @@ pub const BOOTS_OF_SWIFTNESS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Ionian boots of lucidity
@@ -6078,7 +6038,7 @@ pub const IONIAN_BOOTS_OF_LUCIDITY: Item = Item {
     id: ItemId::IonianBootsOfLucidity,
     full_name: "Ionian_boots_of_lucidity",
     short_name: "Lucidity",
-    cost: 1000.,
+    cost: 900.,
     item_groups: enum_set!(ItemGroups::Boots),
     utils: enum_set!(), //10 summoner spell haste, but not big enough utility
     stats: UnitStats {
@@ -6087,12 +6047,12 @@ pub const IONIAN_BOOTS_OF_LUCIDITY: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
         bonus_as: 0.,
-        ability_haste: 15.,
+        ability_haste: 10.,
         basic_haste: 0.,
         ultimate_haste: 0.,
         item_haste: 0.,
@@ -6110,24 +6070,24 @@ pub const IONIAN_BOOTS_OF_LUCIDITY: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Mercury's treads
@@ -6135,7 +6095,7 @@ pub const MERCURYS_TREADS: Item = Item {
     id: ItemId::MercurysTreads,
     full_name: "Mercurys_treads",
     short_name: "Mercurys",
-    cost: 1200.,
+    cost: 1300.,
     item_groups: enum_set!(ItemGroups::Boots),
     utils: enum_set!(), //30% tenacity, but not big enough utility
     stats: UnitStats {
@@ -6144,7 +6104,7 @@ pub const MERCURYS_TREADS: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 20.,
         base_as: 0.,
@@ -6167,24 +6127,24 @@ pub const MERCURYS_TREADS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Plated steelcaps
@@ -6194,14 +6154,14 @@ pub const PLATED_STEELCAPS: Item = Item {
     short_name: "Steelcaps",
     cost: 1200.,
     item_groups: enum_set!(ItemGroups::Boots),
-    utils: enum_set!(), //-10% from basic attacks, but not big enough utility
+    utils: enum_set!(), //basic attacks dmg reduction not big enough utility
     stats: UnitStats {
         hp: 0.,
         mana: 0.,
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 25.,
         mr: 0.,
         base_as: 0.,
@@ -6224,24 +6184,24 @@ pub const PLATED_STEELCAPS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };
 
 //Sorcerer's shoes
@@ -6258,7 +6218,7 @@ pub const SORCERERS_SHOES: Item = Item {
         base_ad: 0.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 0.,
         mr: 0.,
         base_as: 0.,
@@ -6281,22 +6241,22 @@ pub const SORCERERS_SHOES: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    init_item: None,
-    active: None,
-    on_basic_spell_cast: None,
+    init: None,
+    special_active: None,
+    on_ability_cast: None,
     on_ultimate_cast: None,
-    spell_coef: None,
-    on_basic_spell_hit: None,
-    on_ultimate_spell_hit: None,
+    on_ability_hit: None,
+    on_ultimate_hit: None,
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
+    on_phys_hit: None,
+    on_magic_hit: None,
+    on_true_dmg_hit: None,
     on_any_hit: None,
-    on_ad_hit: None,
-    ap_true_dmg_coef: None,
-    tot_dmg_coef: None,
 };

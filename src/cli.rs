@@ -450,8 +450,8 @@ const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
     FIGHT_SCENARIO_HELP_MSG,
     "\n\n3) fight duration: ",
     FIGHT_DURATION_HELP_MSG,
-    "\n\n4) percentage of AD damage taken: ",
-    AD_TAKEN_PERCENT_HELP_MSG,
+    "\n\n4) percentage of physical damage taken: ",
+    PHYS_DMG_TAKEN_PERCENT_HELP_MSG,
     "\n\n5) judgment weights: 3 values, one for DPS, one for defense and one for mobility.\n\
     The DPS weight is used to measure the importance of the champion's DPS in the score given to a build.\n\
     The defense weight is used to measure the importance of the champion's defensive stats, heals and hields in the score given to a build.\n\
@@ -496,8 +496,8 @@ fn confirm_builds_generation_settings(
                 }
             ),
             format!(
-                "percentage of AD damage taken: {:.0}%",
-                100. * settings_ref.ad_taken_percent,
+                "percentage of physical damage taken: {:.0}%",
+                100. * settings_ref.phys_dmg_taken_percent,
             ),
             format!(
                 "judgment weights: DPS {}, defense {}, mobility {}",
@@ -580,8 +580,8 @@ fn confirm_builds_generation_settings(
                 change_fight_duration(settings_ref)?;
             }
             4 => {
-                //ad_taken_percent
-                change_ad_taken_percent(settings_ref)?;
+                //phys_dmg_taken_percent
+                change_phys_dmg_taken_percent(settings_ref)?;
             }
             5 => {
                 //judgment_weights
@@ -708,17 +708,19 @@ fn change_fight_duration(settings: &mut BuildsGenerationSettings) -> Result<(), 
     }
 }
 
-const AD_TAKEN_PERCENT_HELP_MSG: &str =
-    "When evaluating the defensive value of different builds, the selected percentage of AD dmg taken will be considered.\n\
-     The percentage of AP dmg taken is deducted from this (assuming no true dmg taken).";
+const PHYS_DMG_TAKEN_PERCENT_HELP_MSG: &str =
+    "When evaluating the defensive value of different builds, the selected percentage of physical dmg taken will be considered.\n\
+     The percentage of magic dmg taken is deducted from this (assuming no true dmg taken).";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_ad_taken_percent(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
+fn change_phys_dmg_taken_percent(
+    settings: &mut BuildsGenerationSettings,
+) -> Result<(), UserCommand> {
     loop {
         let number: f32 = match get_user_f32(
             "",
-            "Enter the percentage of AD dmg taken by the champion",
-            AD_TAKEN_PERCENT_HELP_MSG,
+            "Enter the percentage of physical dmg taken by the champion",
+            PHYS_DMG_TAKEN_PERCENT_HELP_MSG,
             false,
         ) {
             Ok(Some(number)) => number,
@@ -727,12 +729,12 @@ fn change_ad_taken_percent(settings: &mut BuildsGenerationSettings) -> Result<()
             Err(command) => return Err(command),
         };
 
-        let old_ad_taken_percent: f32 = settings.ad_taken_percent; //backup before checking validity
-        settings.ad_taken_percent = number / 100.;
+        let old_phys_dmg_taken_percent: f32 = settings.phys_dmg_taken_percent; //backup before checking validity
+        settings.phys_dmg_taken_percent = number / 100.;
 
         if let Err(error_msg) = settings.check_settings() {
-            println!("Failed to set percentage of AD dmg taken: {error_msg}");
-            settings.ad_taken_percent = old_ad_taken_percent; //restore valid value
+            println!("Failed to set percentage of physical dmg taken: {error_msg}");
+            settings.phys_dmg_taken_percent = old_phys_dmg_taken_percent; //restore valid value
         } else {
             return Ok(());
         }

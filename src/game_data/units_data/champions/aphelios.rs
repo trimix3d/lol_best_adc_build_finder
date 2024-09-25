@@ -10,7 +10,7 @@ const APHELIOS_Q_CRESCENDUM_N_SENTRY_ATTACKS: f32 = 1.0;
 const APHELIOS_R_N_TARGETS: f32 = 1.5;
 
 fn aphelios_on_lvl_set(champ: &mut Unit) {
-    //aphelios passive (gain stats according to spells lvl)
+    //aphelios passive (gain stats according to abilities lvl)
     champ.lvl_stats.bonus_ad += 4.5 * f32::from(champ.q_lvl); //bonus_ad by q_lvl
     champ.lvl_stats.bonus_as += 0.09 * f32::from(champ.w_lvl); //bonus_as by w_lvl
     champ.lvl_stats.lethality += 5.5 * f32::from(champ.e_lvl); //lethality by e_lvl
@@ -19,11 +19,11 @@ fn aphelios_on_lvl_set(champ: &mut Unit) {
 //default_basic_attack with an aditionnal mutliplier due to infernum bonus basic attack dmg (averaged on 5 weapons)
 const APHELIOS_BASIC_ATTACKS_MULTIPLIER: f32 = 1. * (4. / 5.) + 1.10 * (1. / 5.);
 fn aphelios_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let ad_dmg: f32 =
+    let phys_dmg: f32 =
         APHELIOS_BASIC_ATTACKS_MULTIPLIER * champ.stats.ad() * champ.stats.crit_coef();
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Other,
         true,
@@ -31,7 +31,7 @@ fn aphelios_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     )
 }
 
-const APHELIOS_Q_CALIBRUM_AD_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const APHELIOS_Q_CALIBRUM_PHYS_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     60.,    //lvl 1
     60.,    //lvl 2
     76.67,  //lvl 3
@@ -71,7 +71,7 @@ const APHELIOS_Q_CALIBRUM_BONUS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
     0.6,  //lvl 17
     0.6,  //lvl 18
 ];
-const APHELIOS_Q_SEVERUM_AD_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const APHELIOS_Q_SEVERUM_PHYS_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     10., //lvl 1
     10., //lvl 2
     15., //lvl 3
@@ -111,7 +111,7 @@ const APHELIOS_Q_SEVERUM_BONUS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
     0.40, //lvl 17
     0.40, //lvl 18
 ];
-const APHELIOS_Q_GRAVITUM_AP_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const APHELIOS_Q_GRAVITUM_MAGIC_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     50.,  //lvl 1
     50.,  //lvl 2
     65.,  //lvl 3
@@ -151,7 +151,7 @@ const APHELIOS_Q_GRAVITUM_BONUS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
     0.50, //lvl 17
     0.50, //lvl 18
 ];
-const APHELIOS_Q_CRESCENDUM_AD_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const APHELIOS_Q_CRESCENDUM_PHYS_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     35.,  //lvl 1
     35.,  //lvl 2
     50.,  //lvl 3
@@ -191,7 +191,7 @@ const APHELIOS_Q_CRESCENDUM_BONUS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
     0.60, //lvl 17
     0.60, //lvl 18
 ];
-const APHELIOS_Q_INFERNUM_AD_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const APHELIOS_Q_INFERNUM_PHYS_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     25.,   //lvl 1
     25.,   //lvl 2
     31.67, //lvl 3
@@ -233,42 +233,42 @@ const APHELIOS_Q_INFERNUM_BONUS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
 ];
 
 fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let lvl_idx: usize = usize::from(champ.lvl.get() - 1); //to index spell ratios by lvl
+    let lvl_idx: usize = usize::from(champ.lvl.get() - 1); //to index ability ratios by lvl
 
     //calibrium weighted 1/5 (doesn't count the basic attack that triggers the mark)
-    let mut ad_dmg: f32 = APHELIOS_Q_CALIBRUM_HIT_PERCENT / 5.
-        * (APHELIOS_Q_CALIBRUM_AD_DMG_BY_LVL[lvl_idx]
+    let mut phys_dmg: f32 = APHELIOS_Q_CALIBRUM_HIT_PERCENT / 5.
+        * (APHELIOS_Q_CALIBRUM_PHYS_DMG_BY_LVL[lvl_idx]
             + APHELIOS_Q_CALIBRUM_BONUS_AD_RATIO_BY_LVL[lvl_idx] * champ.stats.bonus_ad
             + champ.stats.ap()); //projectile dmg
-    let mut basic_attack_ad_dmg: f32 =
+    let mut basic_attack_phys_dmg: f32 =
         APHELIOS_Q_CALIBRUM_HIT_PERCENT / 5. * (15. + 0.2 * champ.stats.bonus_ad); //mark dmg (considered basic attack dmg)
 
     //severum weighted 1/5 (no on_hit applied because we don't want to stack those effects since we consider the average q_cast)
-    basic_attack_ad_dmg += 1. / 5.
+    basic_attack_phys_dmg += 1. / 5.
         * (6. + 2. * champ.stats.bonus_as).round()
-        * ((APHELIOS_Q_SEVERUM_AD_DMG_BY_LVL[lvl_idx]
+        * ((APHELIOS_Q_SEVERUM_PHYS_DMG_BY_LVL[lvl_idx]
             + APHELIOS_Q_SEVERUM_BONUS_AD_RATIO_BY_LVL[lvl_idx] * champ.stats.bonus_ad)
             * champ.stats.crit_coef());
 
     //gravitum weighted 1/5
-    let ap_dmg: f32 = 1. / 5.
-        * (APHELIOS_Q_GRAVITUM_AP_DMG_BY_LVL[lvl_idx]
+    let magic_dmg: f32 = 1. / 5.
+        * (APHELIOS_Q_GRAVITUM_MAGIC_DMG_BY_LVL[lvl_idx]
             + APHELIOS_Q_GRAVITUM_BONUS_AD_RATIO_BY_LVL[lvl_idx] * champ.stats.bonus_ad
             + 0.7 * champ.stats.ap());
 
     //infernum weighted 1/5
-    ad_dmg += 1. / 5.
+    phys_dmg += 1. / 5.
         * APHELIOS_Q_INFERNUM_N_TARGETS
-        * (APHELIOS_Q_INFERNUM_AD_DMG_BY_LVL[lvl_idx]
+        * (APHELIOS_Q_INFERNUM_PHYS_DMG_BY_LVL[lvl_idx]
             + APHELIOS_Q_INFERNUM_BONUS_AD_RATIO_BY_LVL[lvl_idx] * champ.stats.bonus_ad
             + 0.7 * champ.stats.ap()); //cone AoE dmg
-    basic_attack_ad_dmg +=
+    basic_attack_phys_dmg +=
         1. / 5. * APHELIOS_Q_INFERNUM_N_TARGETS * champ.stats.ad() * champ.stats.crit_coef(); //additionnal basic attack dmg (no on_hit applied because we don't want to stack those effects since we consider the average q_cast)
 
     //crescendum weighted 1/5, considered ability dmg
-    ad_dmg += 1. / 5.
+    phys_dmg += 1. / 5.
         * APHELIOS_Q_CRESCENDUM_N_SENTRY_ATTACKS
-        * (APHELIOS_Q_CRESCENDUM_AD_DMG_BY_LVL[lvl_idx]
+        * (APHELIOS_Q_CRESCENDUM_PHYS_DMG_BY_LVL[lvl_idx]
             + APHELIOS_Q_CRESCENDUM_BONUS_AD_RATIO_BY_LVL[lvl_idx] * champ.stats.bonus_ad
             + 0.5 * champ.stats.ap())
         * champ.stats.crit_coef();
@@ -276,14 +276,14 @@ fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //consider 2 hits: initial ability + basic attack (severum, infernum)
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, ap_dmg, 0.),
+        (phys_dmg, magic_dmg, 0.),
         (1, 1),
         DmgType::Ability,
         false,
         (2. + APHELIOS_Q_CALIBRUM_HIT_PERCENT + APHELIOS_Q_INFERNUM_N_TARGETS) / 5.,
     ) + champ.dmg_on_target(
         target_stats,
-        (basic_attack_ad_dmg, 0., 0.),
+        (basic_attack_phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Other,
         true,
@@ -291,30 +291,28 @@ fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     )
 }
 
-const APHELIOS_R_INITIAL_AD_DMG_BY_R_LVL: [f32; 3] = [125., 175., 225.];
-const APHELIOS_R_CALIBRUM_AD_DMG_BY_R_LVL: [f32; 3] = [50., 80., 110.];
+const APHELIOS_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [125., 175., 225.];
+const APHELIOS_R_CALIBRUM_PHYS_DMG_BY_R_LVL: [f32; 3] = [50., 80., 110.];
 const APHELIOS_R_SEVERUM_HEAL_BY_R_LVL: [f32; 3] = [250., 350., 450.];
-const APHELIOS_R_INFERNUM_AD_DMG_BY_R_LVL: [f32; 3] = [50., 100., 150.];
+const APHELIOS_R_INFERNUM_PHYS_DMG_BY_R_LVL: [f32; 3] = [50., 100., 150.];
 fn aphelios_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index spell ratios by lvl
+    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     //initial projectile dmg
-    let ad_dmg: f32 = APHELIOS_R_N_TARGETS
-        * (APHELIOS_R_INITIAL_AD_DMG_BY_R_LVL[r_lvl_idx]
-            + 0.2 * champ.stats.bonus_ad
-            + champ.stats.ap());
+    let phys_dmg: f32 = APHELIOS_R_N_TARGETS
+        * (APHELIOS_R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + 0.2 * champ.stats.bonus_ad + champ.stats.ap());
 
     //basic attack coming after
     let special_crit_coef: f32 =
         1. + champ.stats.crit_chance * (0.2 + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG); //special crit coef for R basic attack
-    let basic_attack_ad_dmg: f32 = APHELIOS_R_N_TARGETS
+    let basic_attack_phys_dmg: f32 = APHELIOS_R_N_TARGETS
         * APHELIOS_BASIC_ATTACKS_MULTIPLIER
         * (champ.stats.ad() * special_crit_coef);
 
     //calibrum, mark (considered basic attack dmg) weighted 1/5
-    let mark_ad_dmg: f32 = 1. / 5.
+    let mark_phys_dmg: f32 = 1. / 5.
         * APHELIOS_R_N_TARGETS
-        * (APHELIOS_R_CALIBRUM_AD_DMG_BY_R_LVL[r_lvl_idx] + 15. + 0.2 * champ.stats.bonus_ad);
+        * (APHELIOS_R_CALIBRUM_PHYS_DMG_BY_R_LVL[r_lvl_idx] + 15. + 0.2 * champ.stats.bonus_ad);
 
     //severum, heal weighted 1/5
     champ.sim_results.heals_shields += 1. / 5. * (APHELIOS_R_SEVERUM_HEAL_BY_R_LVL[r_lvl_idx]);
@@ -322,24 +320,24 @@ fn aphelios_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //gravitum, root not taken into account
 
     //infernum, AoE dmg weighted 1/5
-    let mut infernum_ad_dmg: f32 = 1. / 5.
+    let mut infernum_phys_dmg: f32 = 1. / 5.
         * APHELIOS_R_N_TARGETS
-        * (APHELIOS_R_INFERNUM_AD_DMG_BY_R_LVL[r_lvl_idx] + 0.25 * champ.stats.bonus_ad); //initial ability additionnal dmg
-    infernum_ad_dmg += 1. / 5. * (APHELIOS_R_N_TARGETS - 1.) * (0.9 * basic_attack_ad_dmg); //infernum 200 years AoE dmgs coming from other targets hit
+        * (APHELIOS_R_INFERNUM_PHYS_DMG_BY_R_LVL[r_lvl_idx] + 0.25 * champ.stats.bonus_ad); //initial ability additionnal dmg
+    infernum_phys_dmg += 1. / 5. * (APHELIOS_R_N_TARGETS - 1.) * (0.9 * basic_attack_phys_dmg); //infernum 200 years AoE dmgs coming from other targets hit
 
     //crescendum, chakrams not taken into account
 
     //2 hits: initial projectile + basic attack
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg + infernum_ad_dmg, 0., 0.),
+        (phys_dmg + infernum_phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ultimate,
         false,
         APHELIOS_R_N_TARGETS,
     ) + champ.dmg_on_target(
         target_stats,
-        (basic_attack_ad_dmg + mark_ad_dmg, 0., 0.),
+        (basic_attack_phys_dmg + mark_phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Other,
         true,
@@ -489,7 +487,7 @@ impl Unit {
             base_ad: 55.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 26.,
             mr: 30.,
             base_as: APHELIOS_BASE_AS,
@@ -512,6 +510,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -523,7 +522,7 @@ impl Unit {
             base_ad: 2.3,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 4.2,
             mr: 1.3,
             base_as: 0.,
@@ -546,6 +545,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,

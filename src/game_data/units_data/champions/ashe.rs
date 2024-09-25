@@ -4,7 +4,7 @@ use crate::game_data::{items_data::items::*, units_data::*};
 const ASHE_Q_MAX_STACKS: u8 = 4;
 const ASHE_W_N_TARGETS: f32 = 1.2;
 
-fn ashe_init_spells(champ: &mut Unit) {
+fn ashe_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::AsheFrosted] = 0;
 
     champ.effects_stacks[EffectStackId::AsheFocusStacks] = 0;
@@ -21,12 +21,12 @@ pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     };
     //check if q buff is active (max stacks + 1 indicates that q buff is active)
     if champ.effects_stacks[EffectStackId::AsheFocusStacks] == ASHE_Q_MAX_STACKS + 1 {
-        let ad_dmg: f32 = ASHE_Q_AD_RATIO_BY_Q_LVL[usize::from(champ.q_lvl - 1)]
+        let phys_dmg: f32 = ASHE_Q_AD_RATIO_BY_Q_LVL[usize::from(champ.q_lvl - 1)]
             * champ.stats.ad()
             * special_crit_coef;
         champ.dmg_on_target(
             target_stats,
-            (ad_dmg, 0., 0.),
+            (phys_dmg, 0., 0.),
             (5, 1),
             DmgType::Other,
             true,
@@ -37,10 +37,10 @@ pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         if champ.effects_stacks[EffectStackId::AsheFocusStacks] < ASHE_Q_MAX_STACKS {
             champ.effects_stacks[EffectStackId::AsheFocusStacks] += 1;
         }
-        let ad_dmg: f32 = champ.stats.ad() * special_crit_coef;
+        let phys_dmg: f32 = champ.stats.ad() * special_crit_coef;
         champ.dmg_on_target(
             target_stats,
-            (ad_dmg, 0., 0.),
+            (phys_dmg, 0., 0.),
             (1, 1),
             DmgType::Other,
             true,
@@ -81,17 +81,17 @@ fn ashe_q(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     0.
 }
 
-const ASHE_W_BASE_DMG_BY_W_LVL: [f32; 5] = [20., 35., 50., 65., 80.];
+const ASHE_W_PHYS_DMG_BY_W_LVL: [f32; 5] = [20., 35., 50., 65., 80.];
 
 fn ashe_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index spell ratios by lvl
+    let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
-    let ad_dmg: f32 = ASHE_W_N_TARGETS * (ASHE_W_BASE_DMG_BY_W_LVL[w_lvl_idx] + champ.stats.ad());
+    let phys_dmg: f32 = ASHE_W_N_TARGETS * (ASHE_W_PHYS_DMG_BY_W_LVL[w_lvl_idx] + champ.stats.ad());
 
     champ.effects_stacks[EffectStackId::AsheFrosted] = 1; //apply frost
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -104,17 +104,17 @@ fn ashe_e(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     0.
 }
 
-const ASHE_R_BASE_DMG_BY_R_LVL: [f32; 3] = [200., 400., 600.];
+const ASHE_R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [200., 400., 600.];
 
 fn ashe_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index spell ratios by lvl
+    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let ap_dmg: f32 = ASHE_R_BASE_DMG_BY_R_LVL[r_lvl_idx] + 1.20 * champ.stats.ap();
+    let magic_dmg: f32 = ASHE_R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + 1.20 * champ.stats.ap();
 
     champ.effects_stacks[EffectStackId::AsheFrosted] = 1; //apply frost
     champ.dmg_on_target(
         target_stats,
-        (0., ap_dmg, 0.),
+        (0., magic_dmg, 0.),
         (1, 1),
         DmgType::Ultimate,
         false,
@@ -275,7 +275,7 @@ impl Unit {
             base_ad: 59.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 26.,
             mr: 30.,
             base_as: ASHE_BASE_AS,
@@ -298,6 +298,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -309,7 +310,7 @@ impl Unit {
             base_ad: 2.95,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 4.6,
             mr: 1.3,
             base_as: 0.,
@@ -332,28 +333,29 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
-        init_abilities: Some(ashe_init_spells),
+        init_abilities: Some(ashe_init_abilities),
         basic_attack: ashe_basic_attack,
         q: BasicAbility {
             cast: ashe_q,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         w: BasicAbility {
             cast: ashe_w,
             cast_time: 0.25,
-            base_cooldown_by_ability_lvl: [18., 14.5, 11., 7.5, 4., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [18., 14.5, 11., 7.5, 4., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         e: BasicAbility {
             cast: ashe_e,
             cast_time: 0.25,
-            base_cooldown_by_ability_lvl: [90., 80., 70., 60., 50., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [90., 80., 70., 60., 50., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         r: UltimateAbility {
             cast: ashe_r,

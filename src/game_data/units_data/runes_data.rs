@@ -1,4 +1,4 @@
-use super::{ap_formula, runes_hp_by_lvl, Unit};
+use super::{runes_hp_by_lvl, Unit};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
@@ -36,21 +36,19 @@ impl Unit {
 
         //adaptive force doesn't count in champions passives, so it only depends on items stats in practise
         let runes_adaptive_bonus_ad: f32;
-        let runes_adaptive_ap: f32;
-        if self.items_stats.bonus_ad
-            >= ap_formula(self.items_stats.ap_flat, self.items_stats.ap_coef)
-        {
+        let runes_adaptive_ap_flat: f32;
+        if self.items_stats.bonus_ad >= self.items_stats.ap() {
             runes_adaptive_bonus_ad = 5.4;
-            runes_adaptive_ap = 0.;
+            runes_adaptive_ap_flat = 0.;
         } else {
             runes_adaptive_bonus_ad = 0.;
-            runes_adaptive_ap = 9.;
+            runes_adaptive_ap_flat = 9.;
         }
 
         match self.runes_page.shard1 {
             RuneShard::Left => {
                 self.runes_stats.bonus_ad += runes_adaptive_bonus_ad;
-                self.runes_stats.ap_flat += runes_adaptive_ap;
+                self.runes_stats.ap_flat += runes_adaptive_ap_flat;
             }
             RuneShard::Middle => self.runes_stats.bonus_as += 0.10,
             RuneShard::Right => self.runes_stats.ability_haste += 8.,
@@ -59,7 +57,7 @@ impl Unit {
         match self.runes_page.shard2 {
             RuneShard::Left => {
                 self.runes_stats.bonus_ad += runes_adaptive_bonus_ad;
-                self.runes_stats.ap_flat += runes_adaptive_ap;
+                self.runes_stats.ap_flat += runes_adaptive_ap_flat;
             }
             RuneShard::Middle => self.runes_stats.ms_percent += 0.02,
             RuneShard::Right => self.runes_stats.hp += runes_hp_by_lvl(self.lvl),

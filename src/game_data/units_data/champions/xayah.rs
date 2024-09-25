@@ -8,7 +8,7 @@ const XAYAH_N_FEATHERS_BEFORE_RECALL: u8 = 6;
 const XAYAH_FEATHERS_N_TARGETS: f32 = 1.10;
 const XAYAH_Q_HIT_PERCENT: f32 = 0.9;
 
-fn xayah_init_spells(champ: &mut Unit) {
+fn xayah_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::XayahNFeathersOnGround] = 0;
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = 0;
     champ.effects_values[EffectValueId::XayahWBasicAttackCoef] = 1.;
@@ -28,12 +28,12 @@ fn xayah_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         champ.effects_stacks[EffectStackId::XayahNFeathersOnGround] += 1;
     }
 
-    let ad_dmg: f32 = champ.effects_values[EffectValueId::XayahWBasicAttackCoef]
+    let phys_dmg: f32 = champ.effects_values[EffectValueId::XayahWBasicAttackCoef]
         * champ.stats.ad()
         * champ.stats.crit_coef();
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Other,
         true,
@@ -42,26 +42,26 @@ fn xayah_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 }
 
 const XAYAH_CLEAN_CUTS_MAX_STACKS: u8 = 5;
-const XAYAH_CLEAN_CUTS_STACKS_PER_SPELL: u8 = 3;
+const XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY: u8 = 3;
 
-const XAYAH_Q_AD_DMG_BY_Q_LVL: [f32; 5] = [45., 60., 75., 90., 105.];
+const XAYAH_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [45., 60., 75., 90., 105.];
 
 fn xayah_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
         XAYAH_CLEAN_CUTS_MAX_STACKS,
         champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
-            + XAYAH_CLEAN_CUTS_STACKS_PER_SPELL,
+            + XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY,
     );
 
     //put two feathers on ground
     champ.effects_stacks[EffectStackId::XayahNFeathersOnGround] += 2;
 
-    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index spell ratios by lvl
-    let ad_dmg: f32 = 2. * (XAYAH_Q_AD_DMG_BY_Q_LVL[q_lvl_idx] + 0.5 * champ.stats.bonus_ad);
+    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
+    let phys_dmg: f32 = 2. * (XAYAH_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx] + 0.5 * champ.stats.bonus_ad);
 
     champ.dmg_on_target(
         target_stats,
-        (XAYAH_Q_HIT_PERCENT * ad_dmg, 0., 0.),
+        (XAYAH_Q_HIT_PERCENT * phys_dmg, 0., 0.),
         (2, 1),
         DmgType::Ability,
         false,
@@ -121,33 +121,33 @@ fn xayah_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
         XAYAH_CLEAN_CUTS_MAX_STACKS,
         champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
-            + XAYAH_CLEAN_CUTS_STACKS_PER_SPELL,
+            + XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY,
     );
     champ.add_temporary_effect(&XAYAH_DEADLY_PLUMAGE_AS, 0.);
     0.
 }
 
-const XAYAH_E_AD_DMG_PER_FEATHER_BY_E_LVL: [f32; 5] = [55., 65., 75., 85., 95.];
+const XAYAH_E_PHYS_DMG_PER_FEATHER_BY_E_LVL: [f32; 5] = [55., 65., 75., 85., 95.];
 
 fn xayah_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
         XAYAH_CLEAN_CUTS_MAX_STACKS,
         champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
-            + XAYAH_CLEAN_CUTS_STACKS_PER_SPELL,
+            + XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY,
     );
-    let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index spell ratios by lvl
+    let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
     //recall feathers
     let n: f32 = f32::from(champ.effects_stacks[EffectStackId::XayahNFeathersOnGround]); //number of feathers
     champ.effects_stacks[EffectStackId::XayahNFeathersOnGround] = 0;
-    let mut ad_dmg: f32 = (XAYAH_E_AD_DMG_PER_FEATHER_BY_E_LVL[e_lvl_idx]
+    let mut phys_dmg: f32 = (XAYAH_E_PHYS_DMG_PER_FEATHER_BY_E_LVL[e_lvl_idx]
         + 0.6 * champ.stats.bonus_ad)
         * (1. + 0.75 * champ.stats.crit_chance); //dmg for 1 feather
-    ad_dmg *= n - 0.05 * (0.5 * n * (n - 1.)); //dmg formula for n feathers (diminishing returns)
+    phys_dmg *= n - 0.05 * (0.5 * n * (n - 1.)); //dmg formula for n feathers (diminishing returns)
 
     champ.dmg_on_target(
         target_stats,
-        (XAYAH_FEATHERS_N_TARGETS * ad_dmg, 0., 0.),
+        (XAYAH_FEATHERS_N_TARGETS * phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -155,24 +155,24 @@ fn xayah_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     )
 }
 
-const XAYAH_R_AD_DMG_BY_R_LVL: [f32; 3] = [200., 300., 400.];
+const XAYAH_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [200., 300., 400.];
 
 fn xayah_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
         XAYAH_CLEAN_CUTS_MAX_STACKS,
         champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
-            + XAYAH_CLEAN_CUTS_STACKS_PER_SPELL,
+            + XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY,
     );
     champ.walk(1.5);
     champ.effects_stacks[EffectStackId::XayahNFeathersOnGround] += 5;
 
-    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index spell ratios by lvl
+    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let ad_dmg: f32 = XAYAH_R_AD_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad;
+    let phys_dmg: f32 = XAYAH_R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad;
 
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ultimate,
         false,
@@ -184,7 +184,7 @@ fn xayah_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durati
     while champ.time < fight_duration {
         //priority order: basic attack when too much clean cuts stacks, e when enough feathers on ground, q, w, basic attack
         if champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
-            > XAYAH_CLEAN_CUTS_MAX_STACKS - XAYAH_CLEAN_CUTS_STACKS_PER_SPELL
+            > XAYAH_CLEAN_CUTS_MAX_STACKS - XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY
         {
             //wait for the basic attack cooldown if there is one
             if champ.basic_attack_cd != 0. {
@@ -345,7 +345,7 @@ impl Unit {
             base_ad: 60.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 25.,
             mr: 30.,
             base_as: XAYAH_BASE_AS,
@@ -368,6 +368,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -379,7 +380,7 @@ impl Unit {
             base_ad: 3.5,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 4.2,
             mr: 1.3,
             base_as: 0.,
@@ -402,28 +403,29 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
-        init_abilities: Some(xayah_init_spells),
+        init_abilities: Some(xayah_init_abilities),
         basic_attack: xayah_basic_attack,
         q: BasicAbility {
             cast: xayah_q,
             cast_time: 0.2, //average value
-            base_cooldown_by_ability_lvl: [10., 0.5, 9., 8.5, 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [10., 0.5, 9., 8.5, 8., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         w: BasicAbility {
             cast: xayah_w,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [20., 19., 18., 17., 16., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [20., 19., 18., 17., 16., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         e: BasicAbility {
             cast: xayah_e,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [12., 11., 10., 9., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [12., 11., 10., 9., 8., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         r: UltimateAbility {
             cast: xayah_r,

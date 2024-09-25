@@ -32,9 +32,9 @@ fn champion_test_ground() {
             base_ad: 0.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
-            armor: 100., //in game default value is 0.
-            mr: 100.,    //in game default value is 0.
+            ap_percent: 0.,
+            armor: 0., //in game default value is 0.
+            mr: 0.,    //in game default value is 0.
             base_as: TARGET_DUMMY_BASE_AS,
             bonus_as: 0.,
             ability_haste: 0.,
@@ -55,6 +55,7 @@ fn champion_test_ground() {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -85,15 +86,10 @@ fn champion_test_ground() {
 
     //creation of champion
     let mut champ: Unit = Unit::from_defaults(
-        &Unit::LUCIAN_PROPERTIES,
+        &Unit::EZREAL_PROPERTIES,
         6,
         Build([
-            &RIFTMAKER,
-            &LIANDRYS_TORMENT,
-            &INFINITY_EDGE,
-            &LORD_DOMINIKS_REGARDS,
-            &ESSENCE_REAVER,
-            &IMMORTAL_SHIELDBOW,
+            &MURAMANA, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM,
         ]),
     )
     .expect("Failed to create unit");
@@ -102,17 +98,24 @@ fn champion_test_ground() {
     println!("{}", champ);
     for i in 0..9 {
         println!(
-            "{} - {} - {}",
+            "{} - {} - {} - t: {}",
             i + 1,
-            champ.basic_attack(&target_dummy.stats),
-            champ.sim_results.dmg_done
+            champ.q(&target_dummy.stats),
+            champ.sim_results.dmg_done,
+            champ.time,
         );
-        champ.walk(champ.basic_attack_cd);
+        champ.walk(champ.q_cd);
     }
+    champ.walk(4.5 - 1.25);
+    println!(
+        "{} - t: {}",
+        champ.basic_attack(&target_dummy.stats),
+        champ.time,
+    );
 }
 
 fn main() -> Result<(), ()> {
-    champion_test_ground();
-    //cli::launch_interface();
+    //champion_test_ground();
+    cli::launch_interface();
     Ok(())
 }

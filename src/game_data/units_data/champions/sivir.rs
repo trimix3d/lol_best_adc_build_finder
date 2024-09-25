@@ -7,7 +7,7 @@ const SIVIR_Q_RETURN_PERCENT: f32 = 0.66;
 /// Number of targets hit by sivir ricochets (adds to the basic attack that launched the ricochet).
 const SIVIR_W_N_RICOCHETS: f32 = 1.0;
 
-fn sivir_init_spells(champ: &mut Unit) {
+fn sivir_init_abilities(champ: &mut Unit) {
     champ.effects_values[EffectValueId::SivirRicochetBonusAS] = 0.;
     champ.effects_values[EffectValueId::SivirFleetOfFootMsFlat] = 0.;
     champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] = 0.;
@@ -59,19 +59,19 @@ const SIVIR_FLEET_OF_FOOT: TemporaryEffect = TemporaryEffect {
 pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     champ.add_temporary_effect(&SIVIR_FLEET_OF_FOOT, 0.);
 
-    //if buffed by r, basic attacks reduces spells cooldown
+    //if buffed by r, basic attacks reduces abilities cooldown
     if champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] != 0. {
-        champ.q_cd = f32::max(0., champ.q_cd - SIVIR_R_SPELLS_CD_REFUND_TIME);
-        champ.w_cd = f32::max(0., champ.w_cd - SIVIR_R_SPELLS_CD_REFUND_TIME);
-        champ.e_cd = f32::max(0., champ.e_cd - SIVIR_R_SPELLS_CD_REFUND_TIME);
+        champ.q_cd = f32::max(0., champ.q_cd - SIVIR_R_ABILITIES_CD_REFUND_TIME);
+        champ.w_cd = f32::max(0., champ.w_cd - SIVIR_R_ABILITIES_CD_REFUND_TIME);
+        champ.e_cd = f32::max(0., champ.e_cd - SIVIR_R_ABILITIES_CD_REFUND_TIME);
     }
 
-    let basic_attack_ad_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
+    let basic_attack_phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
     //basic attack dmg, instance of dmg must be done before w ricochets
     let mut tot_dmg: f32 = champ.dmg_on_target(
         target_stats,
-        (basic_attack_ad_dmg, 0., 0.),
+        (basic_attack_phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Other,
         true,
@@ -81,16 +81,16 @@ pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //w ricochets dmg, instance of dmg must be done after basic attack
     if champ.effects_values[EffectValueId::SivirRicochetBonusAS] != 0. {
         let w_lvl_idx: usize = usize::from(champ.w_lvl - 1);
-        let ricochet_ad_dmg: f32 = SIVIR_W_N_RICOCHETS
+        let ricochet_phys_dmg: f32 = SIVIR_W_N_RICOCHETS
             * SIVIR_W_AD_RATIO_BY_W_LVL[w_lvl_idx]
             * champ.stats.ad()
             * champ.stats.crit_coef();
 
         tot_dmg += champ.dmg_on_target(
             target_stats,
-            (ricochet_ad_dmg, 0., 0.),
-            (0, 0), //most spells effects don't work with sivir ricochets (known exception: shojin), so putting 0 instances cancels their effects -> adapt items pool as a fail safe
-            DmgType::Ability, //spells coef (shojin) will still run even with 0 instances
+            (ricochet_phys_dmg, 0., 0.),
+            (0, 0), //most abilities effects don't work with sivir ricochets (known exception: shojin), so putting 0 instances cancels their effects -> adapt items pool as a fail safe
+            DmgType::Ability, //abilities coef (shojin) will still run even with 0 instances
             false,
             1.,
         );
@@ -99,22 +99,22 @@ pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     tot_dmg
 }
 
-const SIVIR_Q_BASE_DMG_BY_Q_LVL: [f32; 5] = [15., 30., 45., 60., 75.];
+const SIVIR_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [15., 30., 45., 60., 75.];
 const SIVIR_Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.80, 0.85, 0.90, 0.95, 1.0];
 
 fn sivir_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index spell ratios by lvl
+    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
-    let ad_dmg: f32 = SIVIR_Q_N_TARGETS
+    let phys_dmg: f32 = SIVIR_Q_N_TARGETS
         * (1. + SIVIR_Q_RETURN_PERCENT)
         * (1. + 0.5 * champ.stats.crit_chance)
-        * (SIVIR_Q_BASE_DMG_BY_Q_LVL[q_lvl_idx]
+        * (SIVIR_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
             + champ.stats.ad() * SIVIR_Q_AD_RATIO_BY_Q_LVL[q_lvl_idx]
             + 0.6 * champ.stats.ap());
 
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1 + (SIVIR_Q_RETURN_PERCENT as u8), 1),
         DmgType::Ability,
         false,
@@ -216,8 +216,8 @@ const SIVIR_ON_THE_HUNT_MS_LVL_3: TemporaryEffect = TemporaryEffect {
     cooldown: Unit::SIVIR_PROPERTIES.r.base_cooldown_by_ability_lvl[2],
 };
 
-/// Basic spells cooldown refunded by each basic attack when under r effect
-const SIVIR_R_SPELLS_CD_REFUND_TIME: f32 = 0.5;
+/// Basic abilities cooldown refunded by each basic attack when under r effect
+const SIVIR_R_ABILITIES_CD_REFUND_TIME: f32 = 0.5;
 
 fn sivir_r(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     match champ.r_lvl {
@@ -393,7 +393,7 @@ impl Unit {
             base_ad: 58.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 30.,
             mr: 30.,
             base_as: SIVIR_BASE_AS,
@@ -416,6 +416,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -427,7 +428,7 @@ impl Unit {
             base_ad: 2.5,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 4.45,
             mr: 1.3,
             base_as: 0.,
@@ -450,28 +451,29 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
-        init_abilities: Some(sivir_init_spells),
+        init_abilities: Some(sivir_init_abilities),
         basic_attack: sivir_basic_attack,
         q: BasicAbility {
             cast: sivir_q,
             cast_time: 0.175,
-            base_cooldown_by_ability_lvl: [10., 9.5, 9., 8.5, 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [10., 9.5, 9., 8.5, 8., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         w: BasicAbility {
             cast: sivir_w,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [12., 12., 12., 12., 12., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [12., 12., 12., 12., 12., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         e: BasicAbility {
             cast: sivir_e,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [24., 22.5, 21., 19.5, 18., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [24., 22.5, 21., 19.5, 18., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         r: UltimateAbility {
             cast: sivir_r,

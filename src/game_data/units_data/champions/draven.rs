@@ -7,7 +7,7 @@ const DRAVEN_R_N_TARGETS: f32 = 1.;
 /// Percentage of the time the q return hit its targets.
 const DRAVEN_R_RETURN_PERCENT: f32 = 0.75;
 
-fn draven_init_spells(champ: &mut Unit) {
+fn draven_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::DravenAxesInHand] = 0;
     champ.effects_stacks[EffectStackId::DravenAxesInAir] = 0;
     champ.effects_values[EffectValueId::DravenBloodRushBonusAS] = 0.;
@@ -45,17 +45,17 @@ const DRAVEN_THROW_AXE2: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-const DRAVEN_SPINNING_AXE_BASE_DMG_BY_Q_LVL: [f32; 5] = [40., 45., 50., 55., 60.];
+const DRAVEN_SPINNING_AXE_PHYS_DMG_BY_Q_LVL: [f32; 5] = [40., 45., 50., 55., 60.];
 const DRAVEN_SPINNING_AXE_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.75, 0.85, 0.95, 1.05, 1.15];
 
 fn draven_q_axe_bonus_dmg(champ: &Unit) -> f32 {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1);
-    DRAVEN_SPINNING_AXE_BASE_DMG_BY_Q_LVL[q_lvl_idx]
+    DRAVEN_SPINNING_AXE_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
         + champ.stats.bonus_ad * DRAVEN_SPINNING_AXE_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx]
 }
 
 fn draven_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let mut ad_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
+    let mut phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
     if champ.effects_stacks[EffectStackId::DravenAxesInHand] >= 1
         && champ.effects_stacks[EffectStackId::DravenAxesInAir] < 2
@@ -66,19 +66,19 @@ fn draven_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
             .contains_key(&DRAVEN_THROW_AXE1)
         {
             champ.add_temporary_effect(&DRAVEN_THROW_AXE1, 0.);
-            ad_dmg += draven_q_axe_bonus_dmg(champ);
+            phys_dmg += draven_q_axe_bonus_dmg(champ);
         } else if !champ
             .temporary_effects_durations
             .contains_key(&DRAVEN_THROW_AXE2)
         {
             champ.add_temporary_effect(&DRAVEN_THROW_AXE2, 0.);
-            ad_dmg += draven_q_axe_bonus_dmg(champ);
+            phys_dmg += draven_q_axe_bonus_dmg(champ);
         }
     }
 
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Other,
         true,
@@ -128,16 +128,16 @@ fn draven_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     0.
 }
 
-const DRAVEN_E_BASE_DMG_BY_E_LVL: [f32; 5] = [75., 110., 145., 180., 215.];
+const DRAVEN_E_PHYS_DMG_BY_E_LVL: [f32; 5] = [75., 110., 145., 180., 215.];
 
 fn draven_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index spell ratios by lvl
+    let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
-    let ad_dmg: f32 = DRAVEN_E_BASE_DMG_BY_E_LVL[e_lvl_idx] + 0.5 * champ.stats.bonus_ad;
+    let phys_dmg: f32 = DRAVEN_E_PHYS_DMG_BY_E_LVL[e_lvl_idx] + 0.5 * champ.stats.bonus_ad;
 
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -145,20 +145,20 @@ fn draven_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     )
 }
 
-const DRAVEN_R_BASE_DMG_BY_R_LVL: [f32; 3] = [175., 275., 375.];
+const DRAVEN_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [175., 275., 375.];
 const DRAVEN_R_BONUS_AD_RATIO_BY_R_LVL: [f32; 3] = [1.10, 1.30, 1.50];
 
 fn draven_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index spell ratios by lvl
+    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let ad_dmg: f32 = DRAVEN_R_N_TARGETS
+    let phys_dmg: f32 = DRAVEN_R_N_TARGETS
         * (1. + DRAVEN_R_RETURN_PERCENT)
-        * (DRAVEN_R_BASE_DMG_BY_R_LVL[r_lvl_idx]
+        * (DRAVEN_R_PHYS_DMG_BY_R_LVL[r_lvl_idx]
             + champ.stats.bonus_ad * DRAVEN_R_BONUS_AD_RATIO_BY_R_LVL[r_lvl_idx]);
 
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         ((1. + DRAVEN_R_RETURN_PERCENT) as u8, 1),
         DmgType::Ultimate,
         false,
@@ -337,7 +337,7 @@ impl Unit {
             base_ad: 62.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 29.,
             mr: 30.,
             base_as: DRAVEN_BASE_AS,
@@ -360,6 +360,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -371,7 +372,7 @@ impl Unit {
             base_ad: 3.6,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 4.5,
             mr: 1.3,
             base_as: 0.,
@@ -394,28 +395,29 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
-        init_abilities: Some(draven_init_spells),
+        init_abilities: Some(draven_init_abilities),
         basic_attack: draven_basic_attack,
         q: BasicAbility {
             cast: draven_q,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [12., 11., 10., 9., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [12., 11., 10., 9., 8., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         w: BasicAbility {
             cast: draven_w,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [12., 12., 12., 12., 12., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [12., 12., 12., 12., 12., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         e: BasicAbility {
             cast: draven_e,
             cast_time: 0.25,
-            base_cooldown_by_ability_lvl: [18., 17., 16., 15., 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [18., 17., 16., 15., 14., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         r: UltimateAbility {
             cast: draven_r,

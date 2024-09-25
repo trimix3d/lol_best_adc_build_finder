@@ -2,11 +2,11 @@ use crate::game_data::{items_data::items::*, units_data::*};
 
 //champion parameters (constants):
 /// Percentage of target missing hp when second skin 5 stacks procs.
-/// The missing hp taken for the calculation is the value AFTER the ad dmg from the basic attack hits,
+/// The missing hp taken for the calculation is the value AFTER the phys dmg from the basic attack hits,
 const KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT: f32 = 0.55;
 const KAISA_W_HIT_PERCENT: f32 = 0.85;
 
-fn kaisa_init_spells(champ: &mut Unit) {
+fn kaisa_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] = 0;
     champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] = 0.;
 
@@ -38,7 +38,7 @@ fn kaisa_init_spells(champ: &mut Unit) {
 
 const KAISA_SECOND_SKIN_MAX_STACKS: u8 = 5;
 
-const KAISA_SECOND_SKIN_BASE_AP_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const KAISA_SECOND_SKIN_BASE_MAGIC_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     5.,    //lvl 1
     6.06,  //lvl 2
     7.12,  //lvl 3
@@ -59,7 +59,7 @@ const KAISA_SECOND_SKIN_BASE_AP_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     23.,   //lvl 18
 ];
 
-const KAISA_SECOND_SKIN_AP_DMG_PER_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const KAISA_SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
     1.,    //lvl 1
     1.65,  //lvl 2
     2.29,  //lvl 3
@@ -84,13 +84,13 @@ const KAISA_SECOND_SKIN_AP_COEF_BY_STACK: [f32; KAISA_SECOND_SKIN_MAX_STACKS as 
     [0.15, 0.175, 0.20, 0.225, 0.25];
 
 /// Assumes stacks application have less than 4s interval (patch 14.08) (doesn't take into account stack duration on the ennemy).
-fn kaisa_second_skin_ap_dmg(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn kaisa_second_skin_magic_dmg(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let lvl_idx: usize = usize::from(champ.lvl.get() - 1);
 
     //calculate dmg before stacks application
-    let mut ap_dmg: f32 = KAISA_SECOND_SKIN_BASE_AP_DMG_BY_LVL[lvl_idx]
+    let mut magic_dmg: f32 = KAISA_SECOND_SKIN_BASE_MAGIC_DMG_BY_LVL[lvl_idx]
         + f32::from(champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks])
-            * KAISA_SECOND_SKIN_AP_DMG_PER_STACK_BY_LVL[lvl_idx]
+            * KAISA_SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL[lvl_idx]
         + champ.stats.ap()
             * KAISA_SECOND_SKIN_AP_COEF_BY_STACK
                 [usize::from(champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks])];
@@ -99,25 +99,25 @@ fn kaisa_second_skin_ap_dmg(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     if champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks]
         == KAISA_SECOND_SKIN_MAX_STACKS - 1
     {
-        ap_dmg += KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT
+        magic_dmg += KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT
             * target_stats.hp
             * (0.15 + 0.06 / 100. * champ.stats.ap());
         champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] = 0;
     } else {
         champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] += 1;
     }
-    ap_dmg
+    magic_dmg
 }
 
 fn kaisa_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //basic attack reduce e cd by 0.5 sec
     champ.e_cd = f32::max(0., champ.e_cd - 0.5);
 
-    let ad_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
-    let p_ap_dmg: f32 = kaisa_second_skin_ap_dmg(champ, target_stats);
+    let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
+    let p_magic_dmg: f32 = kaisa_second_skin_magic_dmg(champ, target_stats);
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, p_ap_dmg, 0.),
+        (phys_dmg, p_magic_dmg, 0.),
         (1, 1),
         DmgType::Other,
         true,
@@ -126,34 +126,34 @@ fn kaisa_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 }
 
 /// Assumes single target dmg.
-const KAISA_Q_AD_DMG_BY_Q_LVL: [f32; 5] = [90., 123.75, 157.5, 191.25, 225.];
+const KAISA_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [90., 123.75, 157.5, 191.25, 225.];
 /// Assumes single target dmg.
-const KAISA_EVOLVED_Q_AD_DMG_BY_Q_LVL: [f32; 5] = [150., 206.25, 262.5, 318.75, 375.];
+const KAISA_EVOLVED_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [150., 206.25, 262.5, 318.75, 375.];
 
 fn kaisa_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index spell ratios by lvl
+    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
     let n_missiles: u8;
-    let ad_dmg: f32;
+    let phys_dmg: f32;
     //missiles on the same target do reduced dmg beyond the first
     if champ.effects_stacks[EffectStackId::KaisaQEvolved] == 0 {
         //not evolved
         n_missiles = 6;
-        ad_dmg = KAISA_Q_AD_DMG_BY_Q_LVL[q_lvl_idx]
+        phys_dmg = KAISA_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
             + 1.2375 * champ.stats.bonus_ad
             + 0.45 * champ.stats.ap();
     //assumes single target dmg
     } else {
         //evolved
         n_missiles = 12;
-        ad_dmg = KAISA_EVOLVED_Q_AD_DMG_BY_Q_LVL[q_lvl_idx]
+        phys_dmg = KAISA_EVOLVED_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
             + 2.0625 * champ.stats.bonus_ad
             + 0.75 * champ.stats.ap(); //assumes single target dmg
     };
 
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (n_missiles, 1),
         DmgType::Ability,
         false,
@@ -166,25 +166,25 @@ const KAISA_W_PROJECTILE_SPEED: f32 = 1750.;
 /// Has an impact on evolved w cd refund (greater travel time -> cd refund is less relevant).
 const KAISA_W_TRAVEL_TIME: f32 = 1000. / KAISA_W_PROJECTILE_SPEED;
 
-const KAISA_W_AP_DMG_BY_W_LVL: [f32; 5] = [30., 55., 80., 105., 130.];
+const KAISA_W_MAGIC_DMG_BY_W_LVL: [f32; 5] = [30., 55., 80., 105., 130.];
 
 fn kaisa_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index spell ratios by lvl
+    let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
-    let mut ap_dmg: f32 =
-        KAISA_W_AP_DMG_BY_W_LVL[w_lvl_idx] + 1.3 * champ.stats.ad() + 0.45 * champ.stats.ap();
-    ap_dmg += kaisa_second_skin_ap_dmg(champ, target_stats)
-        + kaisa_second_skin_ap_dmg(champ, target_stats); //applies proc one by one
+    let mut magic_dmg: f32 =
+        KAISA_W_MAGIC_DMG_BY_W_LVL[w_lvl_idx] + 1.3 * champ.stats.ad() + 0.45 * champ.stats.ap();
+    magic_dmg += kaisa_second_skin_magic_dmg(champ, target_stats)
+        + kaisa_second_skin_magic_dmg(champ, target_stats); //applies proc one by one
 
     if champ.effects_stacks[EffectStackId::KaisaWEvolved] == 1 {
         //if evolved
         champ.w_cd -= KAISA_W_HIT_PERCENT * 0.75 * f32::max(0., champ.w_cd - KAISA_W_TRAVEL_TIME); //account for w travel time (otherwise cd is instantly refunded after casting and that can be op)
-        ap_dmg += kaisa_second_skin_ap_dmg(champ, target_stats);
+        magic_dmg += kaisa_second_skin_magic_dmg(champ, target_stats);
     }
 
     champ.dmg_on_target(
         target_stats,
-        (0., KAISA_W_HIT_PERCENT * ap_dmg, 0.),
+        (0., KAISA_W_HIT_PERCENT * magic_dmg, 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -218,7 +218,7 @@ const KAISA_SUPERCHARGE_AS: TemporaryEffect = TemporaryEffect {
 };
 
 fn kaisa_e(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index spell ratios by lvl
+    let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
     let capped_bonus_as: f32 = f32::min(
         1.,
@@ -238,7 +238,7 @@ const KAISA_R_SHIELD_BY_R_LVL: [f32; 3] = [70., 90., 110.];
 const KAISA_R_SHIELD_AD_RATIO_BY_R_LVL: [f32; 3] = [0.90, 1.35, 1.8];
 
 fn kaisa_r(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index spell ratios by lvl
+    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
     champ.sim_results.heals_shields += KAISA_R_SHIELD_BY_R_LVL[r_lvl_idx]
         + KAISA_R_SHIELD_AD_RATIO_BY_R_LVL[r_lvl_idx] * champ.stats.ad()
         + 1.2 * champ.stats.ap();
@@ -394,7 +394,7 @@ impl Unit {
             base_ad: 59.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 25.,
             mr: 30.,
             base_as: KAISA_BASE_AS,
@@ -417,6 +417,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -428,7 +429,7 @@ impl Unit {
             base_ad: 2.6,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 4.2,
             mr: 1.3,
             base_as: 0.,
@@ -451,28 +452,29 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
-        init_abilities: Some(kaisa_init_spells),
+        init_abilities: Some(kaisa_init_abilities),
         basic_attack: kaisa_basic_attack,
         q: BasicAbility {
             cast: kaisa_q,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [10., 9., 8., 7., 6., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [10., 9., 8., 7., 6., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         w: BasicAbility {
             cast: kaisa_w,
             cast_time: 0.4,
-            base_cooldown_by_ability_lvl: [22., 20., 18., 16., 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [22., 20., 18., 16., 14., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         e: BasicAbility {
             cast: kaisa_e,
-            cast_time: F32_TOL, //e cast time is spend walking in the spell function
-            base_cooldown_by_ability_lvl: [16., 14.5, 13., 11.5, 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            cast_time: F32_TOL, //e cast time is spend walking in the ability function
+            base_cooldown_by_ability_lvl: [16., 14.5, 13., 11.5, 10., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         r: UltimateAbility {
             cast: kaisa_r,

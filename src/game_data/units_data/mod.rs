@@ -20,7 +20,7 @@ use core::num::NonZeroU8;
 //units constants
 /// Maximum lvl value of a Unit.
 pub const MAX_UNIT_LVL: usize = 18;
-/// Minimum lvl value of a Unit in the program (can't be below lvl 6 because we want all spells to be available).
+/// Minimum lvl value of a Unit in the program (can't be below lvl 6 because we want all abilities to be available).
 pub const MIN_UNIT_LVL: u8 = 6;
 /// Maximum number of items an Unit can hold.
 pub const MAX_UNIT_ITEMS: usize = 6;
@@ -51,11 +51,6 @@ pub fn capped_ms(raw_ms: f32) -> f32 {
         //under 0
         110. + raw_ms * 0.01
     }
-}
-
-/// From flat ap and ap coef, returns total ap amount.
-fn ap_formula(ap_flat: f32, ap_coef: f32) -> f32 {
-    ap_flat * (1. + ap_coef)
 }
 
 /// Returns coefficient multiplying dmg dealt, in the case when resistance stat is positive.
@@ -100,38 +95,39 @@ fn runes_hp_by_lvl(lvl: NonZeroU8) -> f32 {
 
 #[derive(Debug, Clone, Copy)]
 pub struct UnitStats {
-    pub hp: f32,                 //health points
-    pub mana: f32,               //mana
-    pub base_ad: f32,            //base attack damage
-    pub bonus_ad: f32,           //bonus attack damage
-    pub ap_flat: f32,            //ability power
-    pub ap_coef: f32,            //ap coef
-    pub armor: f32,              //armor
-    pub mr: f32,                 //magic resistance
-    pub base_as: f32,            //base attack speed
-    pub bonus_as: f32,           //bonus attack speed
-    pub ability_haste: f32,      //ability haste
-    pub basic_haste: f32,        //basic ability haste (only affects basic spells)
-    pub ultimate_haste: f32,     //ultimate haste (only affects ultimate)
-    pub item_haste: f32,         //item haste
-    pub crit_chance: f32,        //crit chance
-    pub crit_dmg: f32,           //crit damage
-    pub ms_flat: f32,            //flat movement speed
-    pub ms_percent: f32,         //% movement speed
-    pub lethality: f32,          //lethality (kinda "flat armor penetration")
-    pub armor_pen_percent: f32,  //% armor penetration, stacks multiplicatively
-    pub magic_pen_flat: f32,     //flat magic penetration
-    pub magic_pen_percent: f32,  //% magic penetration, stacks multiplicatively
-    pub armor_red_flat: f32,     //flat armor reduction
-    pub armor_red_percent: f32,  //% armor reduction, stacks multiplicatively
-    pub mr_red_flat: f32,        //flat magic reduction
-    pub mr_red_percent: f32,     //% magic reduction, stacks multiplicatively
-    pub life_steal: f32,         //life steal
-    pub omnivamp: f32,           //omnivamp
-    pub phys_dmg_modifier: f32,  //physical dmg modifier, stacks multiplicatively
-    pub magic_dmg_modifier: f32, //magic dmg modifier, stacks multiplicatively
-    pub true_dmg_modifier: f32,  //true dmg modifier, stacks multiplicatively
-    pub tot_dmg_modifier: f32,   //total dmg modifier, stacks multiplicatively
+    pub hp: f32,                   //health points
+    pub mana: f32,                 //mana
+    pub base_ad: f32,              //base attack damage
+    pub bonus_ad: f32,             //bonus attack damage
+    pub ap_flat: f32,              //ability power
+    pub ap_percent: f32,           //ap coef
+    pub armor: f32,                //armor
+    pub mr: f32,                   //magic resistance
+    pub base_as: f32,              //base attack speed
+    pub bonus_as: f32,             //bonus attack speed
+    pub ability_haste: f32,        //ability haste
+    pub basic_haste: f32,          //basic ability haste (only affects basic abilities)
+    pub ultimate_haste: f32,       //ultimate haste (only affects ultimate)
+    pub item_haste: f32,           //item haste
+    pub crit_chance: f32,          //crit chance
+    pub crit_dmg: f32,             //crit damage
+    pub ms_flat: f32,              //flat movement speed
+    pub ms_percent: f32,           //% movement speed
+    pub lethality: f32,            //lethality (kinda "flat armor penetration")
+    pub armor_pen_percent: f32,    //% armor penetration, stacks multiplicatively
+    pub magic_pen_flat: f32,       //flat magic penetration
+    pub magic_pen_percent: f32,    //% magic penetration, stacks multiplicatively
+    pub armor_red_flat: f32,       //flat armor reduction
+    pub armor_red_percent: f32,    //% armor reduction, stacks multiplicatively
+    pub mr_red_flat: f32,          //flat magic reduction
+    pub mr_red_percent: f32,       //% magic reduction, stacks multiplicatively
+    pub life_steal: f32,           //life steal
+    pub omnivamp: f32,             //omnivamp
+    pub ability_dmg_modifier: f32, //ability dmg modifier, stacks multiplicatively
+    pub phys_dmg_modifier: f32,    //physical dmg modifier, stacks multiplicatively
+    pub magic_dmg_modifier: f32,   //magic dmg modifier, stacks multiplicatively
+    pub true_dmg_modifier: f32,    //true dmg modifier, stacks multiplicatively
+    pub tot_dmg_modifier: f32,     //total dmg modifier, stacks multiplicatively
 }
 
 impl Default for UnitStats {
@@ -150,7 +146,7 @@ impl UnitStats {
             base_ad: 0.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 0.,
             mr: 0.,
             base_as: 0.,
@@ -173,6 +169,7 @@ impl UnitStats {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -188,13 +185,13 @@ impl UnitStats {
         self.base_ad + self.bonus_ad
     }
 
-    /// Returns the ap coefficient of the unit (like rabadons magical opus coef).
+    /// Returns total amount of ap.
     /// It's a getter function instead of being stored like other stats because it depends on
     /// already existing stats and it could cause bugs if we update one but forget the other.
     #[inline]
     #[must_use]
     pub fn ap(&self) -> f32 {
-        ap_formula(self.ap_flat, self.ap_coef)
+        self.ap_flat * (1. + self.ap_percent)
     }
 
     /// Returns the attack speed of the unit. It's a getter function instead of being stored like other stats
@@ -208,7 +205,7 @@ impl UnitStats {
         )
     }
 
-    /// Returns the basic haste (ability haste for basic spells only) of the unit. It's a getter function instead of being stored like other stats
+    /// Returns the basic haste (ability haste for basic abilities only) of the unit. It's a getter function instead of being stored like other stats
     /// because it depends on already existing stats and it could cause bugs if we update one but forget the other.
     #[inline]
     #[must_use]
@@ -247,7 +244,7 @@ impl UnitStats {
         self.base_ad += other_ref.base_ad;
         self.bonus_ad += other_ref.bonus_ad;
         self.ap_flat += other_ref.ap_flat;
-        self.ap_coef += other_ref.ap_coef;
+        self.ap_percent += other_ref.ap_percent;
         self.armor += other_ref.armor;
         self.mr += other_ref.mr;
         self.base_as += other_ref.base_as;
@@ -270,6 +267,8 @@ impl UnitStats {
         self.mr_red_percent += (1. - self.mr_red_percent) * other_ref.mr_red_percent; //stacks multiplicatively
         self.life_steal += other_ref.life_steal;
         self.omnivamp += other_ref.omnivamp;
+        self.ability_dmg_modifier +=
+            (1. + self.ability_dmg_modifier) * other_ref.ability_dmg_modifier; //stacks multiplicatively
         self.phys_dmg_modifier += (1. + self.phys_dmg_modifier) * other_ref.phys_dmg_modifier; //stacks multiplicatively
         self.magic_dmg_modifier += (1. + self.magic_dmg_modifier) * other_ref.magic_dmg_modifier; //stacks multiplicatively
         self.true_dmg_modifier += (1. + self.true_dmg_modifier) * other_ref.true_dmg_modifier; //stacks multiplicatively
@@ -284,7 +283,7 @@ impl UnitStats {
         self.base_ad = ref_a.base_ad + ref_b.base_ad;
         self.bonus_ad = ref_a.bonus_ad + ref_b.bonus_ad;
         self.ap_flat = ref_a.ap_flat + ref_b.ap_flat;
-        self.ap_coef = ref_a.ap_coef + ref_b.ap_coef;
+        self.ap_percent = ref_a.ap_percent + ref_b.ap_percent;
         self.armor = ref_a.armor + ref_b.armor;
         self.mr = ref_a.mr + ref_b.mr;
         self.base_as = ref_a.base_as + ref_b.base_as;
@@ -311,6 +310,9 @@ impl UnitStats {
             - ref_a.mr_red_percent * ref_b.mr_red_percent; //stacks multiplicatively
         self.life_steal = ref_a.life_steal + ref_b.life_steal;
         self.omnivamp = ref_a.omnivamp + ref_b.omnivamp;
+        self.ability_dmg_modifier = ref_a.ability_dmg_modifier
+            + ref_b.ability_dmg_modifier
+            + ref_a.ability_dmg_modifier * ref_b.ability_dmg_modifier; //stacks multiplicatively
         self.phys_dmg_modifier = ref_a.phys_dmg_modifier
             + ref_b.phys_dmg_modifier
             + ref_a.phys_dmg_modifier * ref_b.phys_dmg_modifier; //stacks multiplicatively
@@ -332,16 +334,15 @@ impl UnitStats {
 
 #[derive(Debug)]
 pub struct BasicAbility {
-    /// Returns spell dmg and triggers effects.
-    /// Should call `Unit.dmg_on_target()` only for the return value at the end of the function !
+    /// Returns ability dmg and triggers effects.
     cast: fn(&mut Unit, &UnitStats) -> f32,
     cast_time: f32,
-    base_cooldown_by_ability_lvl: [f32; 6], //length 6 to account aphelios case, normal spells only use the first 5 values
+    base_cooldown_by_ability_lvl: [f32; 6], //length 6 to account aphelios case, normal abilities only use the first 5 values
 }
 
 #[derive(Debug)]
 pub struct UltimateAbility {
-    /// Returns spell dmg and triggers effects.
+    /// Returns ability dmg and triggers effects.
     /// Should call `Unit.dmg_on_target()` only for the return value at the end of the function !
     cast: fn(&mut Unit, &UnitStats) -> f32,
     cast_time: f32,
@@ -377,7 +378,7 @@ pub struct UnitProperties {
     /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
     pub init_abilities: Option<fn(&mut Unit)>,
     pub basic_attack: fn(&mut Unit, &UnitStats) -> f32, //returns basic attack dmg and triggers effects
-    //no field for passive (incorporated in Unit spells instead)
+    //no field for passive (implemented directly in the Unit abilities)
     pub q: BasicAbility, //todo: maybe put this in Unit for better cache locality
     pub w: BasicAbility,
     pub e: BasicAbility,
@@ -425,7 +426,7 @@ impl SkillOrder {
     }
 
     /// Returns Ok if the given `skill_order` is valid, Err with an error message otherwise.
-    /// A valid `skill_order` is one with 1 lvl-up per Unit lvl and in total 5 lvl-ups per spell (3 for ultimate).
+    /// A valid `skill_order` is one with 1 lvl-up per Unit lvl and in total 5 lvl-ups per ability (3 for ultimate).
     /// Aphelios special case is also treated when the `is_aphelios` arg is set to true.
     pub fn check_skill_order_validity(&self, is_aphelios: bool) -> Result<(), String> {
         //u8 will never overflow since we enforce values in skill order to be only 0s or 1s (=> max sum we can encounter is `MAX_UNIT_LVL`)
@@ -434,7 +435,7 @@ impl SkillOrder {
         let mut e_sum: u8 = 0;
         let mut r_sum: u8 = 0;
         for i in 0..self.q.len() {
-            //aphelios can lvl up a spell at lvl 6, 11, 16 in addition to his ult (beware i == lvl-1)
+            //aphelios can lvl up an ability at lvl 6, 11, 16 in addition to his ult (beware i == lvl-1)
             let lvl_ups: u8 = if is_aphelios && (i == 5 || i == 10 || i == 15) {
                 2
             } else {
@@ -453,10 +454,13 @@ impl SkillOrder {
             e_sum += self.e[i];
             r_sum += self.r[i];
         }
-        let max_spell_lvl: u8 = if is_aphelios { 6 } else { 5 };
-        if q_sum != max_spell_lvl || w_sum != max_spell_lvl || e_sum != max_spell_lvl || r_sum != 3
+        let max_ability_lvl: u8 = if is_aphelios { 6 } else { 5 };
+        if q_sum != max_ability_lvl
+            || w_sum != max_ability_lvl
+            || e_sum != max_ability_lvl
+            || r_sum != 3
         {
-            return Err("Wrong number of skill points distributed across spells".to_string());
+            return Err("Wrong number of skill points distributed across abilities".to_string());
         }
         Ok(())
     }
@@ -473,14 +477,14 @@ enum TriggerEvent {
     UltimateAbilityHit,
     BasicAttackCast,
     BasicAttackHit,
-    PhysicalDmgHit, //todo: remove every instance of "ad_hit"
+    PhysicalDmgHit,
     MagicDmgHit,
     TrueDmgHit,
-    AnyDmgHit,
+    AnyHit,
 }
 
 /// Holds different function that must be executed on the `Unit` after specific trigger events.
-/// Trigger event are basic attacks, spell hits, ...
+/// Trigger event are basic attacks, ability hits, ...
 ///
 /// The prime use case is on-hit from an item passive :
 /// after each auto attack, a function returning the dmg from the on hit passive is called.
@@ -490,32 +494,27 @@ enum TriggerEvent {
 ///
 /// For program correctness, these function should NEVER modify the `Unit` outside of temporary effects and effect variables.
 #[derive(Debug)]
-struct lol {
+struct Lol {
     /// Init `Unit`/`Item` effect variables and temporary effects on the `Unit`. These function should ensure that all effect
     /// variables used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
     /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
     /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
-    init_item: Option<fn(&mut Unit)>,
+    init: Option<fn(&mut Unit)>,
 
     /// Triggers special actives and returns dmg done.
-    active: Option<fn(&mut Unit, &UnitStats) -> f32>,
+    special_active: Option<fn(&mut Unit, &UnitStats) -> f32>,
 
-    /// Applies effects triggered when a basic spell is casted (and updates effect variables accordingly).
-    on_basic_spell_cast: Option<fn(&mut Unit)>,
-    /// Applies effects triggered when ultimate is casted (and updates effect variables accordingly).
+    /// Applies effects triggered when a basic ability is casted (and updates effect variables accordingly).
+    on_ability_cast: Option<fn(&mut Unit)>,
+    /// Applies effects triggered when ultimate is casted (additionnal to `on_ability_cast`).
     on_ultimate_cast: Option<fn(&mut Unit)>,
 
-    /// Returns on-basic-spell-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
-    /// 3rd argument (f32) is the number of targets hit by the spell.
-    on_basic_spell_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-    /// Returns on-ultimate-spell-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
-    /// 3rd argument (f32) is the number of targets hit by the spell.
-    on_ultimate_spell_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-
-    //todo: put this in Unitstats
-    /// Returns bonus dmg multipler for spell dmg and updates effect variables accordingly.
-    /// Is applied after on spell hit dmg in calculations (affects them too).
-    spell_coef: Option<fn(&mut Unit) -> f32>,
+    /// Returns on-ability-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
+    /// 3rd argument (f32) is the number of targets hit by the ability.
+    on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
+    /// Returns on-ultimate-hit raw dmg (additionnal to `on_ability_cast`) and updates the conditionals accordingly in the unit effect variables.
+    /// 3rd argument (f32) is the number of targets hit by the ability.
+    on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
 
     /// Returns the static part of on-basic-attack-hit raw dmg.
     /// on-basic-attack-hit is divided in two parts :
@@ -530,21 +529,15 @@ struct lol {
     /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
     on_basic_attack_hit_dynamic: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
 
+    /// Applies effects on the unit triggered when phys dmg is done and updates effect variables accordingly.
+    pub on_phys_hit: Option<fn(&mut Unit)>,
+    /// Applies effects on the unit triggered when magic dmg is done and updates effect variables accordingly.
+    pub on_magic_hit: Option<fn(&mut Unit)>,
+    /// Applies effects on the unit triggered when true dmg is done and updates effect variables accordingly.
+    pub on_true_dmg_hit: Option<fn(&mut Unit)>,
     /// Returns on-any-hit raw dmg and updates the conditionals accordingly in the effect variables.
     /// This function is called every hit, in addition to others on_..._hit functions.
-    on_any_hit: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
-    /// Applies effects on the unit triggered when ad dmg is done and updates effect variables accordingly.
-    on_ad_hit: Option<fn(&mut Unit)>,
-
-    /// Returns bonus dmg multiplier for ap dmg and true dmg.
-    /// Stacks additively with itself and multiplicatively with `tot_dmg_coef`.
-    ap_true_dmg_coef: Option<fn(&mut Unit) -> f32>,
-
-    //todo: put this in Unitstats
-    /// Returns bonus dmg multipler for any dmg done.
-    /// Stacks additively with itself and multiplicatively with `ap_true_dmg_coef`.
-    /// Is applied last in dmg calculations.
-    tot_dmg_coef: Option<fn(&mut Unit, &UnitStats) -> f32>,
+    pub on_any_hit: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -690,6 +683,11 @@ impl fmt::Display for Unit {
         writeln!(f, "omnivamp: {:.0}%", 100. * self.stats.omnivamp)?;
         writeln!(
             f,
+            "ability dmg modifier: {:.0}%",
+            100. * self.stats.ability_dmg_modifier
+        )?;
+        writeln!(
+            f,
             "physical dmg modifier: {:.0}%",
             100. * self.stats.phys_dmg_modifier
         )?;
@@ -721,7 +719,7 @@ pub enum DmgType {
     Other,
 }
 
-/// Used to return (`ad_dmg`, `ap_dmg`, `true_dmg`) of a damage instance.
+/// Used to return (`phys_dmg`, `magic_dmg`, `true_dmg`) of a damage instance.
 pub type RawDmg = (f32, f32, f32);
 
 impl Unit {
@@ -740,13 +738,13 @@ impl Unit {
         build: Build,
     ) -> Result<Self, String> {
         //perform some checks before creating the Unit
-        //we don't want two different spells happening at the same time so cast time must be >= F32_TOL
+        //we don't want two different abilities happening at the same time so cast time must be >= F32_TOL
         if properties_ref.q.cast_time < F32_TOL
             || properties_ref.w.cast_time < F32_TOL
             || properties_ref.e.cast_time < F32_TOL
             || properties_ref.r.cast_time < F32_TOL
         {
-            return Err("Spells cast time should be >= F32_TOL".to_string());
+            return Err("Abilities cast time should be >= F32_TOL".to_string());
         }
 
         //for similar reasons cooldowns must be >= F32_TOL
@@ -756,7 +754,7 @@ impl Unit {
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
-            return Err("Q spell cooldown should be >= F32_TOL".to_string());
+            return Err("Q ability cooldown should be >= F32_TOL".to_string());
         }
         if properties_ref
             .w
@@ -764,7 +762,7 @@ impl Unit {
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
-            return Err("W spell cooldown should be >= F32_TOL".to_string());
+            return Err("W ability cooldown should be >= F32_TOL".to_string());
         }
         if properties_ref
             .e
@@ -772,7 +770,7 @@ impl Unit {
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
-            return Err("E spell cooldown should be >= F32_TOL".to_string());
+            return Err("E ability cooldown should be >= F32_TOL".to_string());
         }
         if properties_ref
             .r
@@ -780,7 +778,7 @@ impl Unit {
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
-            return Err("R spell cooldown should be >= F32_TOL".to_string());
+            return Err("R ability cooldown should be >= F32_TOL".to_string());
         }
 
         //create the unit
@@ -858,7 +856,7 @@ impl Unit {
         skill_order.check_skill_order_validity(*self.properties == Unit::APHELIOS_PROPERTIES)?;
 
         self.skill_order = skill_order;
-        self.update_spells_lvls();
+        self.update_abilities_lvls();
 
         Ok(())
     }
@@ -867,7 +865,7 @@ impl Unit {
     ///
     /// Because they depend on unit lvl, this function is called when setting lvl and skill order.
     /// This leads to redundant work when setting these in chain, but it's not a big deal.
-    fn update_spells_lvls(&mut self) {
+    fn update_abilities_lvls(&mut self) {
         let lvl: usize = usize::from(self.lvl.get());
         self.q_lvl = self.skill_order.q[..lvl].iter().sum();
         self.w_lvl = self.skill_order.w[..lvl].iter().sum();
@@ -890,7 +888,7 @@ impl Unit {
         }
 
         self.lvl = maybe_lvl.unwrap(); //should never panic since we check for None value above
-        self.update_spells_lvls();
+        self.update_abilities_lvls();
 
         //update unit lvl stats
         let base: &UnitStats = &self.properties.base_stats;
@@ -900,7 +898,8 @@ impl Unit {
         self.lvl_stats.base_ad = growth_stat_formula(self.lvl, base.base_ad, growth.base_ad);
         self.lvl_stats.bonus_ad = growth_stat_formula(self.lvl, base.bonus_ad, growth.bonus_ad);
         self.lvl_stats.ap_flat = growth_stat_formula(self.lvl, base.ap_flat, growth.ap_flat);
-        self.lvl_stats.ap_coef = growth_stat_formula(self.lvl, base.ap_coef, growth.ap_coef);
+        self.lvl_stats.ap_percent =
+            growth_stat_formula(self.lvl, base.ap_percent, growth.ap_percent);
         self.lvl_stats.armor = growth_stat_formula(self.lvl, base.armor, growth.armor);
         self.lvl_stats.mr = growth_stat_formula(self.lvl, base.mr, growth.mr);
         self.lvl_stats.base_as = growth_stat_formula(self.lvl, base.base_as, growth.base_as);
@@ -939,6 +938,11 @@ impl Unit {
         self.lvl_stats.life_steal =
             growth_stat_formula(self.lvl, base.life_steal, growth.life_steal);
         self.lvl_stats.omnivamp = growth_stat_formula(self.lvl, base.omnivamp, growth.omnivamp);
+        self.lvl_stats.ability_dmg_modifier = growth_stat_formula(
+            self.lvl,
+            base.ability_dmg_modifier,
+            growth.ability_dmg_modifier,
+        );
         self.lvl_stats.phys_dmg_modifier =
             growth_stat_formula(self.lvl, base.phys_dmg_modifier, growth.phys_dmg_modifier);
         self.lvl_stats.magic_dmg_modifier =
@@ -1006,7 +1010,7 @@ impl Unit {
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
         //this is hacky but the init function should never change self.build
         for i in 0..MAX_UNIT_ITEMS {
-            if let Some(init_item) = self.build[i].init_item {
+            if let Some(init_item) = self.build[i].init {
                 init_item(self);
             }
         }
@@ -1133,38 +1137,24 @@ impl Unit {
     //todo: remove this
     /// Returns items on basic attack hit static dmg.
     pub fn get_on_basic_attack_hit_static(&mut self, target_stats: &UnitStats) -> RawDmg {
-        let mut ad_dmg: f32 = 0.;
-        let mut ap_dmg: f32 = 0.;
+        let mut phys_dmg: f32 = 0.;
+        let mut magic_dmg: f32 = 0.;
         let mut true_dmg: f32 = 0.;
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
         //this is hacky but the init function should never change self.build
         for i in 0..MAX_UNIT_ITEMS {
             if let Some(on_basic_attack_hit_static) = self.build[i].on_basic_attack_hit_static {
                 let (
-                    on_basic_attack_hit_static_ad_dmg,
-                    on_basic_attack_hit_static_ap_dmg,
+                    on_basic_attack_hit_static_phys_dmg,
+                    on_basic_attack_hit_static_magic_dmg,
                     on_basic_attack_hit_static_true_dmg,
                 ) = (on_basic_attack_hit_static)(self, target_stats);
-                ad_dmg += on_basic_attack_hit_static_ad_dmg;
-                ap_dmg += on_basic_attack_hit_static_ap_dmg;
+                phys_dmg += on_basic_attack_hit_static_phys_dmg;
+                magic_dmg += on_basic_attack_hit_static_magic_dmg;
                 true_dmg += on_basic_attack_hit_static_true_dmg;
             }
         }
-        (ad_dmg, ap_dmg, true_dmg)
-    }
-
-    //todo: remove this
-    /// Returns items spell coef.
-    fn get_items_spell_coef(&mut self) -> f32 {
-        let mut coef: f32 = 1.;
-        //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-        //this is hacky but the init function should never change self.build
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(spell_coef) = self.build[i].spell_coef {
-                coef += (spell_coef)(self); //stacks additively
-            }
-        }
-        coef
+        (phys_dmg, magic_dmg, true_dmg)
     }
 
     /// From raw dmg (separated ad, ap & true dmg values without taking resistances into account),
@@ -1180,30 +1170,30 @@ impl Unit {
     ///
     /// - `target_stats`: target stats used for the dmg calculations.
     ///
-    /// - (`ad_dmg`, `ap_dmg`, `true_dmg)`: raw dmg used to calculate final dmg on the target.
+    /// - (`phys_dmg`, `magic_dmg`, `true_dmg)`: raw dmg used to calculate final dmg on the target.
     ///
     /// - (`n_dmg_instances`, `n_stacking_instances)`:
-    ///     - `n_dmg_instances`: number of dmg instances on one of the targets considered for items on ad/ap dmg effects
-    ///       (e.g. black cleaver, affects items on ad/ap dmg effects ONLY, doesn't concern items on basic attack/spell hit effects).
-    ///     - `n_stacking_instances`: number of stacking instances on a single target considered for items on basic attack/spell hit effects stacking.
+    ///     - `n_dmg_instances`: number of dmg instances on one of the targets considered for items on ad/magic dmg effects
+    ///       (e.g. black cleaver, affects items on ad/magic dmg effects ONLY, doesn't concern items on-basic-attack/on-ability-hit effects).
+    ///     - `n_stacking_instances`: number of stacking instances on a single target considered for items on-basic-attack/on-ability-hit effects stacking.
     ///       Must be less or equal to `n_dmg_instances`.
-    ///       (affects items on basic attack/spell hit effects ONLY, doesn't concern items on ad/ap dmg effects).
+    ///       (affects items on-basic-attack/on-ability-hit effects ONLY, doesn't concern items on ad/magic dmg effects).
     ///       `n_dmg_instances` and `n_stacking_instances` are needed sperately, exemple:
-    ///       Ashe q arrows stack black cleaver fully (`on_ad_hit`), but gives only 1 stack of kraken slayer (`on_basic_attack_hit`).
+    ///       Ashe q arrows stack black cleaver fully (`on_phys_hit`), but gives only 1 stack of kraken slayer (`on_basic_attack_hit`).
     ///       /!\ `n_dmg_instances` must always be greater than `n_stacking_instances` (else it is a logic error).
     ///
     /// - `dmg_source`: source of the instance of dmg
-    ///   (if `DmgSource::BasicSpell`, triggers items on basic spell hit and spell coef,
-    ///   if `DmgSource::UtlimateSpell`, triggers items on ultimate spell hit and spell coef).
+    ///   (if `DmgSource::BasicSpell`, triggers items on-ability-hit and spell coef,
+    ///   if `DmgSource::UtlimateSpell`, triggers items on-ultimate-hit and spell coef).
     ///
     /// - `triggers_on_basic_attack_effects`: if the attack triggers items on basic attack hit effects.
     ///
-    /// - `n_targets`: number of targets hit, affects items on basic attack/spell hit effects ONLY
+    /// - `n_targets`: number of targets hit, affects items on-basic-attack/on-ability-hit effects ONLY
     ///   (raw dmg received by this function must already be the sum on all targets).
     pub fn dmg_on_target(
         &mut self,
         target_stats: &UnitStats,
-        (mut ad_dmg, mut ap_dmg, mut true_dmg): RawDmg,
+        (mut phys_dmg, mut magic_dmg, mut true_dmg): RawDmg,
         (n_dmg_instances, n_stacking_instances): (u8, u8),
         dmg_type: DmgType,
         triggers_on_basic_attack_effects: bool,
@@ -1237,53 +1227,68 @@ impl Unit {
             mr_coef = resistance_formula_neg(virtual_mr);
         }
 
-        //on spell hit and spell coef, must be done before on basic attack hit because of muramana shock that applies spell part first
+        //on ability hit and ability coef, must be done before on basic attack hit because of muramana shock that applies spell part first
         match dmg_type {
             DmgType::Ability => {
-                //on basic spell hit
+                let ability_dmg_modifier: f32 = self.stats.ability_dmg_modifier; //get ability dmg modifier before it gets potentially modified
+
+                //on ability hit
                 //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
                 //this is hacky but the init function should never change self.build
                 for i in 0..MAX_UNIT_ITEMS {
-                    if let Some(on_basic_spell_hit) = self.build[i].on_basic_spell_hit {
+                    if let Some(on_basic_spell_hit) = self.build[i].on_ability_hit {
                         for _ in 0..n_stacking_instances {
                             let (
-                                on_basic_spell_hit_ad_dmg,
-                                on_basic_spell_hit_ap_dmg,
+                                on_basic_spell_hit_phys_dmg,
+                                on_basic_spell_hit_magic_dmg,
                                 on_basic_spell_hit_true_dmg,
                             ) = (on_basic_spell_hit)(self, target_stats, n_targets);
-                            ad_dmg += on_basic_spell_hit_ad_dmg;
-                            ap_dmg += on_basic_spell_hit_ap_dmg;
+                            phys_dmg += on_basic_spell_hit_phys_dmg;
+                            magic_dmg += on_basic_spell_hit_magic_dmg;
                             true_dmg += on_basic_spell_hit_true_dmg;
                         }
                     }
                 }
                 //spell coef (also affects on_spell_hit dmg)
-                let coef: f32 = self.get_items_spell_coef();
-                ad_dmg *= coef;
-                ap_dmg *= coef;
-                true_dmg *= coef;
+                phys_dmg *= 1. + ability_dmg_modifier;
+                magic_dmg *= 1. + ability_dmg_modifier;
+                true_dmg *= 1. + ability_dmg_modifier;
             }
             DmgType::Ultimate => {
-                //on ultimate spell hit
+                let ability_dmg_modifier: f32 = self.stats.ability_dmg_modifier; //get ability dmg modifier before it gets potentially modified
+
+                //on ability hit
                 for i in 0..MAX_UNIT_ITEMS {
-                    if let Some(on_ultimate_spell_hit) = self.build[i].on_ultimate_spell_hit {
+                    if let Some(on_basic_spell_hit) = self.build[i].on_ability_hit {
                         for _ in 0..n_stacking_instances {
                             let (
-                                on_ultimate_spell_hit_ad_dmg,
-                                on_ultimate_spell_hit_ap_dmg,
+                                on_basic_spell_hit_phys_dmg,
+                                on_basic_spell_hit_magic_dmg,
+                                on_basic_spell_hit_true_dmg,
+                            ) = (on_basic_spell_hit)(self, target_stats, n_targets);
+                            phys_dmg += on_basic_spell_hit_phys_dmg;
+                            magic_dmg += on_basic_spell_hit_magic_dmg;
+                            true_dmg += on_basic_spell_hit_true_dmg;
+                        }
+                    }
+                    //on ultimate hit
+                    if let Some(on_ultimate_spell_hit) = self.build[i].on_ultimate_hit {
+                        for _ in 0..n_stacking_instances {
+                            let (
+                                on_ultimate_spell_hit_phys_dmg,
+                                on_ultimate_spell_hit_magic_dmg,
                                 on_ultimate_spell_hit_true_dmg,
                             ) = (on_ultimate_spell_hit)(self, target_stats, n_targets);
-                            ad_dmg += on_ultimate_spell_hit_ad_dmg;
-                            ap_dmg += on_ultimate_spell_hit_ap_dmg;
+                            phys_dmg += on_ultimate_spell_hit_phys_dmg;
+                            magic_dmg += on_ultimate_spell_hit_magic_dmg;
                             true_dmg += on_ultimate_spell_hit_true_dmg;
                         }
                     }
                 }
                 //spell coef (also affects on_spell_hit dmg)
-                let coef: f32 = self.get_items_spell_coef();
-                ad_dmg *= coef;
-                ap_dmg *= coef;
-                true_dmg *= coef;
+                phys_dmg *= 1. + ability_dmg_modifier;
+                magic_dmg *= 1. + ability_dmg_modifier;
+                true_dmg *= 1. + ability_dmg_modifier;
             }
             DmgType::Other => (),
         }
@@ -1297,12 +1302,12 @@ impl Unit {
                 if let Some(on_basic_attack_hit_static) = self.build[i].on_basic_attack_hit_static {
                     for _ in 0..n_stacking_instances {
                         let (
-                            on_basic_attack_hit_static_ad_dmg,
-                            on_basic_attack_hit_static_ap_dmg,
+                            on_basic_attack_hit_static_phys_dmg,
+                            on_basic_attack_hit_static_magic_dmg,
                             on_basic_attack_hit_static_true_dmg,
                         ) = (on_basic_attack_hit_static)(self, target_stats);
-                        ad_dmg += n_targets * on_basic_attack_hit_static_ad_dmg;
-                        ap_dmg += n_targets * on_basic_attack_hit_static_ap_dmg;
+                        phys_dmg += n_targets * on_basic_attack_hit_static_phys_dmg;
+                        magic_dmg += n_targets * on_basic_attack_hit_static_magic_dmg;
                         true_dmg += n_targets * on_basic_attack_hit_static_true_dmg;
                     }
                 }
@@ -1311,13 +1316,46 @@ impl Unit {
                 {
                     for _ in 0..n_stacking_instances {
                         let (
-                            on_basic_attack_hit_dynamic_ad_dmg,
-                            on_basic_attack_hit_dynamic_ap_dmg,
+                            on_basic_attack_hit_dynamic_phys_dmg,
+                            on_basic_attack_hit_dynamic_magic_dmg,
                             on_basic_attack_hit_dynamic_true_dmg,
                         ) = (on_basic_attack_hit_dynamic)(self, target_stats);
-                        ad_dmg += on_basic_attack_hit_dynamic_ad_dmg;
-                        ap_dmg += on_basic_attack_hit_dynamic_ap_dmg;
+                        phys_dmg += on_basic_attack_hit_dynamic_phys_dmg;
+                        magic_dmg += on_basic_attack_hit_dynamic_magic_dmg;
                         true_dmg += on_basic_attack_hit_dynamic_true_dmg;
+                    }
+                }
+            }
+        }
+
+        //on phys dmg
+        if phys_dmg > 0. {
+            for i in 0..MAX_UNIT_ITEMS {
+                if let Some(on_phys_hit) = self.build[i].on_phys_hit {
+                    for _ in 0..n_dmg_instances {
+                        (on_phys_hit)(self);
+                    }
+                }
+            }
+        }
+
+        //on magic dmg
+        if magic_dmg > 0. {
+            for i in 0..MAX_UNIT_ITEMS {
+                if let Some(on_magic_hit) = self.build[i].on_magic_hit {
+                    for _ in 0..n_dmg_instances {
+                        (on_magic_hit)(self);
+                    }
+                }
+            }
+        }
+
+        //on magic dmg
+        if true_dmg > 0. {
+            for i in 0..MAX_UNIT_ITEMS {
+                if let Some(on_true_dmg_hit) = self.build[i].on_true_dmg_hit {
+                    for _ in 0..n_dmg_instances {
+                        (on_true_dmg_hit)(self);
                     }
                 }
             }
@@ -1327,41 +1365,18 @@ impl Unit {
         for i in 0..MAX_UNIT_ITEMS {
             if let Some(on_any_hit) = self.build[i].on_any_hit {
                 for _ in 0..n_stacking_instances {
-                    let (on_any_hit_ad_dmg, on_any_hit_ap_dmg, on_any_hit_true_dmg) =
+                    let (on_any_hit_phys_dmg, on_any_hit_magic_dmg, on_any_hit_true_dmg) =
                         (on_any_hit)(self, target_stats);
-                    ad_dmg += on_any_hit_ad_dmg;
-                    ap_dmg += on_any_hit_ap_dmg;
+                    phys_dmg += on_any_hit_phys_dmg;
+                    magic_dmg += on_any_hit_magic_dmg;
                     true_dmg += on_any_hit_true_dmg;
                 }
             }
         }
 
-        //on ad dmg
-        if ad_dmg > 0. {
-            for i in 0..MAX_UNIT_ITEMS {
-                if let Some(on_ad_hit) = self.build[i].on_ad_hit {
-                    for _ in 0..n_dmg_instances {
-                        (on_ad_hit)(self);
-                    }
-                }
-            }
-        }
-
-        //ap and true dmg coef
-        if ap_dmg > 0. || true_dmg > 0. {
-            let mut coef: f32 = 1.;
-            for i in 0..MAX_UNIT_ITEMS {
-                if let Some(ap_true_dmg_coef) = self.build[i].ap_true_dmg_coef {
-                    coef += (ap_true_dmg_coef)(self);
-                }
-            }
-            ap_dmg *= coef;
-            true_dmg *= coef;
-        }
-
-        //total dmg coef
-        let tot_dmg: f32 = (ad_dmg * (1. + self.stats.phys_dmg_modifier) * armor_coef
-            + ap_dmg * (1. + self.stats.magic_dmg_modifier) * mr_coef
+        //dmg modifiers
+        let tot_dmg: f32 = (phys_dmg * (1. + self.stats.phys_dmg_modifier) * armor_coef
+            + magic_dmg * (1. + self.stats.magic_dmg_modifier) * mr_coef
             + true_dmg * (1. + self.stats.true_dmg_modifier))
             * (1. + self.stats.tot_dmg_modifier);
 
@@ -1386,7 +1401,7 @@ impl Unit {
         //this is hacky but the init function should never change self.build
         let mut dmg: f32 = 0.;
         for i in 0..MAX_UNIT_ITEMS {
-            if let Some(active) = self.build[i].active {
+            if let Some(active) = self.build[i].special_active {
                 dmg += active(self, target_stats);
                 self.wait(F32_TOL); //so effects that relies on time to differentiate instances of dmg work properly
             }
@@ -1433,8 +1448,8 @@ impl Unit {
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
         //this is hacky but the init function should never change self.build
         for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_basic_spell_cast) = self.build[i].on_basic_spell_cast {
-                (on_basic_spell_cast)(self);
+            if let Some(on_ability_cast) = self.build[i].on_ability_cast {
+                (on_ability_cast)(self);
             }
         }
         //set cd
@@ -1457,8 +1472,8 @@ impl Unit {
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
         //this is hacky but the init function should never change self.build
         for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_basic_spell_cast) = self.build[i].on_basic_spell_cast {
-                (on_basic_spell_cast)(self);
+            if let Some(on_ability_cast) = self.build[i].on_ability_cast {
+                (on_ability_cast)(self);
             }
         }
         //set cd
@@ -1481,8 +1496,8 @@ impl Unit {
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
         //this is hacky but the init function should never change self.build
         for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_basic_spell_cast) = self.build[i].on_basic_spell_cast {
-                (on_basic_spell_cast)(self);
+            if let Some(on_ability_cast) = self.build[i].on_ability_cast {
+                (on_ability_cast)(self);
             }
         }
         //set cd
@@ -1505,6 +1520,9 @@ impl Unit {
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
         //this is hacky but the init function should never change self.build
         for i in 0..MAX_UNIT_ITEMS {
+            if let Some(on_ability_cast) = self.build[i].on_ability_cast {
+                (on_ability_cast)(self);
+            }
             if let Some(on_ultimate_cast) = self.build[i].on_ultimate_cast {
                 (on_ultimate_cast)(self);
             }
@@ -1552,10 +1570,10 @@ impl Unit {
     /// Default `basic_attack` for an unit.
     #[inline]
     pub fn default_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-        let ad_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
+        let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
         champ.dmg_on_target(
             target_stats,
-            (ad_dmg, 0., 0.),
+            (phys_dmg, 0., 0.),
             (1, 1),
             DmgType::Other,
             true,

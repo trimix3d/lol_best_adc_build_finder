@@ -147,27 +147,22 @@ pub struct Item {
     /// variables used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
     /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
     /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
-    pub init_item: Option<fn(&mut Unit)>,
+    pub init: Option<fn(&mut Unit)>,
 
     /// Triggers special actives and returns dmg done.
-    pub active: Option<fn(&mut Unit, &UnitStats) -> f32>,
+    pub special_active: Option<fn(&mut Unit, &UnitStats) -> f32>,
 
-    /// Applies effects triggered when a basic spell is casted (and updates effect variables accordingly).
-    pub on_basic_spell_cast: Option<fn(&mut Unit)>,
-    /// Applies effects triggered when ultimate is casted (and updates effect variables accordingly).
+    /// Applies effects triggered when any ability is casted (and updates effect variables accordingly).
+    pub on_ability_cast: Option<fn(&mut Unit)>,
+    /// Applies effects triggered when ultimate is casted (additionnal to `on_ability_cast`).
     pub on_ultimate_cast: Option<fn(&mut Unit)>,
 
-    /// Returns on-basic-spell-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
-    /// 3rd argument (f32) is the number of targets hit by the spell.
-    pub on_basic_spell_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-    /// Returns on-ultimate-spell-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
-    /// 3rd argument (f32) is the number of targets hit by the spell.
-    pub on_ultimate_spell_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-
-    //todo: put this in Unitstats
-    /// Returns bonus dmg multipler for spell dmg and updates effect variables accordingly.
-    /// Is applied after on spell hit dmg in calculations (affects them too).
-    pub spell_coef: Option<fn(&mut Unit) -> f32>,
+    /// Returns on-ability-hit raw dmg and updates the conditionals accordingly in the unit effect variables.
+    /// 3rd argument (f32) is the number of targets hit by the ability.
+    pub on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
+    /// Returns on-ultimate-hit raw dmg (additionnal to `on_ability_cast`) and updates the conditionals accordingly in the unit effect variables.
+    /// 3rd argument (f32) is the number of targets hit by the ability.
+    pub on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
 
     /// Returns the static part of on-basic-attack-hit raw dmg.
     /// on-basic-attack-hit is divided in two parts :
@@ -182,21 +177,15 @@ pub struct Item {
     /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
     pub on_basic_attack_hit_dynamic: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
 
+    /// Applies effects on the unit triggered when phys dmg is done and updates effect variables accordingly.
+    pub on_phys_hit: Option<fn(&mut Unit)>,
+    /// Applies effects on the unit triggered when magic dmg is done and updates effect variables accordingly.
+    pub on_magic_hit: Option<fn(&mut Unit)>,
+    /// Applies effects on the unit triggered when true dmg is done and updates effect variables accordingly.
+    pub on_true_dmg_hit: Option<fn(&mut Unit)>,
     /// Returns on-any-hit raw dmg and updates the conditionals accordingly in the effect variables.
     /// This function is called every hit, in addition to others on_..._hit functions.
     pub on_any_hit: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
-    /// Applies effects on the unit triggered when ad dmg is done and updates effect variables accordingly.
-    pub on_ad_hit: Option<fn(&mut Unit)>,
-
-    /// Returns bonus dmg multiplier for ap dmg and true dmg.
-    /// Stacks additively with itself and multiplicatively with `tot_dmg_coef`.
-    pub ap_true_dmg_coef: Option<fn(&mut Unit) -> f32>,
-
-    //todo: put this in Unitstats
-    /// Returns bonus dmg multipler for any dmg done.
-    /// Stacks additively with itself and multiplicatively with `ap_true_dmg_coef`.
-    /// Is applied last in dmg calculations.
-    pub tot_dmg_coef: Option<fn(&mut Unit, &UnitStats) -> f32>,
 }
 
 //no impl Default for Item because they are compile time constants and can't use non-constant functions
@@ -337,7 +326,7 @@ pub const ALL_ITEMS: &[&Item] = concat_slices!(
     &ALL_SUPPORT_ITEMS
 );
 
-pub const AVG_LEGENDARY_ITEM_COST: f32 = 2960.;
+pub const AVG_LEGENDARY_ITEM_COST: f32 = 2994.;
 pub const AVG_BOOTS_COST: f32 = 1100.;
 pub const AVG_SUPPORT_ITEM_COST: f32 = 0.;
 

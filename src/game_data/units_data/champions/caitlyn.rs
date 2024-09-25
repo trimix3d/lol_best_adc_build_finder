@@ -4,7 +4,7 @@ use crate::game_data::{items_data::items::*, units_data::*};
 const CAITLYN_Q_N_TARGETS: f32 = 1.0;
 const CAITLYN_Q_HIT_PERCENT: f32 = 0.85;
 
-fn caitlyn_init_spells(champ: &mut Unit) {
+fn caitlyn_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::CaitlynHeadshotStacks] = 0;
     champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] = 0;
 }
@@ -30,28 +30,28 @@ const CAITLYN_HEADSHOT_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
     1.20, //lvl 18
 ];
 
-fn caitlyn_heatshot_ad_dmg(champ: &Unit) -> f32 {
+fn caitlyn_heatshot_phys_dmg(champ: &Unit) -> f32 {
     champ.stats.ad()
         * (CAITLYN_HEADSHOT_AD_RATIO_BY_LVL[usize::from(champ.lvl.get() - 1)]
             + champ.stats.crit_dmg * 0.85 * champ.stats.crit_chance)
 }
 
 fn caitlyn_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let mut ad_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
+    let mut phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
     if champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] == 1 {
         champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] = 0;
-        ad_dmg += caitlyn_heatshot_ad_dmg(champ);
+        phys_dmg += caitlyn_heatshot_phys_dmg(champ);
     } else if champ.effects_stacks[EffectStackId::CaitlynHeadshotStacks] == 5 {
         champ.effects_stacks[EffectStackId::CaitlynHeadshotStacks] = 0;
-        ad_dmg += caitlyn_heatshot_ad_dmg(champ);
+        phys_dmg += caitlyn_heatshot_phys_dmg(champ);
     } else {
         champ.effects_stacks[EffectStackId::CaitlynHeadshotStacks] += 1;
     }
 
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Other,
         true,
@@ -59,19 +59,19 @@ fn caitlyn_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     )
 }
 
-const CAITLYN_Q_BASE_DMG_BY_Q_LVL: [f32; 5] = [50., 90., 130., 170., 210.];
+const CAITLYN_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [50., 90., 130., 170., 210.];
 const CAITLYN_Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.25, 1.45, 1.65, 1.85, 2.05];
 
 fn caitlyn_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index spell ratios by lvl
+    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
-    let ad_dmg: f32 = (1. + 0.5 * f32::max(0., CAITLYN_Q_N_TARGETS - 1.))
-        * (CAITLYN_Q_BASE_DMG_BY_Q_LVL[q_lvl_idx]
+    let phys_dmg: f32 = (1. + 0.5 * f32::max(0., CAITLYN_Q_N_TARGETS - 1.))
+        * (CAITLYN_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
             + champ.stats.ad() * CAITLYN_Q_AD_RATIO_BY_Q_LVL[q_lvl_idx]);
 
     champ.dmg_on_target(
         target_stats,
-        (CAITLYN_Q_HIT_PERCENT * ad_dmg, 0., 0.),
+        (CAITLYN_Q_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -84,19 +84,19 @@ fn caitlyn_w(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     0.
 }
 
-const CAITLYN_E_BASE_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
+const CAITLYN_E_MAGIC_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
 
 fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     champ.sim_results.units_travelled += 390.;
 
-    let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index spell ratios by lvl
+    let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
-    let ap_dmg: f32 = CAITLYN_E_BASE_DMG_BY_E_LVL[e_lvl_idx] + 0.80 * champ.stats.ap();
+    let magic_dmg: f32 = CAITLYN_E_MAGIC_DMG_BY_E_LVL[e_lvl_idx] + 0.80 * champ.stats.ap();
     champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] = 1;
 
     champ.dmg_on_target(
         target_stats,
-        (0., ap_dmg, 0.),
+        (0., magic_dmg, 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -104,17 +104,17 @@ fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     )
 }
 
-const CAITLYN_R_BASE_DMG_BY_R_LVL: [f32; 3] = [300., 500., 700.];
+const CAITLYN_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [300., 500., 700.];
 
 fn caitlyn_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index spell ratios by lvl
+    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let ad_dmg: f32 = (CAITLYN_R_BASE_DMG_BY_R_LVL[r_lvl_idx] + 1.50 * champ.stats.bonus_ad)
+    let phys_dmg: f32 = (CAITLYN_R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + 1.50 * champ.stats.bonus_ad)
         * (1. + 0.5 * champ.stats.crit_chance);
 
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ultimate,
         false,
@@ -267,7 +267,7 @@ impl Unit {
             base_ad: 60.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 27.,
             mr: 30.,
             base_as: CAITLYN_BASE_AS,
@@ -290,6 +290,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -301,7 +302,7 @@ impl Unit {
             base_ad: 3.8,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 4.7,
             mr: 1.3,
             base_as: 0.,
@@ -324,18 +325,19 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
-        init_abilities: Some(caitlyn_init_spells),
+        init_abilities: Some(caitlyn_init_abilities),
         basic_attack: caitlyn_basic_attack,
         q: BasicAbility {
             cast: caitlyn_q,
             cast_time: 0.625,
-            base_cooldown_by_ability_lvl: [10., 9., 8., 7., 6., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [10., 9., 8., 7., 6., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         w: BasicAbility {
             cast: caitlyn_w,
@@ -345,7 +347,7 @@ impl Unit {
         e: BasicAbility {
             cast: caitlyn_e,
             cast_time: 0.15,
-            base_cooldown_by_ability_lvl: [16., 14., 12., 10., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [16., 14., 12., 10., 8., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         r: UltimateAbility {
             cast: caitlyn_r,

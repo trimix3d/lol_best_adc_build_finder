@@ -48,7 +48,7 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         base_ad: 53.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 21.,
         mr: 30.,
         base_as: 0.668,
@@ -71,6 +71,7 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
@@ -82,7 +83,7 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         base_ad: 3.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 4.7,
         mr: 1.3,
         base_as: 0.,
@@ -105,6 +106,7 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
@@ -140,7 +142,7 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         base_ad: 64.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 33.,
         mr: 32.,
         base_as: 0.625,
@@ -163,6 +165,7 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
@@ -176,7 +179,7 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         base_ad: 3.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 4.4
             + (AVG_ITEM_COST_WITH_BOOTS * 0.8 / 3.) / (ARMOR_GOLD_VALUE * (MAX_UNIT_LVL_F32 - 1.)), //additionnal stat from bruiser items
         mr: 2.05
@@ -201,6 +204,7 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
@@ -236,7 +240,7 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         base_ad: 69.,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 33.,
         mr: 32.,
         base_as: 0.625,
@@ -259,6 +263,7 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
@@ -273,7 +278,7 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         base_ad: 3.5,
         bonus_ad: 0.,
         ap_flat: 0.,
-        ap_coef: 0.,
+        ap_percent: 0.,
         armor: 5.2
             + (AVG_ITEM_COST_WITH_BOOTS * 2. * 0.8 / 3.)
                 / (ARMOR_GOLD_VALUE * (MAX_UNIT_LVL_F32 - 1.)), //additionnal stat from bruiser items
@@ -300,6 +305,7 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
+        ability_dmg_modifier: 0.,
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
@@ -426,7 +432,7 @@ impl BuildContainer {
 pub struct BuildsGenerationSettings {
     pub target_properties: &'static UnitProperties,
     pub fight_duration: f32,
-    pub ad_taken_percent: f32,
+    pub phys_dmg_taken_percent: f32,
     pub judgment_weights: (f32, f32, f32),
     pub n_items: usize,
     pub boots_slot: usize,
@@ -445,7 +451,7 @@ impl Default for BuildsGenerationSettings {
         BuildsGenerationSettings {
             target_properties: &SQUISHY_OPTIMIZER_DUMMY_PROPERTIES,
             fight_duration: 8.,
-            ad_taken_percent: 0.60,
+            phys_dmg_taken_percent: 0.60,
             judgment_weights: (1., 0.25, 0.5),
             n_items: 4,
             boots_slot: 2,
@@ -550,10 +556,12 @@ impl BuildsGenerationSettings {
                 self.fight_duration
             ));
         }
-        if !self.ad_taken_percent.is_finite() || !(0.0..=1.0).contains(&self.ad_taken_percent) {
+        if !self.phys_dmg_taken_percent.is_finite()
+            || !(0.0..=1.0).contains(&self.phys_dmg_taken_percent)
+        {
             return Err(format!(
-                "Percentage of ad dmg taken must be greater than 0% and under 100% (got {}%)",
-                100. * self.ad_taken_percent
+                "Percentage of physical dmg taken must be greater than 0% and under 100% (got {}%)",
+                100. * self.phys_dmg_taken_percent
             ));
         }
         if !self.judgment_weights.0.is_finite()
@@ -786,7 +794,7 @@ fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usiz
     )
 }
 
-fn get_scores_from_sim_results(champ: &Unit, ad_taken_percent: f32) -> (f32, f32, f32) {
+fn get_scores_from_sim_results(champ: &Unit, phys_dmg_taken_percent: f32) -> (f32, f32, f32) {
     let actual_time: f32 = champ.time; //take champ.time instead of fight_duration in scores calculations, since simulation can be slighlty extended
 
     let dps: f32 = champ.sim_results.dmg_done / actual_time; //average dps of the unit over the fight simulation
@@ -794,8 +802,8 @@ fn get_scores_from_sim_results(champ: &Unit, ad_taken_percent: f32) -> (f32, f32
     let effective_hp: f32 = (champ.stats.hp
         + champ.sim_results.heals_shields
         + 6. * champ.sim_results.life_vamped / actual_time)
-        / (ad_taken_percent * resistance_formula_pos(champ.stats.armor)
-            + (1. - ad_taken_percent) * resistance_formula_pos(champ.stats.mr)); //effective (hp + heals and shields gained during the simulation + life vamped over a standardized duration), ap dmg percent is deducted by the formula: 1. - ad_taken_percent (neglecting true damage)
+        / (phys_dmg_taken_percent * resistance_formula_pos(champ.stats.armor)
+            + (1. - phys_dmg_taken_percent) * resistance_formula_pos(champ.stats.mr)); //effective (hp + heals and shields gained during the simulation + life vamped over a standardized duration), magic dmg percent is deducted by the formula: 1. - phys_dmg_taken_percent (neglecting true damage)
 
     let move_speed: f32 = champ.sim_results.units_travelled / actual_time; //average move speed of the unit over the fight simulation
 
@@ -830,8 +838,7 @@ impl ParetoSpacePoint {
         item_idx: usize,
         champ: &mut Unit,
         target_stats: &UnitStats,
-        fight_duration: f32,
-        ad_taken_percent: f32,
+        settings: &BuildsGenerationSettings,
     ) -> Self {
         champ.set_build_unchecked(container.build); //assumes builds have been cheched prior (when generating combinations)
         let mut avg_dps: f32 = 0.;
@@ -841,28 +848,28 @@ impl ParetoSpacePoint {
         //to avoid combinations of items that are local optimums for the given fight_duration,
         //we simulate for 3 fight durations scattered across a normal distribution around the original fight_duration
         //the final scores are calculated from the weighted sum of each simulation result (weight according to the normal distribution)
-        let std_dev: f32 = 0.15 * fight_duration; //chosen arbitrarily, but it works
+        let std_dev: f32 = 0.15 * settings.fight_duration; //chosen arbitrarily, but it works
 
         //weights for a value at 1.25 std_dev from the mean
-        champ.simulate_fight(target_stats, fight_duration - 1.25 * std_dev);
+        champ.simulate_fight(target_stats, settings.fight_duration - 1.25 * std_dev);
         let (dps, defense, ms): (f32, f32, f32) =
-            get_scores_from_sim_results(champ, ad_taken_percent);
+            get_scores_from_sim_results(champ, settings.phys_dmg_taken_percent);
         avg_dps += 0.25 * dps;
         avg_defense += 0.25 * defense;
         avg_ms += 0.25 * ms;
 
         //weights for a value at the mean
-        champ.simulate_fight(target_stats, fight_duration);
+        champ.simulate_fight(target_stats, settings.fight_duration);
         let (dps, defense, ms): (f32, f32, f32) =
-            get_scores_from_sim_results(champ, ad_taken_percent);
+            get_scores_from_sim_results(champ, settings.phys_dmg_taken_percent);
         avg_dps += 0.50 * dps;
         avg_defense += 0.50 * defense;
         avg_ms += 0.50 * ms;
 
         //weights for a value at 1.25 std_dev from the mean
-        champ.simulate_fight(target_stats, fight_duration + 1.25 * std_dev);
+        champ.simulate_fight(target_stats, settings.fight_duration + 1.25 * std_dev);
         let (dps, defense, ms): (f32, f32, f32) =
-            get_scores_from_sim_results(champ, ad_taken_percent);
+            get_scores_from_sim_results(champ, settings.phys_dmg_taken_percent);
         avg_dps += 0.25 * dps;
         avg_defense += 0.25 * defense;
         avg_ms += 0.25 * ms;
@@ -881,8 +888,7 @@ fn simulate_chunk_of_builds(
     chunk: &[BuildContainer],
     champ: &mut Unit,
     target_stats: &UnitStats,
-    fight_duration: f32,
-    ad_taken_percent: f32,
+    settings: &BuildsGenerationSettings,
     item_idx: usize,
 ) -> Vec<ParetoSpacePoint> {
     chunk
@@ -893,8 +899,7 @@ fn simulate_chunk_of_builds(
                 item_idx,
                 champ,
                 target_stats,
-                fight_duration,
-                ad_taken_percent,
+                settings,
             )
         })
         .collect()
@@ -1030,8 +1035,7 @@ pub fn find_best_builds(
         0,
         champ,
         &target.stats,
-        settings.fight_duration,
-        settings.ad_taken_percent,
+        settings,
     );
     empty_build.dps[0] = empty_build_point.dps;
     empty_build.defense[0] = empty_build_point.defense;
@@ -1108,8 +1112,7 @@ pub fn find_best_builds(
                     chunk,
                     &mut champ.clone(),
                     &target.stats,
-                    settings.fight_duration,
-                    settings.ad_taken_percent,
+                    settings,
                     item_idx,
                 )
             })

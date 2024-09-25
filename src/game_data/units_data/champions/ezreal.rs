@@ -7,7 +7,7 @@ const EZREAL_W_HIT_PERCENT: f32 = 0.8;
 const EZREAL_R_N_TARGETS: f32 = 1.;
 const EZREAL_R_HIT_PERCENT: f32 = 0.8;
 
-fn ezreal_init_spells(champ: &mut Unit) {
+fn ezreal_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::EzrealWMark] = 0;
     champ.effects_stacks[EffectStackId::EzrealRisingSpellForceStacks] = 0;
     champ.effects_values[EffectValueId::EzrealRisingSpellForceBonusAS] = 0.;
@@ -20,11 +20,11 @@ fn ezreal_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         0.
     };
 
-    let ad_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
+    let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Other,
         true,
@@ -57,7 +57,7 @@ const EZREAL_RISING_SPELL_FORCE: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-const EZREAL_Q_BASE_DMG_BY_Q_LVL: [f32; 5] = [20., 45., 70., 95., 120.];
+const EZREAL_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [20., 45., 70., 95., 120.];
 const EZREAL_Q_CD_REFUND: f32 = 1.5;
 
 fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
@@ -67,12 +67,12 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         0.
     };
 
-    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index spell ratios by lvl
+    let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
-    let ad_dmg: f32 =
-        EZREAL_Q_BASE_DMG_BY_Q_LVL[q_lvl_idx] + 1.30 * champ.stats.ad() + 0.15 * champ.stats.ap();
+    let phys_dmg: f32 =
+        EZREAL_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx] + 1.30 * champ.stats.ad() + 0.15 * champ.stats.ap();
 
-    //q hit reduces spells cooldown
+    //q hit reduces abilities cooldown
     champ.q_cd = f32::max(0., champ.q_cd - EZREAL_Q_HIT_PERCENT * EZREAL_Q_CD_REFUND);
     champ.w_cd = f32::max(0., champ.w_cd - EZREAL_Q_HIT_PERCENT * EZREAL_Q_CD_REFUND);
     champ.e_cd = f32::max(0., champ.e_cd - EZREAL_Q_HIT_PERCENT * EZREAL_Q_CD_REFUND);
@@ -81,10 +81,10 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //add passive stack
     champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
-    //todo: do 2 dmg instance (0 dmg basic spell + basic attack) + check behavior after on action fn changes (with luden, shojin, etc)
+    //todo: do 2 dmg instance (0 dmg basic ability + basic attack) + check behavior after on action fn changes (with luden, shojin, etc)
     champ.dmg_on_target(
         target_stats,
-        (EZREAL_Q_HIT_PERCENT * ad_dmg, 0., 0.),
+        (EZREAL_Q_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ability,
         true,
@@ -92,21 +92,21 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     ) + w_mark_dmg
 }
 
-const EZREAL_W_MARK_BASE_DMG_BY_W_LVL: [f32; 5] = [80., 135., 190., 245., 300.];
+const EZREAL_W_MARK_MAGIC_DMG_BY_W_LVL: [f32; 5] = [80., 135., 190., 245., 300.];
 const EZREAL_W_MARK_AP_RATIO_BY_W_LVL: [f32; 5] = [0.70, 0.75, 0.80, 0.85, 0.90];
 
 fn ezreal_consume_w_mark(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     champ.effects_stacks[EffectStackId::EzrealWMark] = 0; //detonate mark
 
-    let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index spell ratios by lvl
+    let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
-    let ap_dmg: f32 = EZREAL_W_MARK_BASE_DMG_BY_W_LVL[w_lvl_idx]
+    let magic_dmg: f32 = EZREAL_W_MARK_MAGIC_DMG_BY_W_LVL[w_lvl_idx]
         + champ.stats.bonus_ad
         + EZREAL_W_MARK_AP_RATIO_BY_W_LVL[w_lvl_idx] * champ.stats.ap();
 
     champ.dmg_on_target(
         target_stats,
-        (0., EZREAL_W_HIT_PERCENT * ap_dmg, 0.),
+        (0., EZREAL_W_HIT_PERCENT * magic_dmg, 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -123,7 +123,7 @@ fn ezreal_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     0.
 }
 
-const EZREAL_E_BASE_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
+const EZREAL_E_MAGIC_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
 
 fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let w_mark_dmg: f32 = if champ.effects_stacks[EffectStackId::EzrealWMark] == 1 {
@@ -137,15 +137,15 @@ fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //add passive stack
     champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
-    let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index spell ratios by lvl
+    let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
-    let ap_dmg: f32 = EZREAL_E_BASE_DMG_BY_E_LVL[e_lvl_idx]
+    let magic_dmg: f32 = EZREAL_E_MAGIC_DMG_BY_E_LVL[e_lvl_idx]
         + 0.5 * champ.stats.bonus_ad
         + 0.75 * champ.stats.ap();
 
     champ.dmg_on_target(
         target_stats,
-        (0., ap_dmg, 0.),
+        (0., magic_dmg, 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -153,7 +153,7 @@ fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     ) + w_mark_dmg
 }
 
-const EZREAL_R_BASE_DMG_BY_R_LVL: [f32; 3] = [350., 550., 750.];
+const EZREAL_R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [350., 550., 750.];
 
 fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let w_mark_dmg: f32 = if champ.effects_stacks[EffectStackId::EzrealWMark] == 1 {
@@ -165,14 +165,14 @@ fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //add passive stack
     champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
-    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index spell ratios by lvl
+    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let ap_dmg: f32 = EZREAL_R_N_TARGETS
-        * (EZREAL_R_BASE_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad + 0.9 * champ.stats.ap());
+    let magic_dmg: f32 = EZREAL_R_N_TARGETS
+        * (EZREAL_R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad + 0.9 * champ.stats.ap());
 
     champ.dmg_on_target(
         target_stats,
-        (0., EZREAL_R_HIT_PERCENT * ap_dmg, 0.),
+        (0., EZREAL_R_HIT_PERCENT * magic_dmg, 0.),
         (1, 1),
         DmgType::Ultimate,
         false,
@@ -180,7 +180,7 @@ fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     ) + w_mark_dmg
 }
 
-fn ezreal_fight_scenario_basic_attack_in_between_spells(
+fn ezreal_fight_scenario_basic_attack_in_between_abilities(
     champ: &mut Unit,
     target_stats: &UnitStats,
     fight_duration: f32,
@@ -216,7 +216,7 @@ fn ezreal_fight_scenario_basic_attack_in_between_spells(
     champ.weighted_r(target_stats);
 }
 
-fn ezreal_fight_scenario_only_spells(
+fn ezreal_fight_scenario_only_abilities(
     champ: &mut Unit,
     target_stats: &UnitStats,
     fight_duration: f32,
@@ -366,7 +366,7 @@ impl Unit {
             base_ad: 60.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 24.,
             mr: 30.,
             base_as: EZREAL_BASE_AS,
@@ -389,6 +389,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -400,7 +401,7 @@ impl Unit {
             base_ad: 2.75,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 4.7,
             mr: 1.3,
             base_as: 0.,
@@ -423,28 +424,29 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
         on_lvl_set: None,
-        init_abilities: Some(ezreal_init_spells),
+        init_abilities: Some(ezreal_init_abilities),
         basic_attack: ezreal_basic_attack,
         q: BasicAbility {
             cast: ezreal_q,
             cast_time: 0.25,
-            base_cooldown_by_ability_lvl: [5.5, 5.25, 5., 4.75, 4.5, F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [5.5, 5.25, 5., 4.75, 4.5, F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         w: BasicAbility {
             cast: ezreal_w,
             cast_time: 0.25,
-            base_cooldown_by_ability_lvl: [8., 8., 8., 8., 8., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [8., 8., 8., 8., 8., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         e: BasicAbility {
             cast: ezreal_e,
             cast_time: 0.25,
-            base_cooldown_by_ability_lvl: [26., 23., 20., 17., 14., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [26., 23., 20., 17., 14., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         r: UltimateAbility {
             cast: ezreal_r,
@@ -453,10 +455,13 @@ impl Unit {
         },
         fight_scenarios: &[
             (
-                ezreal_fight_scenario_basic_attack_in_between_spells,
-                "basic attack in between spells",
+                ezreal_fight_scenario_basic_attack_in_between_abilities,
+                "basic attack in between abilities",
             ),
-            (ezreal_fight_scenario_only_spells, "only launch spells"),
+            (
+                ezreal_fight_scenario_only_abilities,
+                "only launch abilities",
+            ),
         ],
         unit_defaults: UnitDefaults {
             runes_pages: &EZREAL_DEFAULT_RUNES_PAGE,

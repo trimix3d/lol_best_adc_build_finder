@@ -15,13 +15,13 @@ const JINX_ROCKET_LAUNCHER_AOE_AVG_TARGETS: f32 =
 /// Only rocket launcher.
 fn jinx_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //attack speed already slowed in jinx as ratio
-    let ad_dmg: f32 = (1. + JINX_ROCKET_LAUNCHER_AOE_AVG_TARGETS)
+    let phys_dmg: f32 = (1. + JINX_ROCKET_LAUNCHER_AOE_AVG_TARGETS)
         * 1.1
         * champ.stats.ad()
         * champ.stats.crit_coef();
     champ.dmg_on_target(
         target_stats,
-        (ad_dmg, 0., 0.),
+        (phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Other,
         true,
@@ -35,16 +35,16 @@ fn jinx_q(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     unreachable!("Jinx q was used but the minigun is not implemented")
 }
 
-const JINX_W_BASE_DMG_BY_W_LVL: [f32; 5] = [10., 60., 110., 160., 210.];
+const JINX_W_PHYS_DMG_BY_W_LVL: [f32; 5] = [10., 60., 110., 160., 210.];
 
 fn jinx_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index spell ratios by lvl
+    let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
-    let ad_dmg: f32 = JINX_W_BASE_DMG_BY_W_LVL[w_lvl_idx] + 1.60 * champ.stats.ad();
+    let phys_dmg: f32 = JINX_W_PHYS_DMG_BY_W_LVL[w_lvl_idx] + 1.60 * champ.stats.ad();
 
     champ.dmg_on_target(
         target_stats,
-        (JINX_W_HIT_PERCENT * ad_dmg, 0., 0.),
+        (JINX_W_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ability,
         false,
@@ -53,26 +53,26 @@ fn jinx_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 }
 
 fn jinx_e(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    //not implemented (utility spell that roots, its dmg must not be considered, except if riot does silly things in a future patch)
+    //not implemented (utility ability that roots, its dmg must not be considered, except if riot does silly things in a future patch)
     0.
 }
 
-const JINX_R_BASE_DMG_BY_R_LVL: [f32; 3] = [325., 475., 625.];
+const JINX_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [325., 475., 625.];
 const JINX_R_MISSING_HP_RATIO_BY_R_LVL: [f32; 3] = [0.25, 0.30, 0.35];
 
 fn jinx_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index spell ratios by lvl
+    let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     //assumes target is at 900 range
-    let ad_dmg: f32 = (1. + 0.8 * (JINX_R_AVG_TARGETS - 1.))
-        * (0.64 * (JINX_R_BASE_DMG_BY_R_LVL[r_lvl_idx] + 1.65 * champ.stats.bonus_ad)
+    let phys_dmg: f32 = (1. + 0.8 * (JINX_R_AVG_TARGETS - 1.))
+        * (0.64 * (JINX_R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + 1.65 * champ.stats.bonus_ad)
             + (JINX_R_MISSING_HP_RATIO_BY_R_LVL[r_lvl_idx]
                 * JINX_R_TARGET_MISSING_HP_PERCENT
                 * target_stats.hp));
 
     champ.dmg_on_target(
         target_stats,
-        (JINX_R_HIT_PERCENT * ad_dmg, 0., 0.),
+        (JINX_R_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         DmgType::Ultimate,
         false,
@@ -210,7 +210,7 @@ impl Unit {
             base_ad: 59.,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 26.,
             mr: 30.,
             base_as: JINX_BASE_AS,
@@ -233,6 +233,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -244,7 +245,7 @@ impl Unit {
             base_ad: 2.9,
             bonus_ad: 0.,
             ap_flat: 0.,
-            ap_coef: 0.,
+            ap_percent: 0.,
             armor: 4.7,
             mr: 1.3,
             base_as: 0.,
@@ -267,6 +268,7 @@ impl Unit {
             mr_red_percent: 0.,
             life_steal: 0.,
             omnivamp: 0.,
+            ability_dmg_modifier: 0.,
             phys_dmg_modifier: 0.,
             magic_dmg_modifier: 0.,
             true_dmg_modifier: 0.,
@@ -278,17 +280,17 @@ impl Unit {
         q: BasicAbility {
             cast: jinx_q,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [0.9, 0.9, 0.9, 0.9, 0.9, F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [0.9, 0.9, 0.9, 0.9, 0.9, F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         w: BasicAbility {
             cast: jinx_w,
             cast_time: 0.55, //averaged value
-            base_cooldown_by_ability_lvl: [8., 7., 6., 5., 4., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [8., 7., 6., 5., 4., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         e: BasicAbility {
             cast: jinx_e,
             cast_time: F32_TOL,
-            base_cooldown_by_ability_lvl: [24., 20.5, 17., 13.5, 10., F32_TOL], //basic spells only uses the first 5 values (except for aphelios)
+            base_cooldown_by_ability_lvl: [24., 20.5, 17., 13.5, 10., F32_TOL], //basic abilities only uses the first 5 values (except for aphelios)
         },
         r: UltimateAbility {
             cast: jinx_r,
