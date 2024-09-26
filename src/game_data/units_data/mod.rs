@@ -1393,17 +1393,17 @@ impl Unit {
     }
 
     /// Triggers every item actives on the unit and returns dmg done.
-    pub fn use_all_items_actives(&mut self, target_stats: &UnitStats) -> f32 {
+    pub fn use_all_special_actives(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
-        self.actions_log.push((self.time, "all items actives"));
+        self.actions_log.push((self.time, "all special actives"));
 
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
         //this is hacky but the init function should never change self.build
         let mut dmg: f32 = 0.;
         for i in 0..MAX_UNIT_ITEMS {
-            if let Some(active) = self.build[i].special_active {
-                dmg += active(self, target_stats);
-                self.wait(F32_TOL); //so effects that relies on time to differentiate instances of dmg work properly
+            if let Some(special_active) = self.build[i].special_active {
+                dmg += special_active(self, target_stats);
+                self.wait(F32_TOL);
             }
         }
         dmg
@@ -1563,7 +1563,7 @@ impl Unit {
     /// This function will always start by initializing the unit with `self.init_fight` and use all items actives before simulating.
     pub fn simulate_fight(&mut self, target_stats: &UnitStats, fight_duration: f32) {
         self.init_fight();
-        self.use_all_items_actives(target_stats);
+        self.use_all_special_actives(target_stats);
         (self.fight_scenario.0)(self, target_stats, fight_duration);
     }
 
