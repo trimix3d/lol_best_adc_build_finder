@@ -4,6 +4,9 @@ use super::units_data::{RawDmg, Unit, UnitStats, MAX_UNIT_ITEMS};
 
 use constcat::concat_slices;
 use enumset::{EnumSet, EnumSetType};
+#[allow(unused_imports)]
+use strum::EnumCount; //this import is necessary for strum_macros::EnumCount to work but it trigger the lint for some reason
+use strum_macros::EnumCount as EnumCountMacro;
 
 use core::cmp::Ordering;
 use core::fmt;
@@ -12,7 +15,7 @@ use core::ops::{Deref, DerefMut};
 use items::*;
 
 /// Holds every item id (or name).
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, EnumCountMacro)]
 pub enum ItemId {
     NullItem,
     AbyssalMask,
@@ -135,7 +138,7 @@ pub struct Item {
     pub id: ItemId,
     pub full_name: &'static str,
     pub short_name: &'static str,
-    pub cost: f32,
+    pub cost: f32, //f32 because exclusively used in f32 calculations
     pub item_groups: EnumSet<ItemGroups>,
     //utility
     pub utils: EnumSet<ItemUtils>,
@@ -471,7 +474,7 @@ mod tests {
             / (ALL_LEGENDARY_ITEMS.len() as f32);
 
         assert!(((AVG_LEGENDARY_ITEM_COST) - true_legendary_avg).abs() < 1.,
-            "Constant Item::AVG_LEGENDARY_ITEM_COST of value {} is too far from the true average legendary item cost of {} (-> put its value to {:.0})",
+            "Constant `AVG_LEGENDARY_ITEM_COST` of value {} is too far from the true average legendary item cost of {} (-> put its value to {:.0})",
             AVG_LEGENDARY_ITEM_COST,
             true_legendary_avg,
             true_legendary_avg
@@ -484,7 +487,7 @@ mod tests {
             ALL_BOOTS.iter().map(|item_ref| item_ref.cost).sum::<f32>() / (ALL_BOOTS.len() as f32);
 
         assert!(((AVG_BOOTS_COST) - true_boots_avg).abs() < 1.,
-            "Constant Item::AVG_BOOTS_COST of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
+            "Constant `AVG_BOOTS_COST` of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
             AVG_BOOTS_COST,
             true_boots_avg,
             true_boots_avg
@@ -500,10 +503,20 @@ mod tests {
             / (ALL_BOOTS.len() as f32);
 
         assert!(((AVG_SUPPORT_ITEM_COST) - true_support_avg).abs() < 1.,
-            "Constant Item::AVG_SUPPORT_ITEM_COST of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
+            "Constant `AVG_SUPPORT_ITEM_COST` of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
             AVG_SUPPORT_ITEM_COST,
             true_support_avg,
             true_support_avg
+        );
+    }
+
+    #[test]
+    pub fn test_all_items_are_correctly_listed() {
+        assert!(
+            ALL_ITEMS.len() + 1 == ItemId::COUNT, //+1 to account for `NULL_ITEM`
+            "Number of items in `ALL_ITEMS` ({} + 1 for `NULL_ITEM`) is different that the number of Ids in `ItemId` ({})",
+            ALL_ITEMS.len(),
+            ItemId::COUNT
         );
     }
 }
