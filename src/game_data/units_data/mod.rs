@@ -70,6 +70,7 @@ fn resistance_formula_neg(res: f32) -> f32 {
 /// Returns coefficient multiplying dmg dealt, automatically choose formula for positive or negative resistance according to the argument.
 /// <https://leagueoflegends.fandom.com/wiki/Armor> <https://leagueoflegends.fandom.com/wiki/Magic_resistance>
 #[inline]
+#[must_use]
 pub fn resistance_formula(res: f32) -> f32 {
     if res >= 0. {
         resistance_formula_pos(res)
@@ -474,10 +475,10 @@ impl SkillOrder {
 enum TriggerEvent {
     InitFight,
     SpecialActive,
-    BasicAbilityCast,
-    UltimateAbilityCast,
-    BasicAbilityHit,
-    UltimateAbilityHit,
+    AbilityCast,
+    UltimateCast,
+    AbilityHit,
+    UltimateHit,
     BasicAttackCast,
     BasicAttackHit,
     PhysicalDmgHit,

@@ -272,7 +272,7 @@ fn abyssal_mask_init(champ: &mut Unit) {
     increase_multiplicatively_scaling_stat(
         &mut champ.stats.mr_red_percent,
         ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE * 0.30,
-    ); //todo: check stat stacking
+    );
 }
 
 pub const ABYSSAL_MASK: Item = Item {
@@ -938,7 +938,7 @@ pub const COSMIC_DRIVE: Item = Item {
     on_basic_attack_hit_static: None,
     on_basic_attack_hit_dynamic: None,
     on_phys_hit: None,
-    on_magic_hit: Some(cosmic_drive_spelldance_on_magic_or_true_dmg_hit), //todo: test passive
+    on_magic_hit: Some(cosmic_drive_spelldance_on_magic_or_true_dmg_hit),
     on_true_dmg_hit: Some(cosmic_drive_spelldance_on_magic_or_true_dmg_hit),
     on_any_hit: None,
 };
@@ -1799,7 +1799,7 @@ pub const HORIZON_FOCUS: Item = Item {
         mr_red_percent: 0.,
         life_steal: 0.,
         omnivamp: 0.,
-        ability_dmg_modifier: HORIZON_FOCUS_HYPERSHOT_ABILITIES_TRIGGER_PERCENT * 0.10, //hypershot passive is treated as an ability dmg modifier because most basick attacks won't trigger it, less than the real value since we don't know if the ability hits at a far enough distance //todo: test value stacking with shojin
+        ability_dmg_modifier: HORIZON_FOCUS_HYPERSHOT_ABILITIES_TRIGGER_PERCENT * 0.10, //hypershot passive is treated as an ability dmg modifier because most basick attacks won't trigger it, less than the real value since we don't know if the ability hits at a far enough distance
         phys_dmg_modifier: 0.,
         magic_dmg_modifier: 0.,
         true_dmg_modifier: 0.,
@@ -2412,9 +2412,8 @@ pub const KRAKEN_SLAYER: Item = Item {
     on_any_hit: None,
 };
 
-//todo: check tot_dmg_coef passive + interaction with riftmaker
 //Lidandry's torment
-const LIANDRYS_TORMENT_TORMENT_DOT_DURATION: f32 = 3.; //todo: test if dot count as in combat
+const LIANDRYS_TORMENT_TORMENT_DOT_DURATION: f32 = 3.;
 const LIANDRYS_TORMENT_SUFFERING_OUTSIDE_COMBAT_TIME_VALUE: f32 = -1.; //special value to indicate that the unit is not in combat, MUST BE NEGATIVE to not interfere with an actual combat start time value
 const LIANDRYS_TORMENT_SUFFERING_MAX_TOT_DMG_MODIFIER: f32 = 0.06;
 fn liandrys_torment_init(champ: &mut Unit) {
@@ -2444,7 +2443,6 @@ fn liandrys_torment_suffering_refresh(champ: &mut Unit, _availability_coef: f32)
         == LIANDRYS_TORMENT_SUFFERING_OUTSIDE_COMBAT_TIME_VALUE
     {
         champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime] = champ.time;
-        //todo: test if dmg modifier is applied instantly and adjust
         return;
     }
 
@@ -2460,7 +2458,7 @@ fn liandrys_torment_suffering_refresh(champ: &mut Unit, _availability_coef: f32)
             champ.time
                 - champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime],
         ),
-    ); //as of patch 14.06, using round is the correct way to get the value //todo: test passive
+    ); //as of patch 14.19, using round is the correct way to get the value
 
     increase_exponentially_scaling_stat(
         &mut champ.stats.tot_dmg_modifier,
@@ -3897,7 +3895,6 @@ pub const RAVENOUS_HYDRA: Item = Item {
 
 //Redemption (useless?)
 
-//todo: check tot_dmg_coef passive + interaction with liandrys
 //Riftmaker
 const RIFTMAKER_VOID_CORRUPTION_OUTSIDE_COMBAT_TIME_VALUE: f32 = -1.; //special value to indicate that the unit is not in combat, MUST BE NEGATIVE to not interfere with an actual combat start time value
 fn riftmaker_init(champ: &mut Unit) {
@@ -3918,7 +3915,6 @@ fn riftmaker_void_corruption_refresh(champ: &mut Unit, _availability_coef: f32) 
         == RIFTMAKER_VOID_CORRUPTION_OUTSIDE_COMBAT_TIME_VALUE
     {
         champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime] = champ.time;
-        //todo: test if dmg modifier is applied instantly and adjust
         return;
     }
 
@@ -3934,7 +3930,7 @@ fn riftmaker_void_corruption_refresh(champ: &mut Unit, _availability_coef: f32) 
             champ.time
                 - champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime],
         ),
-    ); //as of patch 14.06, using trunc is the correct way to get the value //todo: test passive
+    ); //as of patch 14.19, using trunc is the correct way to get the value
     champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier] = tot_dmg_modifier;
 
     increase_exponentially_scaling_stat(&mut champ.stats.tot_dmg_modifier, tot_dmg_modifier);
@@ -4373,7 +4369,7 @@ pub const SERYLDAS_GRUDGE: Item = Item {
         crit_dmg: 0.,
         ms_flat: 0.,
         ms_percent: 0.,
-        lethality: 15.,
+        lethality: 0.,
         armor_pen_percent: 0.30,
         magic_pen_flat: 0.,
         magic_pen_percent: 0.,
@@ -4403,7 +4399,6 @@ pub const SERYLDAS_GRUDGE: Item = Item {
     on_any_hit: None,
 };
 
-//todo: test shadowflame crit passive with ap on hit items
 //Shadowflame
 fn shadowflame_init(champ: &mut Unit) {
     let modifier: f32 =
@@ -4488,7 +4483,6 @@ fn spear_of_shojin_focused_will(
     (0., 0., 0.)
 }
 
-//todo: test if ability dmg use prior or current number of stacks, test dmg
 fn spear_of_shojin_focused_will_add_stack(champ: &mut Unit, _availability_coef: f32) {
     //if not fully stacked, add 1 stack and update ability dmg modifier
     if champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] < 4 {
@@ -4714,7 +4708,6 @@ pub const STERAKS_GAGE: Item = Item {
     on_any_hit: None,
 };
 
-//todo: check item behavior
 //stormsurge
 fn stormsurge_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::StormsurgeStormraiderMsPercent] = 0.;

@@ -89,17 +89,28 @@ fn champion_test_ground() {
         &Unit::EZREAL_PROPERTIES,
         6,
         Build([
-            &MURAMANA, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM,
+            &STORMSURGE,
+            &NULL_ITEM,
+            &NULL_ITEM,
+            &NULL_ITEM,
+            &NULL_ITEM,
+            &NULL_ITEM,
         ]),
     )
     .expect("Failed to create unit");
 
     //champion actions
-    println!("{} - t: {}", champ.q(&target_dummy.stats), champ.time,);
+    println!("{}", champ);
+    println!(
+        "{} - t: {}",
+        champ.basic_attack(&target_dummy.stats),
+        champ.time,
+    );
+    champ.walk(champ.basic_attack_cd);
 }
 
 fn main() -> Result<(), ()> {
-    champion_test_ground();
-    //cli::launch_interface();
+    //champion_test_ground();
+    cli::launch_interface();
     Ok(())
 }
