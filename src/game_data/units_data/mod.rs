@@ -55,18 +55,27 @@ pub fn capped_ms(raw_ms: f32) -> f32 {
 
 /// Returns coefficient multiplying dmg dealt, in the case when resistance stat is positive.
 /// <https://leagueoflegends.fandom.com/wiki/Armor> <https://leagueoflegends.fandom.com/wiki/Magic_resistance>
-#[inline]
 #[must_use]
-pub fn resistance_formula_pos(res: f32) -> f32 {
+fn resistance_formula_pos(res: f32) -> f32 {
     100. / (100. + res)
 }
 
 /// Returns coefficient multiplying dmg dealt, in the case when resistance stat is negative.
 /// <https://leagueoflegends.fandom.com/wiki/Armor> <https://leagueoflegends.fandom.com/wiki/Magic_resistance>
-#[inline]
 #[must_use]
-pub fn resistance_formula_neg(res: f32) -> f32 {
+fn resistance_formula_neg(res: f32) -> f32 {
     2. - 100. / (100. - res)
+}
+
+/// Returns coefficient multiplying dmg dealt, automatically choose formula for positive or negative resistance according to the argument.
+/// <https://leagueoflegends.fandom.com/wiki/Armor> <https://leagueoflegends.fandom.com/wiki/Magic_resistance>
+#[inline]
+pub fn resistance_formula(res: f32) -> f32 {
+    if res >= 0. {
+        resistance_formula_pos(res)
+    } else {
+        resistance_formula_neg(res)
+    }
 }
 
 /// Returns the ideal windup time (= basic attack cast time) for the given unit.
@@ -91,6 +100,26 @@ fn real_windup_time(windup_time: f32) -> f32 {
 /// <https://leagueoflegends.fandom.com/wiki/Rune_(League_of_Legends)#Rune_paths>
 fn runes_hp_by_lvl(lvl: NonZeroU8) -> f32 {
     10. * f32::from(lvl.get())
+}
+
+#[inline]
+pub fn increase_multiplicatively_scaling_stat(stat: &mut f32, amount: f32) {
+    *stat += (1. - *stat) * amount;
+}
+
+#[inline]
+pub fn decrease_multiplicatively_scaling_stat(stat: &mut f32, amount: f32) {
+    *stat = 1. - (1. - *stat) / (1. - amount);
+}
+
+#[inline]
+pub fn increase_exponentially_scaling_stat(stat: &mut f32, amount: f32) {
+    *stat += (1. + *stat) * amount;
+}
+
+#[inline]
+pub fn decrease_exponentially_scaling_stat(stat: &mut f32, amount: f32) {
+    *stat = (1. + *stat) / (1. + amount) - 1.;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -123,11 +152,11 @@ pub struct UnitStats {
     pub mr_red_percent: f32,       //% magic reduction, stacks multiplicatively
     pub life_steal: f32,           //life steal
     pub omnivamp: f32,             //omnivamp
-    pub ability_dmg_modifier: f32, //ability dmg modifier, stacks multiplicatively
-    pub phys_dmg_modifier: f32,    //physical dmg modifier, stacks multiplicatively
-    pub magic_dmg_modifier: f32,   //magic dmg modifier, stacks multiplicatively
-    pub true_dmg_modifier: f32,    //true dmg modifier, stacks multiplicatively
-    pub tot_dmg_modifier: f32,     //total dmg modifier, stacks multiplicatively
+    pub ability_dmg_modifier: f32, //ability dmg modifier, stacks exponentially
+    pub phys_dmg_modifier: f32,    //physical dmg modifier, stacks exponentially
+    pub magic_dmg_modifier: f32,   //magic dmg modifier, stacks exponentially
+    pub true_dmg_modifier: f32,    //true dmg modifier, stacks exponentially
+    pub tot_dmg_modifier: f32,     //total dmg modifier, stacks exponentially
 }
 
 impl Default for UnitStats {
@@ -253,78 +282,53 @@ impl UnitStats {
         self.basic_haste += other_ref.basic_haste;
         self.ultimate_haste += other_ref.ultimate_haste;
         self.item_haste += other_ref.item_haste;
+
         self.crit_chance += other_ref.crit_chance;
+        self.crit_chance = f32::min(1., self.crit_chance); //crit chance capped at 100%
+
         self.crit_dmg += other_ref.crit_dmg;
         self.ms_flat += other_ref.ms_flat;
         self.ms_percent += other_ref.ms_percent;
         self.lethality += other_ref.lethality;
-        self.armor_pen_percent += (1. - self.armor_pen_percent) * other_ref.armor_pen_percent; //stacks multiplicatively
+
+        increase_multiplicatively_scaling_stat(
+            &mut self.armor_pen_percent,
+            other_ref.armor_pen_percent,
+        ); //stacks multiplicatively
         self.magic_pen_flat += other_ref.magic_pen_flat;
-        self.magic_pen_percent += (1. - self.magic_pen_percent) * other_ref.magic_pen_percent; //stacks multiplicatively
+        increase_multiplicatively_scaling_stat(
+            &mut self.magic_pen_percent,
+            other_ref.magic_pen_percent,
+        ); //stacks multiplicatively
         self.armor_red_flat += other_ref.armor_red_flat;
-        self.armor_red_percent += (1. - self.armor_red_percent) * other_ref.armor_red_percent; //stacks multiplicatively
+        increase_multiplicatively_scaling_stat(
+            &mut self.armor_red_percent,
+            other_ref.armor_red_percent,
+        ); //stacks multiplicatively
         self.mr_red_flat += other_ref.mr_red_flat;
-        self.mr_red_percent += (1. - self.mr_red_percent) * other_ref.mr_red_percent; //stacks multiplicatively
+        increase_multiplicatively_scaling_stat(&mut self.mr_red_percent, other_ref.mr_red_percent); //stacks multiplicatively
+
         self.life_steal += other_ref.life_steal;
         self.omnivamp += other_ref.omnivamp;
-        self.ability_dmg_modifier +=
-            (1. + self.ability_dmg_modifier) * other_ref.ability_dmg_modifier; //stacks multiplicatively
-        self.phys_dmg_modifier += (1. + self.phys_dmg_modifier) * other_ref.phys_dmg_modifier; //stacks multiplicatively
-        self.magic_dmg_modifier += (1. + self.magic_dmg_modifier) * other_ref.magic_dmg_modifier; //stacks multiplicatively
-        self.true_dmg_modifier += (1. + self.true_dmg_modifier) * other_ref.true_dmg_modifier; //stacks multiplicatively
-        self.tot_dmg_modifier += (1. + self.tot_dmg_modifier) * other_ref.tot_dmg_modifier; //stacks multiplicatively
 
-        self.crit_chance = f32::min(1., self.crit_chance); //crit chance capped at 100%
-    }
-
-    fn store_add(&mut self, ref_a: &Self, ref_b: &Self) {
-        self.hp = ref_a.hp + ref_b.hp;
-        self.mana = ref_a.mana + ref_b.mana;
-        self.base_ad = ref_a.base_ad + ref_b.base_ad;
-        self.bonus_ad = ref_a.bonus_ad + ref_b.bonus_ad;
-        self.ap_flat = ref_a.ap_flat + ref_b.ap_flat;
-        self.ap_percent = ref_a.ap_percent + ref_b.ap_percent;
-        self.armor = ref_a.armor + ref_b.armor;
-        self.mr = ref_a.mr + ref_b.mr;
-        self.base_as = ref_a.base_as + ref_b.base_as;
-        self.bonus_as = ref_a.bonus_as + ref_b.bonus_as;
-        self.ability_haste = ref_a.ability_haste + ref_b.ability_haste;
-        self.basic_haste = ref_a.basic_haste + ref_b.basic_haste;
-        self.ultimate_haste = ref_a.ultimate_haste + ref_b.ultimate_haste;
-        self.item_haste = ref_a.item_haste + ref_b.item_haste;
-        self.crit_chance = f32::min(1., ref_a.crit_chance + ref_b.crit_chance); //crit chance capped at 100%
-        self.crit_dmg = ref_a.crit_dmg + ref_b.crit_dmg;
-        self.ms_flat = ref_a.ms_flat + ref_b.ms_flat;
-        self.ms_percent = ref_a.ms_percent + ref_b.ms_percent;
-        self.lethality = ref_a.lethality + ref_b.lethality;
-        self.armor_pen_percent = ref_a.armor_pen_percent + ref_b.armor_pen_percent
-            - ref_a.armor_pen_percent * ref_b.armor_pen_percent; //stacks multiplicatively
-        self.magic_pen_flat = ref_a.magic_pen_flat + ref_b.magic_pen_flat;
-        self.magic_pen_percent = ref_a.magic_pen_percent + ref_b.magic_pen_percent
-            - ref_a.magic_pen_percent * ref_b.magic_pen_percent; //stacks multiplicatively
-        self.armor_red_flat = ref_a.armor_red_flat + ref_b.armor_red_flat;
-        self.armor_red_percent = ref_a.armor_red_percent + ref_b.armor_red_percent
-            - ref_a.armor_red_percent * ref_b.armor_red_percent; //stacks multiplicatively
-        self.mr_red_flat = ref_a.mr_red_flat + ref_b.mr_red_flat;
-        self.mr_red_percent = ref_a.mr_red_percent + ref_b.mr_red_percent
-            - ref_a.mr_red_percent * ref_b.mr_red_percent; //stacks multiplicatively
-        self.life_steal = ref_a.life_steal + ref_b.life_steal;
-        self.omnivamp = ref_a.omnivamp + ref_b.omnivamp;
-        self.ability_dmg_modifier = ref_a.ability_dmg_modifier
-            + ref_b.ability_dmg_modifier
-            + ref_a.ability_dmg_modifier * ref_b.ability_dmg_modifier; //stacks multiplicatively
-        self.phys_dmg_modifier = ref_a.phys_dmg_modifier
-            + ref_b.phys_dmg_modifier
-            + ref_a.phys_dmg_modifier * ref_b.phys_dmg_modifier; //stacks multiplicatively
-        self.magic_dmg_modifier = ref_a.magic_dmg_modifier
-            + ref_b.magic_dmg_modifier
-            + ref_a.magic_dmg_modifier * ref_b.magic_dmg_modifier; //stacks multiplicatively
-        self.true_dmg_modifier = ref_a.true_dmg_modifier
-            + ref_b.true_dmg_modifier
-            + ref_a.true_dmg_modifier * ref_b.true_dmg_modifier; //stacks multiplicatively
-        self.tot_dmg_modifier = ref_a.tot_dmg_modifier
-            + ref_b.tot_dmg_modifier
-            + ref_a.tot_dmg_modifier * ref_b.tot_dmg_modifier; //stacks multiplicatively
+        increase_exponentially_scaling_stat(
+            &mut self.ability_dmg_modifier,
+            other_ref.ability_dmg_modifier,
+        ); //stacks exponentially
+        increase_exponentially_scaling_stat(
+            &mut self.phys_dmg_modifier,
+            other_ref.phys_dmg_modifier,
+        ); //stacks exponentially
+        increase_exponentially_scaling_stat(
+            &mut self.magic_dmg_modifier,
+            other_ref.magic_dmg_modifier,
+        ); //stacks exponentially
+        increase_exponentially_scaling_stat(
+            &mut self.true_dmg_modifier,
+            other_ref.true_dmg_modifier,
+        ); //stacks exponentially
+        increase_exponentially_scaling_stat(&mut self.tot_dmg_modifier, other_ref.tot_dmg_modifier);
+        //stacks exponentially
     }
 
     fn clear(&mut self) {
@@ -466,7 +470,6 @@ impl SkillOrder {
     }
 }
 
-//todo: replace all "spell" occurrences with "ability"
 #[derive(Debug)]
 enum TriggerEvent {
     InitFight,
@@ -993,9 +996,10 @@ impl Unit {
         self.e_cd = 0.;
         self.r_cd = 0.;
 
-        //init stats
-        self.stats.store_add(&self.lvl_stats, &self.items_stats);
-        //runes are done later (need to do it after items passives init)
+        //init stats (runes are done later, need to do it after items passives init)
+        self.stats.clear();
+        self.stats.add(&self.lvl_stats);
+        self.stats.add(&self.items_stats);
 
         //reset temporary effects
         self.effects_stacks.clear(); //this is not really needed since we init the variables later, but we do it to clear unused variables for debugging convenience

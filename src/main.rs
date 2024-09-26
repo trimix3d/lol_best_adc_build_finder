@@ -33,8 +33,8 @@ fn champion_test_ground() {
             bonus_ad: 0.,
             ap_flat: 0.,
             ap_percent: 0.,
-            armor: 0., //in game default value is 0.
-            mr: 0.,    //in game default value is 0.
+            armor: 100., //in game default value is 0.
+            mr: 100.,    //in game default value is 0.
             base_as: TARGET_DUMMY_BASE_AS,
             bonus_as: 0.,
             ability_haste: 0.,
@@ -95,27 +95,11 @@ fn champion_test_ground() {
     .expect("Failed to create unit");
 
     //champion actions
-    println!("{}", champ);
-    for i in 0..9 {
-        println!(
-            "{} - {} - {} - t: {}",
-            i + 1,
-            champ.q(&target_dummy.stats),
-            champ.sim_results.dmg_done,
-            champ.time,
-        );
-        champ.walk(champ.q_cd);
-    }
-    champ.walk(4.5 - 1.25);
-    println!(
-        "{} - t: {}",
-        champ.basic_attack(&target_dummy.stats),
-        champ.time,
-    );
+    println!("{} - t: {}", champ.q(&target_dummy.stats), champ.time,);
 }
 
 fn main() -> Result<(), ()> {
-    //champion_test_ground();
-    cli::launch_interface();
+    champion_test_ground();
+    //cli::launch_interface();
     Ok(())
 }

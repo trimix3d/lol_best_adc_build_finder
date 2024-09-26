@@ -802,8 +802,8 @@ fn get_scores_from_sim_results(champ: &Unit, phys_dmg_taken_percent: f32) -> (f3
     let effective_hp: f32 = (champ.stats.hp
         + champ.sim_results.heals_shields
         + 6. * champ.sim_results.life_vamped / actual_time)
-        / (phys_dmg_taken_percent * resistance_formula_pos(champ.stats.armor)
-            + (1. - phys_dmg_taken_percent) * resistance_formula_pos(champ.stats.mr)); //effective (hp + heals and shields gained during the simulation + life vamped over a standardized duration), magic dmg percent is deducted by the formula: 1. - phys_dmg_taken_percent (neglecting true damage)
+        / (phys_dmg_taken_percent * resistance_formula(champ.stats.armor)
+            + (1. - phys_dmg_taken_percent) * resistance_formula(champ.stats.mr)); //effective (hp + heals and shields gained during the simulation + life vamped over a standardized duration), magic dmg percent is deducted by the formula: 1. - phys_dmg_taken_percent (neglecting true damage)
 
     let move_speed: f32 = champ.sim_results.units_travelled / actual_time; //average move speed of the unit over the fight simulation
 

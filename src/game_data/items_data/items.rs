@@ -2,7 +2,7 @@ use super::{Item, ItemGroups, ItemId, ItemUtils};
 use crate::game_data::*;
 
 use effects_data::{EffectId, EffectStackId, EffectValueId, TemporaryEffect};
-use units_data::{capped_ms, DmgType, RawDmg, Unit, UnitStats, MAX_UNIT_LVL};
+use units_data::*;
 
 use enumset::{enum_set, EnumSet};
 
@@ -269,8 +269,10 @@ pub const NULL_ITEM: Item = Item {
 //Abyssal mask
 fn abyssal_mask_init(champ: &mut Unit) {
     //unmake passive
-    champ.stats.mr_red_percent += ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE * 0.30;
-    //todo: check stat stacking
+    increase_multiplicatively_scaling_stat(
+        &mut champ.stats.mr_red_percent,
+        ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE * 0.30,
+    ); //todo: check stat stacking
 }
 
 pub const ABYSSAL_MASK: Item = Item {
@@ -457,16 +459,27 @@ fn black_cleaver_init(champ: &mut Unit) {
 const BLACK_CLEAVER_CARVE_P_ARMOR_RED_PER_STACK: f32 = 0.06;
 fn black_cleaver_carve_add_stack(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_stacks[EffectStackId::BlackCleaverCarveStacks] < 5 {
+        decrease_multiplicatively_scaling_stat(
+            &mut champ.stats.armor_red_percent,
+            champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent],
+        ); //decrease amount temporarly
+
         champ.effects_stacks[EffectStackId::BlackCleaverCarveStacks] += 1;
-        champ.stats.armor_red_percent += BLACK_CLEAVER_CARVE_P_ARMOR_RED_PER_STACK;
         champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent] +=
             BLACK_CLEAVER_CARVE_P_ARMOR_RED_PER_STACK;
+
+        increase_multiplicatively_scaling_stat(
+            &mut champ.stats.armor_red_percent,
+            champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent],
+        );
     }
 }
 
 fn black_cleaver_carve_remove_every_stack(champ: &mut Unit) {
-    champ.stats.armor_red_percent -=
-        champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent];
+    decrease_multiplicatively_scaling_stat(
+        &mut champ.stats.armor_red_percent,
+        champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent],
+    );
     champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent] = 0.;
     champ.effects_stacks[EffectStackId::BlackCleaverCarveStacks] = 0;
 }
@@ -2403,6 +2416,7 @@ pub const KRAKEN_SLAYER: Item = Item {
 //Lidandry's torment
 const LIANDRYS_TORMENT_TORMENT_DOT_DURATION: f32 = 3.; //todo: test if dot count as in combat
 const LIANDRYS_TORMENT_SUFFERING_OUTSIDE_COMBAT_TIME_VALUE: f32 = -1.; //special value to indicate that the unit is not in combat, MUST BE NEGATIVE to not interfere with an actual combat start time value
+const LIANDRYS_TORMENT_SUFFERING_MAX_TOT_DMG_MODIFIER: f32 = 0.06;
 fn liandrys_torment_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::LiandrysTormentTormentLastApplicationTime] =
         -(LIANDRYS_TORMENT_TORMENT_DOT_DURATION + F32_TOL); //to allow for effect at time == 0
@@ -2435,28 +2449,33 @@ fn liandrys_torment_suffering_refresh(champ: &mut Unit, _availability_coef: f32)
     }
 
     //if not the first refresh (previous condition), update tot dmg modifier
-    champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
-        / (1. + champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier])
-        - 1.; //remove current tot dmg multiplier temporarly
-    let tot_dmg_modifier: f32 = f32::min(
-        0.06,
+    decrease_exponentially_scaling_stat(
+        &mut champ.stats.tot_dmg_modifier,
+        champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier],
+    );
+
+    champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = f32::min(
+        LIANDRYS_TORMENT_SUFFERING_MAX_TOT_DMG_MODIFIER,
         0.02 * f32::round(
             champ.time
                 - champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime],
         ),
     ); //as of patch 14.06, using round is the correct way to get the value //todo: test passive
-    champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = tot_dmg_modifier;
-    champ.stats.tot_dmg_modifier += (1. + champ.stats.tot_dmg_modifier) * tot_dmg_modifier;
-    //add updated ability dmg multiplier
+
+    increase_exponentially_scaling_stat(
+        &mut champ.stats.tot_dmg_modifier,
+        champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier],
+    );
 }
 
 fn liandrys_torment_suffering_disable(champ: &mut Unit) {
+    decrease_exponentially_scaling_stat(
+        &mut champ.stats.tot_dmg_modifier,
+        champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier],
+    );
+    champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = 0.;
     champ.effects_values[EffectValueId::LiandrysTormentSufferingCombatStartTime] =
         LIANDRYS_TORMENT_SUFFERING_OUTSIDE_COMBAT_TIME_VALUE;
-    champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
-        / (1. + champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier])
-        - 1.; //remove tot dmg multiplier, stacks multiplicatively
-    champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = 0.;
 }
 
 const LIANDRYS_TORMENT_SUFFERING: TemporaryEffect = TemporaryEffect {
@@ -3902,10 +3921,13 @@ fn riftmaker_void_corruption_refresh(champ: &mut Unit, _availability_coef: f32) 
         //todo: test if dmg modifier is applied instantly and adjust
         return;
     }
+
     //if not the first refresh (previous condition), update tot dmg modifier
-    champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
-        / (1. + champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier])
-        - 1.; //remove current tot dmg multiplier temporarly
+    decrease_exponentially_scaling_stat(
+        &mut champ.stats.tot_dmg_modifier,
+        champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier],
+    ); //remove current tot dmg multiplier temporarly
+
     let tot_dmg_modifier: f32 = f32::min(
         RIFTMAKER_VOID_CORRUPTION_MAX_COEF,
         0.02 * f32::trunc(
@@ -3914,7 +3936,8 @@ fn riftmaker_void_corruption_refresh(champ: &mut Unit, _availability_coef: f32) 
         ),
     ); //as of patch 14.06, using trunc is the correct way to get the value //todo: test passive
     champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier] = tot_dmg_modifier;
-    champ.stats.tot_dmg_modifier += (1. + champ.stats.tot_dmg_modifier) * tot_dmg_modifier; //add updated ability dmg multiplier
+
+    increase_exponentially_scaling_stat(&mut champ.stats.tot_dmg_modifier, tot_dmg_modifier);
 
     //gain omnivamp if fully stacked
     if (champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp] == 0.)
@@ -3929,12 +3952,13 @@ fn riftmaker_void_corruption_refresh(champ: &mut Unit, _availability_coef: f32) 
 fn riftmaker_void_corruption_disable(champ: &mut Unit) {
     champ.stats.omnivamp -= champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp];
     champ.effects_values[EffectValueId::RiftmakerVoidCorruptionOmnivamp] = 0.;
+    decrease_exponentially_scaling_stat(
+        &mut champ.stats.tot_dmg_modifier,
+        champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier],
+    );
+    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier] = 0.;
     champ.effects_values[EffectValueId::RiftmakerVoidCorruptionCombatStartTime] =
         RIFTMAKER_VOID_CORRUPTION_OUTSIDE_COMBAT_TIME_VALUE;
-    champ.stats.tot_dmg_modifier = (1. + champ.stats.tot_dmg_modifier)
-        / (1. + champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier])
-        - 1.; //remove tot dmg multiplier, stacks multiplicatively
-    champ.effects_values[EffectValueId::RiftmakerVoidCorruptionTotDmgModifier] = 0.;
 }
 
 const RIFTMAKER_VOID_CORRUPTION: TemporaryEffect = TemporaryEffect {
@@ -4384,9 +4408,8 @@ pub const SERYLDAS_GRUDGE: Item = Item {
 fn shadowflame_init(champ: &mut Unit) {
     let modifier: f32 =
         SHADOWFLAME_CINDERBLOOM_COEF * (0.2 * (1. + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)); //crit dmg above BASE_CRIT_DMG only affects only the bonus dmg of shadowflame not the entire dmg instance
-    champ.stats.magic_dmg_modifier += (1. + champ.stats.magic_dmg_modifier) * modifier; //stacks multiplicatively
-    champ.stats.true_dmg_modifier += (1. + champ.stats.true_dmg_modifier) * modifier;
-    //stacks multiplicatively
+    increase_exponentially_scaling_stat(&mut champ.stats.magic_dmg_modifier, modifier);
+    increase_exponentially_scaling_stat(&mut champ.stats.true_dmg_modifier, modifier);
 }
 
 pub const SHADOWFLAME: Item = Item {
@@ -4452,6 +4475,7 @@ pub const SHADOWFLAME: Item = Item {
 //Spear of shojin
 fn spear_of_shojin_init(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] = 0;
+    champ.effects_values[EffectValueId::SpearOfShojinFocusedWillAbilityDmgModifier] = 0.;
 }
 
 const SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK: f32 = 0.03;
@@ -4464,31 +4488,32 @@ fn spear_of_shojin_focused_will(
     (0., 0., 0.)
 }
 
-//todo: test if ability dmg use prior or current number of stacks
+//todo: test if ability dmg use prior or current number of stacks, test dmg
 fn spear_of_shojin_focused_will_add_stack(champ: &mut Unit, _availability_coef: f32) {
     //if not fully stacked, add 1 stack and update ability dmg modifier
     if champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] < 4 {
-        champ.stats.ability_dmg_modifier = (1. + champ.stats.ability_dmg_modifier)
-            / (1.
-                + (SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK
-                    * f32::from(
-                        champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks],
-                    )))
-            - 1.; //remove current ability dmg multiplier temporarly
+        decrease_exponentially_scaling_stat(
+            &mut champ.stats.ability_dmg_modifier,
+            champ.effects_values[EffectValueId::SpearOfShojinFocusedWillAbilityDmgModifier],
+        ); //decrease amount temporarly
+
         champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] += 1;
-        champ.stats.ability_dmg_modifier += (1. + champ.stats.ability_dmg_modifier)
-            * (SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK
-                * f32::from(champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks]));
-        //add updated ability dmg multiplier
+        champ.effects_values[EffectValueId::SpearOfShojinFocusedWillAbilityDmgModifier] +=
+            SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK;
+
+        increase_exponentially_scaling_stat(
+            &mut champ.stats.ability_dmg_modifier,
+            champ.effects_values[EffectValueId::SpearOfShojinFocusedWillAbilityDmgModifier],
+        );
     }
 }
 
 fn spear_of_shojin_focused_will_disable(champ: &mut Unit) {
-    champ.stats.ability_dmg_modifier = (1. + champ.stats.ability_dmg_modifier)
-        / (1.
-            + (SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK
-                * f32::from(champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks])))
-        - 1.; //remove ability dmg multiplier, stacks multiplicatively
+    decrease_exponentially_scaling_stat(
+        &mut champ.stats.ability_dmg_modifier,
+        champ.effects_values[EffectValueId::SpearOfShojinFocusedWillAbilityDmgModifier],
+    );
+    champ.effects_values[EffectValueId::SpearOfShojinFocusedWillAbilityDmgModifier] = 0.;
     champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] = 0;
 }
 
@@ -5074,19 +5099,39 @@ fn terminus_juxtaposition_add_dark_stack(champ: &mut Unit, _availability_coef: f
     if champ.effects_stacks[EffectStackId::TerminusJuxtapositionDarkStacks]
         < TERMINUS_JUXTAPOSITION_MAX_STACKS
     {
+        decrease_multiplicatively_scaling_stat(
+            &mut champ.stats.armor_pen_percent,
+            champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen],
+        ); //decrease value temporarly
+        decrease_multiplicatively_scaling_stat(
+            &mut champ.stats.magic_pen_percent,
+            champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen],
+        ); //decrease value temporarly
+
         champ.effects_stacks[EffectStackId::TerminusJuxtapositionDarkStacks] += 1;
-        champ.stats.armor_pen_percent += TERMINUS_JUXTAPOSITION_PEN_PER_DARK_STACK;
-        champ.stats.magic_pen_percent += TERMINUS_JUXTAPOSITION_PEN_PER_DARK_STACK;
         champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen] +=
             TERMINUS_JUXTAPOSITION_PEN_PER_DARK_STACK;
+
+        increase_multiplicatively_scaling_stat(
+            &mut champ.stats.armor_pen_percent,
+            champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen],
+        );
+        increase_multiplicatively_scaling_stat(
+            &mut champ.stats.magic_pen_percent,
+            champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen],
+        );
     }
 }
 
 fn terminus_juxtaposition_remove_every_dark_stack(champ: &mut Unit) {
-    champ.stats.armor_pen_percent -=
-        champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen];
-    champ.stats.magic_pen_percent -=
-        champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen];
+    decrease_multiplicatively_scaling_stat(
+        &mut champ.stats.armor_pen_percent,
+        champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen],
+    );
+    decrease_multiplicatively_scaling_stat(
+        &mut champ.stats.magic_pen_percent,
+        champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen],
+    );
     champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen] = 0.;
     champ.effects_stacks[EffectStackId::TerminusJuxtapositionDarkStacks] = 0;
 }

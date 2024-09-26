@@ -5,7 +5,7 @@ use super::units_data::{RawDmg, Unit, UnitStats, MAX_UNIT_ITEMS};
 use constcat::concat_slices;
 use enumset::{EnumSet, EnumSetType};
 #[allow(unused_imports)]
-use strum::EnumCount; //this import is necessary for strum_macros::EnumCount to work but it trigger the lint for some reason
+use strum::EnumCount; //this import is necessary for strum_macros::EnumCount to work but it triggers the lint for some reason
 use strum_macros::EnumCount as EnumCountMacro;
 
 use core::cmp::Ordering;
@@ -514,7 +514,7 @@ mod tests {
     pub fn test_all_items_are_correctly_listed() {
         assert!(
             ALL_ITEMS.len() + 1 == ItemId::COUNT, //+1 to account for `NULL_ITEM`
-            "Number of items in `ALL_ITEMS` ({} + 1 for `NULL_ITEM`) is different that the number of Ids in `ItemId` ({})",
+            "Number of items in `ALL_ITEMS` ({} + 1 for `NULL_ITEM`) is different that the number of variants in `ItemId` enum ({})",
             ALL_ITEMS.len(),
             ItemId::COUNT
         );

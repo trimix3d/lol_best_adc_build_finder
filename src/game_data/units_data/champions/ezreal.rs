@@ -1,8 +1,8 @@
 use crate::game_data::{items_data::items::*, units_data::*};
 
 //champion parameters (constants):
-const EZREAL_Q_HIT_PERCENT: f32 = 0.9;
-const EZREAL_W_HIT_PERCENT: f32 = 0.8;
+const EZREAL_Q_HIT_PERCENT: f32 = 1.; //0.9;//!!!
+const EZREAL_W_HIT_PERCENT: f32 = 1.; //0.8;//!!!
 /// Number of targets hit by ezreal R.
 const EZREAL_R_N_TARGETS: f32 = 1.;
 const EZREAL_R_HIT_PERCENT: f32 = 0.8;
@@ -81,7 +81,7 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //add passive stack
     champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
-    //todo: do 2 dmg instance (0 dmg basic ability + basic attack) + check behavior after on action fn changes (with luden, shojin, etc)
+    //todo: check behavior after on action fn changes (with luden, shojin, etc)
     champ.dmg_on_target(
         target_stats,
         (EZREAL_Q_HIT_PERCENT * phys_dmg, 0., 0.),

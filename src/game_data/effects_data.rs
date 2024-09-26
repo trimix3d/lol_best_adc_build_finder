@@ -128,6 +128,7 @@ pub enum EffectValueId {
     SivirFleetOfFootMsFlat,
     SivirOnTheHuntMsPercent,
     SivirRicochetBonusAS,
+    SpearOfShojinFocusedWillAbilityDmgModifier,
     StormsurgeStormraiderMsPercent,
     StridebreakerTemperMsFlat,
     StridebreakerBreakingShockwaveMsPercent,
