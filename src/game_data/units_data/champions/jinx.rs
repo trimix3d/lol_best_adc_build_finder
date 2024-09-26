@@ -4,7 +4,7 @@ use crate::game_data::{
 
 //champion parameters (constants):
 const JINX_W_HIT_PERCENT: f32 = 0.8;
-const JINX_R_TARGET_MISSING_HP_PERCENT: f32 = 0.66;
+const JINX_R_TARGET_MISSING_HP_PERCENT: f32 = 2. / 3.;
 const JINX_R_AVG_TARGETS: f32 = 1.2;
 const JINX_R_HIT_PERCENT: f32 = 0.9;
 

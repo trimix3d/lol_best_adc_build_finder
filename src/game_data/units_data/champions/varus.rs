@@ -3,7 +3,7 @@ use crate::game_data::{items_data::items::*, units_data::*};
 //champion parameters (constants):
 const VARUS_ABILITIES_HIT_PERCENT: f32 = 0.9;
 /// Average arrow charge considered to calculate dmg.
-const VARUS_Q_CHARGE_PERCENT: f32 = 0.66;
+const VARUS_Q_CHARGE_PERCENT: f32 = 2. / 3.;
 /// Number of targets hit by q arrow.
 const VARUS_Q_N_TARGETS: f32 = 1.0;
 /// Percentage of the target missing hp for the q arrow empowered by w.

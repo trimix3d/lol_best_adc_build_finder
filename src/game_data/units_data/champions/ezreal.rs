@@ -1,8 +1,8 @@
 use crate::game_data::{items_data::items::*, units_data::*};
 
 //champion parameters (constants):
-const EZREAL_Q_HIT_PERCENT: f32 = 1.; //0.9;// !!!
-const EZREAL_W_HIT_PERCENT: f32 = 1.; //0.8;// !!!
+const EZREAL_Q_HIT_PERCENT: f32 = 0.9;
+const EZREAL_W_HIT_PERCENT: f32 = 0.8;
 /// Number of targets hit by ezreal R.
 const EZREAL_R_N_TARGETS: f32 = 1.;
 const EZREAL_R_HIT_PERCENT: f32 = 0.8;
@@ -250,7 +250,7 @@ fn ezreal_fight_scenario_only_abilities(
 }
 
 const EZREAL_DEFAULT_RUNES_PAGE: RunesPage = RunesPage {
-    shard1: RuneShard::Middle, // !!!might still take attack speed for lane comfort
+    shard1: RuneShard::Left,
     shard2: RuneShard::Left,
     shard3: RuneShard::Left,
 };

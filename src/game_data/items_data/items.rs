@@ -9,16 +9,21 @@ use enumset::{enum_set, EnumSet};
 // This is the file containing every items stats + effects
 
 //items parameters:
-/// Percentage of dmg that is done in the passive range and profit from mr reduction.
-const ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE: f32 = 0.80;
-/// Percentage of abilities that benefits from the increased dmg modifier.
-const HORIZON_FOCUS_HYPERSHOT_ABILITIES_TRIGGER_PERCENT: f32 = 0.60;
+//for effects that depends on the target hp, we calculate an adapted value based on the assumption that pdf for ennemy hp % is f(x)=x on ]0, 1]
 ///x*x, where x is the % of hp under which it crits.
 const SHADOWFLAME_CINDERBLOOM_COEF: f32 = 0.40 * 0.40;
 ///x*x, where x is the % of hp under which the passive activates.
 const STORMSURGE_STORMRAIDER_COEF: f32 = 0.75 * 0.75;
 /// Percentage of target missing hp to account for the average dmg calculation.
-const KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT: f32 = 0.30;
+const KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT: f32 = 1. / 3.;
+/// % of missing HP used to calculate the heal from Sundered sky lightshield strike
+const SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP: f32 = 1. / 3.;
+/// Average hp % considered for mists edge dmg.
+const BLADE_OF_THE_RUINED_KING_MISTS_EDGE_AVG_TARGET_HP_PERCENT: f32 = 2. / 3.;
+/// Percentage of dmg that is done in the passive range and profit from mr reduction.
+const ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE: f32 = 0.70;
+/// Percentage of abilities that benefits from the increased dmg modifier.
+const HORIZON_FOCUS_HYPERSHOT_ABILITIES_TRIGGER_PERCENT: f32 = 0.60;
 /// Actual duration of Malignance hatefog curse on the ennemy
 const MALIGNANCE_HATEFOG_CURSE_TIME: f32 = 0.8;
 /// Number of bolts fired by Runaan's hurricane wind's fury on average (adding to the primary basic attack).
@@ -36,8 +41,6 @@ const STRIDEBREAKER_CLEAVE_AVG_TARGETS: f32 =
 const TITANIC_HYDRA_CLEAVE_AVG_TARGETS: f32 = 0.5;
 /// % of mana considered during the activation of the shield (1. = 100%)
 const SERAPHS_EMBRACE_LIFELINE_MANA_PERCENT: f32 = 0.5;
-/// % of missing HP used to calculate the heal from Sundered sky lightshield strike
-const SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP: f32 = 0.33;
 
 //spellblade (generic functions for spellblade items)
 //some lich bane spellblade functions are separate (because it modifies attack speed)
@@ -657,8 +660,11 @@ pub const BLACKFIRE_TORCH: Item = Item {
 
 //Blade of the ruined king
 fn blade_of_the_ruined_king_mists_edge(_champion: &mut Unit, target_stats: &UnitStats) -> RawDmg {
-    //assuming the pdf for ennemy hp % is f(x)=x on ]0, 1], the mean hp % is 66.667%
-    (2. / 3. * 0.06 * target_stats.hp, 0., 0.) //value for ranged champions
+    (
+        BLADE_OF_THE_RUINED_KING_MISTS_EDGE_AVG_TARGET_HP_PERCENT * 0.06 * target_stats.hp,
+        0.,
+        0.,
+    ) //value for ranged champions
 }
 
 pub const BLADE_OF_THE_RUINED_KING: Item = Item {
@@ -2353,7 +2359,7 @@ fn kraken_slayer_bring_it_down(champ: &mut Unit, _target_stats: &UnitStats) -> R
     champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] = 0;
     let phys_dmg: f32 = (1. + 0.5 * KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT)
         * KRAKEN_SLAYER_BRING_IT_DOWN_PHYS_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)];
-    (0.80 * phys_dmg, 0., 0.) //value for ranged champions
+    (phys_dmg, 0., 0.) //value for ranged champions
 }
 
 pub const KRAKEN_SLAYER: Item = Item {
