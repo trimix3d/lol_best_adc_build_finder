@@ -38,7 +38,7 @@ fn caitlyn_heatshot_phys_dmg(champ: &Unit) -> f32 {
             + champ.stats.crit_dmg * 0.85 * champ.stats.crit_chance)
 }
 
-fn caitlyn_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn caitlyn_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let mut phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
     if champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] == 1 {
@@ -53,7 +53,7 @@ fn caitlyn_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::BasicAttack),
         1.,
@@ -63,7 +63,7 @@ fn caitlyn_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 const CAITLYN_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [50., 90., 130., 170., 210.];
 const CAITLYN_Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.25, 1.45, 1.65, 1.85, 2.05];
 
-fn caitlyn_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn caitlyn_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 = (1. + 0.5 * f32::max(0., CAITLYN_Q_N_TARGETS - 1.))
@@ -72,21 +72,21 @@ fn caitlyn_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (CAITLYN_Q_HIT_PERCENT * phys_dmg, 0., 0.),
+        PartDmg(CAITLYN_Q_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         CAITLYN_Q_N_TARGETS * CAITLYN_Q_HIT_PERCENT,
     )
 }
 
-fn caitlyn_w(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn caitlyn_w(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     //do nothing
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const CAITLYN_E_MAGIC_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
 
-fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.sim_logs.units_travelled += 390.;
 
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
@@ -96,7 +96,7 @@ fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (0., magic_dmg, 0.),
+        PartDmg(0., magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         1.,
@@ -105,7 +105,7 @@ fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
 const CAITLYN_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [300., 500., 700.];
 
-fn caitlyn_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn caitlyn_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 = (CAITLYN_R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + 1.50 * champ.stats.bonus_ad)
@@ -113,7 +113,7 @@ fn caitlyn_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
         1.,

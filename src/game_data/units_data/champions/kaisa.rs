@@ -111,7 +111,7 @@ fn kaisa_second_skin_magic_dmg(champ: &mut Unit, target_stats: &UnitStats) -> f3
     magic_dmg
 }
 
-fn kaisa_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn kaisa_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //basic attack reduce e cd by 0.5 sec
     champ.e_cd = f32::max(0., champ.e_cd - 0.5);
 
@@ -119,7 +119,7 @@ fn kaisa_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let p_magic_dmg: f32 = kaisa_second_skin_magic_dmg(champ, target_stats);
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, p_magic_dmg, 0.),
+        PartDmg(phys_dmg, p_magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::BasicAttack),
         1.,
@@ -131,7 +131,7 @@ const KAISA_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [90., 123.75, 157.5, 191.25, 225.];
 /// Assumes single target dmg.
 const KAISA_EVOLVED_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [150., 206.25, 262.5, 318.75, 375.];
 
-fn kaisa_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn kaisa_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
     let n_missiles: u8;
@@ -154,7 +154,7 @@ fn kaisa_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (n_missiles, 1),
         enum_set!(DmgTag::Ability),
         1.,
@@ -168,7 +168,7 @@ const KAISA_W_TRAVEL_TIME: f32 = 1000. / KAISA_W_PROJECTILE_SPEED;
 
 const KAISA_W_MAGIC_DMG_BY_W_LVL: [f32; 5] = [30., 55., 80., 105., 130.];
 
-fn kaisa_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn kaisa_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
     let mut magic_dmg: f32 =
@@ -184,7 +184,7 @@ fn kaisa_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (0., KAISA_W_HIT_PERCENT * magic_dmg, 0.),
+        PartDmg(0., KAISA_W_HIT_PERCENT * magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         KAISA_W_HIT_PERCENT,
@@ -216,7 +216,7 @@ const KAISA_SUPERCHARGE_AS: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn kaisa_e(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn kaisa_e(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
     let capped_bonus_as: f32 = f32::min(
@@ -230,19 +230,19 @@ fn kaisa_e(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     champ.stats.ms_percent -= percent_ms_buff;
 
     champ.add_temporary_effect(&KAISA_SUPERCHARGE_AS, 0.);
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const KAISA_R_SHIELD_BY_R_LVL: [f32; 3] = [70., 90., 110.];
 const KAISA_R_SHIELD_AD_RATIO_BY_R_LVL: [f32; 3] = [0.90, 1.35, 1.8];
 
-fn kaisa_r(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn kaisa_r(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
     champ.sim_logs.single_use_heals_shields += KAISA_R_SHIELD_BY_R_LVL[r_lvl_idx]
         + KAISA_R_SHIELD_AD_RATIO_BY_R_LVL[r_lvl_idx] * champ.stats.ad()
         + 1.2 * champ.stats.ap();
     champ.sim_logs.units_travelled += 425.; //assumed dash range (max r radius around the ennemy - champion width)
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 fn kaisa_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_duration: f32) {

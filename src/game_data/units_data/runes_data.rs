@@ -10,7 +10,7 @@ pub enum RuneShard {
 
 /// Represents the runes page of a champion.
 /// For now, only implements runes shards.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct RunesPage {
     pub shard1: RuneShard,
     pub shard2: RuneShard,

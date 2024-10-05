@@ -20,12 +20,12 @@ fn aphelios_on_lvl_set(champ: &mut Unit) {
 
 //default_basic_attack with an aditionnal mutliplier due to infernum bonus basic attack dmg (averaged on 5 weapons)
 const APHELIOS_BASIC_ATTACKS_MULTIPLIER: f32 = 1. * (4. / 5.) + 1.10 * (1. / 5.);
-fn aphelios_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn aphelios_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let phys_dmg: f32 =
         APHELIOS_BASIC_ATTACKS_MULTIPLIER * champ.stats.ad() * champ.stats.crit_coef();
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::BasicAttack),
         1.,
@@ -233,7 +233,7 @@ const APHELIOS_Q_INFERNUM_BONUS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
     0.8,  //lvl 18
 ];
 
-fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let lvl_idx: usize = usize::from(champ.lvl.get() - 1); //to index ability ratios by lvl
 
     //calibrium weighted 1/5 (doesn't count the basic attack that triggers the mark)
@@ -275,9 +275,9 @@ fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         * champ.stats.crit_coef();
 
     //consider 2 hits: initial ability + basic attack (severum, infernum)
-    let first_hit: f32 = champ.dmg_on_target(
+    let first_hit: PartDmg = champ.dmg_on_target(
         target_stats,
-        (phys_dmg, magic_dmg, 0.),
+        PartDmg(phys_dmg, magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         (2. + APHELIOS_Q_CALIBRUM_HIT_PERCENT + APHELIOS_Q_INFERNUM_N_TARGETS) / 5.,
@@ -286,7 +286,7 @@ fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     first_hit
         + champ.dmg_on_target(
             target_stats,
-            (basic_attack_phys_dmg, 0., 0.),
+            PartDmg(basic_attack_phys_dmg, 0., 0.),
             (1, 1),
             enum_set!(DmgTag::BasicAttack),
             (1. + APHELIOS_Q_CALIBRUM_HIT_PERCENT + APHELIOS_Q_INFERNUM_N_TARGETS) / 5.,
@@ -297,7 +297,7 @@ const APHELIOS_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [125., 175., 225.];
 const APHELIOS_R_CALIBRUM_PHYS_DMG_BY_R_LVL: [f32; 3] = [50., 80., 110.];
 const APHELIOS_R_SEVERUM_HEAL_BY_R_LVL: [f32; 3] = [250., 350., 450.];
 const APHELIOS_R_INFERNUM_PHYS_DMG_BY_R_LVL: [f32; 3] = [50., 100., 150.];
-fn aphelios_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn aphelios_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     //initial projectile dmg
@@ -331,9 +331,9 @@ fn aphelios_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     //crescendum, chakrams not taken into account
 
     //2 hits: initial projectile + basic attack
-    let first_hit: f32 = champ.dmg_on_target(
+    let first_hit: PartDmg = champ.dmg_on_target(
         target_stats,
-        (phys_dmg + infernum_phys_dmg, 0., 0.),
+        PartDmg(phys_dmg + infernum_phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
         APHELIOS_R_N_TARGETS,
@@ -342,7 +342,7 @@ fn aphelios_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     first_hit
         + champ.dmg_on_target(
             target_stats,
-            (basic_attack_phys_dmg + mark_phys_dmg, 0., 0.),
+            PartDmg(basic_attack_phys_dmg + mark_phys_dmg, 0., 0.),
             (1, 1),
             enum_set!(DmgTag::BasicAttack),
             APHELIOS_R_N_TARGETS,

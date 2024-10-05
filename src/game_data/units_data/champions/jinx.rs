@@ -15,7 +15,7 @@ const JINX_ROCKET_LAUNCHER_AOE_AVG_TARGETS: f32 =
     basic_attack_aoe_effect_avg_additionnal_targets!(JINX_ROCKET_LAUNCHER_AOE_RADIUS);
 
 /// Only rocket launcher.
-fn jinx_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn jinx_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //attack speed already slowed in jinx as ratio
     let phys_dmg: f32 = (1. + JINX_ROCKET_LAUNCHER_AOE_AVG_TARGETS)
         * 1.1
@@ -23,14 +23,14 @@ fn jinx_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         * champ.stats.crit_coef();
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::BasicAttack),
         1., //rocket launcher aoe doesnt trigger on hit on additionnal targets
     )
 }
 
-fn jinx_q(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn jinx_q(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     //does nothing (only rocket launcher is implemented)
     //panic because pressing jinx q doesn't trigger spellblade in game while it currently does in this code, so it should be forbidden
     unreachable!("Jinx q was used but the minigun is not implemented")
@@ -38,29 +38,29 @@ fn jinx_q(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
 
 const JINX_W_PHYS_DMG_BY_W_LVL: [f32; 5] = [10., 60., 110., 160., 210.];
 
-fn jinx_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn jinx_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 = JINX_W_PHYS_DMG_BY_W_LVL[w_lvl_idx] + 1.60 * champ.stats.ad();
 
     champ.dmg_on_target(
         target_stats,
-        (JINX_W_HIT_PERCENT * phys_dmg, 0., 0.),
+        PartDmg(JINX_W_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         JINX_W_HIT_PERCENT,
     )
 }
 
-fn jinx_e(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn jinx_e(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     //not implemented (utility ability that roots, its dmg must not be considered, except if riot does silly things in a future patch)
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const JINX_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [325., 475., 625.];
 const JINX_R_MISSING_HP_RATIO_BY_R_LVL: [f32; 3] = [0.25, 0.30, 0.35];
 
-fn jinx_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn jinx_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     //assumes target is at 900 range
@@ -72,7 +72,7 @@ fn jinx_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (JINX_R_HIT_PERCENT * phys_dmg, 0., 0.),
+        PartDmg(JINX_R_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
         JINX_R_AVG_TARGETS * JINX_R_HIT_PERCENT,

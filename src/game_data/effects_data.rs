@@ -4,7 +4,7 @@ use enum_map::Enum;
 
 use core::hash::{Hash, Hasher};
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Enum)]
+#[derive(Enum, Debug, PartialEq, Eq, Hash)]
 pub enum EffectId {
     //the convention to name variants is to write, in CamelCase (with no extra space between them), the following in order :
     // - the name of the source of the passive/active effect (either an item or a champion ability)
@@ -46,7 +46,7 @@ pub enum EffectId {
 }
 
 //If you have the choice, prefer using EffectfStackId over EffectValueId, as working with integers is more reliable than floats
-#[derive(Debug, enum_map::Enum, Clone, Copy)]
+#[derive(Enum, Debug)]
 pub enum EffectStackId {
     //the convention to name variants is to write, in CamelCase (with no extra space between them), the following in order :
     // - the name of the source of the passive/active effect (either an item or a champion ability)
@@ -87,7 +87,7 @@ pub enum EffectStackId {
     XayahCleanCutsStacks,
 }
 
-#[derive(Debug, enum_map::Enum, Clone, Copy)]
+#[derive(Enum, Debug)]
 pub enum EffectValueId {
     //the convention to name variants is to write, in CamelCase (with no extra space between them), the following in order :
     // - the name of the source of the passive/active effect (either an item or a champion spell)

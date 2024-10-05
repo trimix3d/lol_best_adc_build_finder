@@ -58,7 +58,7 @@ const SIVIR_FLEET_OF_FOOT: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&SIVIR_FLEET_OF_FOOT, 0.);
 
     //if buffed by r, basic attacks reduces abilities cooldown
@@ -71,9 +71,9 @@ pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let basic_attack_phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
     //basic attack dmg, instance of dmg must be done before w ricochets
-    let mut tot_dmg: f32 = champ.dmg_on_target(
+    let mut tot_dmg: PartDmg = champ.dmg_on_target(
         target_stats,
-        (basic_attack_phys_dmg, 0., 0.),
+        PartDmg(basic_attack_phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::BasicAttack),
         1.,
@@ -89,7 +89,7 @@ pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
         tot_dmg += champ.dmg_on_target(
             target_stats,
-            (ricochet_phys_dmg, 0., 0.),
+            PartDmg(ricochet_phys_dmg, 0., 0.),
             (0, 0), //most abilities effects don't work with sivir ricochets (known exception: shojin), so putting 0 instances cancels their effects -> adapt items pool as a fail safe
             enum_set!(DmgTag::Ability), //abilities coef (shojin) will still run even with 0 instances
             1.,
@@ -102,7 +102,7 @@ pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 const SIVIR_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [15., 30., 45., 60., 75.];
 const SIVIR_Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.80, 0.85, 0.90, 0.95, 1.0];
 
-fn sivir_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn sivir_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 = SIVIR_Q_N_TARGETS
@@ -114,7 +114,7 @@ fn sivir_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1 + (SIVIR_Q_RETURN_PERCENT as u8), 1),
         enum_set!(DmgTag::Ability),
         SIVIR_Q_N_TARGETS,
@@ -147,18 +147,18 @@ const SIVIR_RICOCHET: TemporaryEffect = TemporaryEffect {
 
 const SIVIR_W_AD_RATIO_BY_W_LVL: [f32; 5] = [0.30, 0.35, 0.40, 0.45, 0.50];
 
-fn sivir_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn sivir_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&SIVIR_RICOCHET, 0.);
 
     //reset basic attack cd
     champ.basic_attack_cd = 0.;
 
-    0.
+    PartDmg(0., 0., 0.)
 }
 
-fn sivir_e(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn sivir_e(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     //does nothing (spellshield)
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 //effect is weighted by r cooldown
@@ -218,7 +218,7 @@ const SIVIR_ON_THE_HUNT_MS_LVL_3: TemporaryEffect = TemporaryEffect {
 /// Basic abilities cooldown refunded by each basic attack when under r effect
 const SIVIR_R_ABILITIES_CD_REFUND_TIME: f32 = 0.5;
 
-fn sivir_r(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn sivir_r(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     match champ.r_lvl {
         1 => champ.add_temporary_effect(
             &SIVIR_ON_THE_HUNT_MS_LVL_1,
@@ -237,7 +237,7 @@ fn sivir_r(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
             champ.properties.name
         ),
     };
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 fn sivir_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_duration: f32) {

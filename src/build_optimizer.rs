@@ -801,7 +801,7 @@ fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usiz
 fn get_scores_from_sim_results(champ: &Unit, phys_dmg_taken_percent: f32) -> (f32, f32, f32) {
     let actual_time: f32 = champ.time; //take champ.time instead of fight_duration in scores calculations, since simulation can be slighlty extended
 
-    let dps: f32 = champ.sim_logs.dmg_done / actual_time; //average dps of the unit over the fight simulation
+    let dps: f32 = champ.sim_logs.dmg_done.as_sum() / actual_time; //average dps of the unit over the fight simulation
 
     let effective_hp: f32 = (champ.stats.hp
         + champ.sim_logs.single_use_heals_shields

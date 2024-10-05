@@ -104,7 +104,7 @@ pub enum ItemId {
 ///
 /// A build cannot have multiple items of the same item group.
 /// <https://leagueoflegends.fandom.com/wiki/Item_group>
-#[derive(Debug, EnumSetType)]
+#[derive(EnumSetType, Debug)]
 pub enum ItemGroups {
     Annul,
     Blight,
@@ -125,7 +125,7 @@ pub enum ItemGroups {
 /// Describe if item has specific actives/passives utilities.
 ///
 /// An item can have a variant only for important effects like big powerspikes or one that unlocks a win condition.
-#[derive(Debug, EnumSetType)]
+#[derive(EnumSetType, Debug)]
 pub enum ItemUtils {
     AntiHealShield,
     Survivability,
@@ -153,7 +153,7 @@ pub struct Item {
     pub init: Option<fn(&mut Unit)>,
 
     /// Triggers special actives and returns dmg done.
-    pub special_active: Option<fn(&mut Unit, &UnitStats) -> f32>,
+    pub special_active: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
 
     /// Applies effects triggered when an ability is casted (updates effect variables accordingly).
     pub on_ability_cast: Option<fn(&mut Unit)>,
@@ -338,7 +338,7 @@ pub const AVG_ITEM_COST_WITH_BOOTS_AND_SUPP_ITEM: f32 =
     ((MAX_UNIT_ITEMS_F32 - 2.) * AVG_LEGENDARY_ITEM_COST + AVG_BOOTS_COST + AVG_SUPPORT_ITEM_COST)
         / MAX_UNIT_ITEMS_F32;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Build(pub [&'static Item; MAX_UNIT_ITEMS]);
 
 impl Deref for Build {

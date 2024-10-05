@@ -22,7 +22,7 @@ fn varus_init_abilities(champ: &mut Unit) {
 
 //passive effect on kill not implemented (too situationnal)
 
-fn varus_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn varus_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
     let magic_dmg: f32 = VARUS_BLIGHT_ON_HIT_MAGIC_DMG_BY_W_LVL[usize::from(champ.w_lvl - 1)]
         + 0.35 * champ.stats.ap();
@@ -34,7 +34,7 @@ fn varus_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, magic_dmg, 0.),
+        PartDmg(phys_dmg, magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::BasicAttack),
         1.,
@@ -46,7 +46,7 @@ const VARUS_Q_MAX_CHARGE_COEF: f32 = 0.50; //bonus dmg coef when arrow is fully 
 const VARUS_Q_MAX_PHYS_DMG_BY_Q_LVL: [f32; 5] = [90., 160., 230., 300., 370.];
 const VARUS_Q_MAX_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.30, 1.40, 1.50, 1.60, 1.70];
 
-fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     const ARROW_CHARGE_WAIT_TIME: f32 = 1.25 * VARUS_Q_CHARGE_PERCENT;
 
     //approximate self slow by reducing ms_percent (current code doesn't handle slows)
@@ -86,7 +86,7 @@ fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (
+        PartDmg(
             VARUS_ABILITIES_HIT_PERCENT * phys_dmg,
             VARUS_ABILITIES_HIT_PERCENT * magic_dmg,
             0.,
@@ -102,10 +102,10 @@ const VARUS_BLIGHT_ON_HIT_MAGIC_DMG_BY_W_LVL: [f32; 5] = [5., 10., 15., 20., 25.
 
 const VARUS_W_TARGET_MISSING_HP_COEF_BY_W_LVL: [f32; 5] = [0.06, 0.08, 0.10, 0.12, 0.14];
 
-fn varus_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn varus_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     //w passive is implemented inside varus basic attacks
     champ.effects_stacks[EffectStackId::VarusBlightedQuiverEmpowered] = 1;
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const VARUS_TARGET_HP_COEF_PER_BLIGHT_STACK_BY_W_LVL: [f32; 5] = [0.03, 0.035, 0.04, 0.045, 0.05];
@@ -150,7 +150,7 @@ fn varus_consume_blight_stacks_magic_dmg(champ: &mut Unit, target_stats: &UnitSt
 
 const VARUS_E_PHYS_DMG_BY_E_LVL: [f32; 5] = [60., 100., 140., 180., 220.];
 
-fn varus_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn varus_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 =
@@ -159,7 +159,7 @@ fn varus_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (
+        PartDmg(
             VARUS_ABILITIES_HIT_PERCENT * phys_dmg,
             VARUS_ABILITIES_HIT_PERCENT * magic_dmg,
             0.,
@@ -210,7 +210,7 @@ const VARUS_R_PROJECTILE_SPEED: f32 = 1500.;
 const VARUS_R_TRAVEL_TIME: f32 = 600. / VARUS_R_PROJECTILE_SPEED;
 const VARUS_R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [150., 250., 350.];
 
-fn varus_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn varus_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     let mut magic_dmg: f32 = VARUS_R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.ap();
@@ -223,7 +223,7 @@ fn varus_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (0., VARUS_ABILITIES_HIT_PERCENT * magic_dmg, 0.),
+        PartDmg(0., VARUS_ABILITIES_HIT_PERCENT * magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
         VARUS_ABILITIES_HIT_PERCENT,

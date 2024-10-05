@@ -98,9 +98,8 @@ fn champion_test_ground() {
     println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
 }
 
-fn main() -> Result<(), ()> {
+fn main() {
     //todo: remove all "!!!"
-    champion_test_ground();
-    //cli::launch_interface();
-    Ok(())
+    //champion_test_ground();
+    cli::launch_interface();
 }

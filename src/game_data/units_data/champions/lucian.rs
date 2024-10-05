@@ -35,7 +35,7 @@ const LUCIAN_LIGHTSLINGER_BASIC_ATTACKS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
     0.60, //lvl 18
 ];
 
-fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     if champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] == 1 {
         champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 0;
         champ.e_cd = f32::max(0., champ.e_cd - 4.); //double basic attack reduce e_cd by 2sec for each hit
@@ -51,9 +51,9 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         let basic_attack_phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
         //todo: test dmg with on hit items
-        let first_hit = champ.dmg_on_target(
+        let first_hit: PartDmg = champ.dmg_on_target(
             target_stats,
-            (basic_attack_phys_dmg, vigilance_dmg, 0.),
+            PartDmg(basic_attack_phys_dmg, vigilance_dmg, 0.),
             (1, 1),
             enum_set!(DmgTag::BasicAttack),
             1.,
@@ -62,7 +62,7 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         first_hit
             + champ.dmg_on_target(
                 target_stats,
-                (
+                PartDmg(
                     basic_attack_phys_dmg
                         * LUCIAN_LIGHTSLINGER_BASIC_ATTACKS_AD_RATIO_BY_LVL
                             [usize::from(champ.lvl.get() - 1)],
@@ -80,7 +80,7 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
 const LUCIAN_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [85., 115., 145., 175., 205.];
 const LUCIAN_Q_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.60, 0.75, 0.90, 1.05, 1.20];
-fn lucian_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn lucian_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
     let phys_dmg: f32 = LUCIAN_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
         + LUCIAN_Q_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx] * champ.stats.bonus_ad;
@@ -89,7 +89,7 @@ fn lucian_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         1.,
@@ -120,7 +120,7 @@ const LUCIAN_ARDENT_BLAZE_MS: TemporaryEffect = TemporaryEffect {
 };
 
 const LUCIAN_W_MAGIC_DMG_BY_W_LVL: [f32; 5] = [75., 110., 145., 180., 215.];
-fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
     let magic_dmg: f32 = LUCIAN_W_MAGIC_DMG_BY_W_LVL[w_lvl_idx] + 0.9 * champ.stats.ap();
 
@@ -131,21 +131,21 @@ fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (0., magic_dmg, 0.),
+        PartDmg(0., magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         1.,
     )
 }
 
-fn lucian_e(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn lucian_e(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.sim_logs.units_travelled += 425.; //maximum dash range
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const LUCIAN_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [15., 30., 45.]; //dmg on champions
-fn lucian_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn lucian_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     let n_hits: f32 = LUCIAN_R_HIT_PERCENT * (22. + champ.stats.crit_chance / 0.04);
@@ -156,9 +156,9 @@ fn lucian_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
 
-    let r_dmg: f32 = champ.dmg_on_target(
+    let r_dmg: PartDmg = champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (n_hits as u8, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
         1.,

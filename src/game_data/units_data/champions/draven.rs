@@ -56,7 +56,7 @@ fn draven_q_axe_bonus_dmg(champ: &Unit) -> f32 {
         + champ.stats.bonus_ad * DRAVEN_SPINNING_AXE_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx]
 }
 
-fn draven_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn draven_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let mut phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
     if champ.effects_stacks[EffectStackId::DravenAxesInHand] >= 1
@@ -80,17 +80,17 @@ fn draven_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::BasicAttack),
         1.,
     )
 }
 
-fn draven_q(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn draven_q(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.effects_stacks[EffectStackId::DravenAxesInHand] =
         u8::min(2, champ.effects_stacks[EffectStackId::DravenAxesInHand] + 1);
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const DRAVEN_BLOOD_RUSH_BONUS_AS_BY_W_LVL: [f32; 5] = [0.20, 0.25, 0.30, 0.35, 0.40];
@@ -124,21 +124,21 @@ const DRAVEN_BLOOD_RUSH: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn draven_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn draven_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&DRAVEN_BLOOD_RUSH, 0.);
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const DRAVEN_E_PHYS_DMG_BY_E_LVL: [f32; 5] = [75., 110., 145., 180., 215.];
 
-fn draven_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn draven_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 = DRAVEN_E_PHYS_DMG_BY_E_LVL[e_lvl_idx] + 0.5 * champ.stats.bonus_ad;
 
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         1.,
@@ -148,7 +148,7 @@ fn draven_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 const DRAVEN_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [175., 275., 375.];
 const DRAVEN_R_BONUS_AD_RATIO_BY_R_LVL: [f32; 3] = [1.10, 1.30, 1.50];
 
-fn draven_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn draven_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 = DRAVEN_R_N_TARGETS
@@ -158,7 +158,7 @@ fn draven_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         ((1. + DRAVEN_R_RETURN_PERCENT) as u8, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
         DRAVEN_R_N_TARGETS,

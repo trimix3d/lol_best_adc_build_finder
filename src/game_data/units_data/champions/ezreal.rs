@@ -17,15 +17,15 @@ fn ezreal_init_abilities(champ: &mut Unit) {
     champ.effects_values[EffectValueId::EzrealRisingSpellForceBonusAS] = 0.;
 }
 
-fn ezreal_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_mark_dmg: f32 = ezreal_detonate_w_mark_if_any(champ, target_stats);
+fn ezreal_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+    let w_mark_dmg: PartDmg = ezreal_detonate_w_mark_if_any(champ, target_stats);
 
     let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
     w_mark_dmg
         + champ.dmg_on_target(
             target_stats,
-            (phys_dmg, 0., 0.),
+            PartDmg(phys_dmg, 0., 0.),
             (1, 1),
             enum_set!(DmgTag::BasicAttack),
             1.,
@@ -60,8 +60,8 @@ const EZREAL_RISING_SPELL_FORCE: TemporaryEffect = TemporaryEffect {
 const EZREAL_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [20., 45., 70., 95., 120.];
 const EZREAL_Q_CD_REFUND: f32 = 1.5;
 
-fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_mark_dmg: f32 = ezreal_detonate_w_mark_if_any(champ, target_stats);
+fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+    let w_mark_dmg: PartDmg = ezreal_detonate_w_mark_if_any(champ, target_stats);
 
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
@@ -81,7 +81,7 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     w_mark_dmg
         + champ.dmg_on_target(
             target_stats,
-            (EZREAL_Q_HIT_PERCENT * phys_dmg, 0., 0.),
+            PartDmg(EZREAL_Q_HIT_PERCENT * phys_dmg, 0., 0.),
             (1, 1),
             enum_set!(DmgTag::Ability | DmgTag::BasicAttack),
             EZREAL_Q_HIT_PERCENT,
@@ -92,16 +92,16 @@ const EZREAL_W_MARK_MAGIC_DMG_BY_W_LVL: [f32; 5] = [80., 135., 190., 245., 300.]
 const EZREAL_W_MARK_AP_RATIO_BY_W_LVL: [f32; 5] = [0.70, 0.75, 0.80, 0.85, 0.90];
 const EZREAL_W_MARK_DURATION: f32 = 4.;
 
-fn ezreal_detonate_w_mark_if_any(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn ezreal_detonate_w_mark_if_any(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     if champ.effects_stacks[EffectStackId::EzrealEssenceFluxMark] == 0 {
         //if no mark, do nothing
-        0.
+        PartDmg(0., 0., 0.)
     } else if champ.time - champ.effects_values[EffectValueId::EzrealEssenceFluxHitTime]
         >= EZREAL_W_MARK_DURATION
     {
         //if mark from too long ago, reset
         champ.effects_stacks[EffectStackId::EzrealEssenceFluxMark] = 0; //reset mark
-        0.
+        PartDmg(0., 0., 0.)
     } else {
         //detonate mark
         champ.effects_stacks[EffectStackId::EzrealEssenceFluxMark] = 0;
@@ -114,7 +114,7 @@ fn ezreal_detonate_w_mark_if_any(champ: &mut Unit, target_stats: &UnitStats) -> 
 
         champ.dmg_on_target(
             target_stats,
-            (0., EZREAL_W_HIT_PERCENT * magic_dmg, 0.),
+            PartDmg(0., EZREAL_W_HIT_PERCENT * magic_dmg, 0.),
             (1, 1),
             enum_set!(DmgTag::Ability),
             EZREAL_Q_HIT_PERCENT,
@@ -122,22 +122,22 @@ fn ezreal_detonate_w_mark_if_any(champ: &mut Unit, target_stats: &UnitStats) -> 
     }
 }
 
-fn ezreal_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn ezreal_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.effects_stacks[EffectStackId::EzrealEssenceFluxMark] = 1;
     champ.effects_values[EffectValueId::EzrealEssenceFluxHitTime] = champ.time;
 
     //add passive stack
     champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const EZREAL_E_MAGIC_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
 
-fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.sim_logs.units_travelled += 475.; //blink range
 
-    let w_mark_dmg: f32 = ezreal_detonate_w_mark_if_any(champ, target_stats);
+    let w_mark_dmg: PartDmg = ezreal_detonate_w_mark_if_any(champ, target_stats);
 
     //add passive stack
     champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
@@ -151,7 +151,7 @@ fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     w_mark_dmg
         + champ.dmg_on_target(
             target_stats,
-            (0., magic_dmg, 0.),
+            PartDmg(0., magic_dmg, 0.),
             (1, 1),
             enum_set!(DmgTag::Ability),
             1.,
@@ -160,8 +160,8 @@ fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
 const EZREAL_R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [350., 550., 750.];
 
-fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let w_mark_dmg: f32 = ezreal_detonate_w_mark_if_any(champ, target_stats);
+fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+    let w_mark_dmg: PartDmg = ezreal_detonate_w_mark_if_any(champ, target_stats);
 
     //add passive stack
     champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
@@ -174,7 +174,7 @@ fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     w_mark_dmg
         + champ.dmg_on_target(
             target_stats,
-            (0., EZREAL_R_HIT_PERCENT * magic_dmg, 0.),
+            PartDmg(0., EZREAL_R_HIT_PERCENT * magic_dmg, 0.),
             (1, 1),
             enum_set!(DmgTag::Ability | DmgTag::Ultimate),
             EZREAL_R_N_TARGETS * EZREAL_R_HIT_PERCENT,

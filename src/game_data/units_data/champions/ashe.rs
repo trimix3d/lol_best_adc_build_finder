@@ -13,7 +13,7 @@ fn ashe_init_abilities(champ: &mut Unit) {
     champ.effects_values[EffectValueId::AsheRangersFocusBonusAS] = 0.;
 }
 
-pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //check if target is frosted
     let special_crit_coef: f32 = if champ.effects_stacks[EffectStackId::AsheFrosted] == 1 {
         1.15 + champ.stats.crit_chance * (0.75 + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)
@@ -28,7 +28,7 @@ pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
             * special_crit_coef;
         champ.dmg_on_target(
             target_stats,
-            (phys_dmg, 0., 0.),
+            PartDmg(phys_dmg, 0., 0.),
             (5, 1),
             enum_set!(DmgTag::BasicAttack),
             1.,
@@ -41,7 +41,7 @@ pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         let phys_dmg: f32 = champ.stats.ad() * special_crit_coef;
         champ.dmg_on_target(
             target_stats,
-            (phys_dmg, 0., 0.),
+            PartDmg(phys_dmg, 0., 0.),
             (1, 1),
             enum_set!(DmgTag::BasicAttack),
             1.,
@@ -75,15 +75,15 @@ const ASHE_RANGERS_FOCUS_BUFF: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn ashe_q(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn ashe_q(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&ASHE_RANGERS_FOCUS_BUFF, 0.);
     champ.basic_attack_cd = 0.; //q resets basic attack cd
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const ASHE_W_PHYS_DMG_BY_W_LVL: [f32; 5] = [20., 35., 50., 65., 80.];
 
-fn ashe_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn ashe_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 = ASHE_W_N_TARGETS * (ASHE_W_PHYS_DMG_BY_W_LVL[w_lvl_idx] + champ.stats.ad());
@@ -91,21 +91,21 @@ fn ashe_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     champ.effects_stacks[EffectStackId::AsheFrosted] = 1; //apply frost
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         ASHE_W_N_TARGETS,
     )
 }
 
-fn ashe_e(_champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn ashe_e(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     //bird does nothing
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const ASHE_R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [200., 400., 600.];
 
-fn ashe_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn ashe_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     let magic_dmg: f32 = ASHE_R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + 1.20 * champ.stats.ap();
@@ -113,7 +113,7 @@ fn ashe_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     champ.effects_stacks[EffectStackId::AsheFrosted] = 1; //apply frost
     champ.dmg_on_target(
         target_stats,
-        (0., magic_dmg, 0.),
+        PartDmg(0., magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
         1.,

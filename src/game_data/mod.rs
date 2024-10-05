@@ -29,7 +29,7 @@ pub const STARTING_GOLDS: f32 = 500.;
 pub const PASSIVE_GOLDS_GEN_PER_MIN: f32 = 122.4;
 /// CS/min of the player of the champion we want to optimize,
 /// a bit inflated (~+20%) to take other sources of golds into account (kills, towers, ...).
-pub const CS_PER_MIN: f32 = 9.0;
+pub const CS_PER_MIN: f32 = 8.0;
 const GOLDS_PER_MELEE_CS: f32 = 21.;
 const GOLDS_PER_CASTER_CS: f32 = 14.;
 /// Average gold per siege minion over a 30min game.

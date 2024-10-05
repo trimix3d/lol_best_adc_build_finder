@@ -7,7 +7,6 @@ use units_data::*;
 use enumset::{enum_set, EnumSet};
 
 // This is the file containing every items stats + effects
-//todo: from_other_effect MEANS FROM GUINSOO, check all on_basic_attack_hit (especially cleave items)
 
 //items parameters:
 //for effects that depends on the target hp, we calculate an adapted value based on the assumption that pdf for ennemy hp % is f(x)=x on ]0, 1]
@@ -596,7 +595,7 @@ fn blackfire_torch_baleful_blaze(
             - champ.effects_values[EffectValueId::BlackfireTorchBalefulBlazeLastApplicationTime],
     ); //account for DoT overlap with the previous ability hit
     champ.effects_values[EffectValueId::BlackfireTorchBalefulBlazeLastApplicationTime] = champ.time;
-    (
+    PartDmg(
         0.,
         n_targets * dot_time * (10. + 0.01 * champ.stats.ap()) * (1. / 0.5),
         0.,
@@ -667,9 +666,9 @@ fn blade_of_the_ruined_king_mists_edge(
     from_other_effect: bool,
 ) -> PartDmg {
     if from_other_effect {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
-    (
+    PartDmg(
         n_targets
             * (BLADE_OF_THE_RUINED_KING_MISTS_EDGE_AVG_TARGET_HP_PERCENT * 0.06 * target_stats.hp),
         0.,
@@ -1036,7 +1035,7 @@ fn dead_mans_plate_shipwrecker(
     from_other_effect: bool,
 ) -> PartDmg {
     if from_other_effect {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
 
     //not affected by n_targets and from_other_effect
@@ -1052,7 +1051,7 @@ fn dead_mans_plate_shipwrecker(
 
     champ.effects_values[EffectValueId::DeadMansPlateShipwreckerLastHitdistance] =
         champ.sim_logs.units_travelled;
-    ((stacks / 100.) * (40. + champ.stats.base_ad), 0., 0.)
+    PartDmg((stacks / 100.) * (40. + champ.stats.base_ad), 0., 0.)
 }
 
 pub const DEAD_MANS_PLATE: Item = Item {
@@ -1188,7 +1187,7 @@ fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> PartD
     if champ.time - champ.effects_values[EffectValueId::EclipseEverRisingMoonLastTriggerTime]
         <= ECLIPSE_EVER_RISING_MOON_COOLDOWN * haste_formula(champ.stats.item_haste)
     {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if last hit from too long ago, reset stacks and add 1
     else if champ.time - champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime]
@@ -1196,7 +1195,7 @@ fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> PartD
     {
         champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] = 1;
         champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime] = champ.time;
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack (useless since max 2 stacks)
     else if champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks]
@@ -1204,14 +1203,14 @@ fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> PartD
     {
         champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] += 1;
         champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime] = champ.time;
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
 
     //if last hit is recent enough and fully stacked (previous condition), reset stacks and trigger ever rising moon
     champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] = 0;
     champ.effects_values[EffectValueId::EclipseEverRisingMoonLastTriggerTime] = champ.time;
     champ.sim_logs.periodic_heals_shields += 80. + 0.2 * champ.stats.bonus_ad; //value for ranged champions
-    (0.04 * target_stats.hp, 0., 0.)
+    PartDmg(0.04 * target_stats.hp, 0., 0.)
 }
 
 pub const ECLIPSE: Item = Item {
@@ -1630,7 +1629,6 @@ const GUINSOOS_RAGEBLADE_SEETHING_STRIKE: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-//todo: test
 fn guinsoos_rageblade_on_basic_attack_hit(
     champ: &mut Unit,
     target_stats: &UnitStats,
@@ -1640,7 +1638,7 @@ fn guinsoos_rageblade_on_basic_attack_hit(
     //if from other effect, only wrath passive
     let wrath_ap_dmg: f32 = n_targets * (30.);
     if from_other_effect {
-        return (0., wrath_ap_dmg, 0.);
+        return PartDmg(0., wrath_ap_dmg, 0.);
     }
 
     //if not from other effect, wrath + seething strike passives
@@ -1651,18 +1649,18 @@ fn guinsoos_rageblade_on_basic_attack_hit(
     if champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks]
         < GUINSOOS_RAGEBLADE_SEETHING_STRIKE_MAX_STACKS
     {
-        return (0., wrath_ap_dmg, 0.);
+        return PartDmg(0., wrath_ap_dmg, 0.);
     }
     //if seething strike is fully stacked (previous condition) but phantom stacks are not fully stacked, add 1 phantom stack
     else if champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] < 2 {
         champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] += 1;
-        return (0., wrath_ap_dmg, 0.);
+        return PartDmg(0., wrath_ap_dmg, 0.);
     }
     //if seething strike is fully stacked and phantom stacks are fully stacked (previous conditions), reset and return phantom hit dmg
     champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] = 0;
-    let (phantom_hit_ad_dmg, phantom_hit_ap_dmg, phantom_hit_true_dmg) =
+    let PartDmg(phantom_hit_ad_dmg, phantom_hit_ap_dmg, phantom_hit_true_dmg) =
         champ.get_on_basic_attack_hit(target_stats, n_targets, true);
-    (
+    PartDmg(
         phantom_hit_ad_dmg,
         phantom_hit_ap_dmg + wrath_ap_dmg,
         phantom_hit_true_dmg,
@@ -1728,14 +1726,14 @@ pub const GUINSOOS_RAGEBLADE: Item = Item {
 //Heartsteel (useless?)
 
 //Hextech Rocketbelt
-fn hextech_rocketbelt_supersonic(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn hextech_rocketbelt_supersonic(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let availability_coef: f32 =
         effect_availability_formula(40. * haste_formula(champ.stats.item_haste));
     champ.sim_logs.units_travelled += availability_coef * 275.; //maximum dash distance
     let magic_dmg: f32 = availability_coef * (100. + 0.1 * champ.stats.ap());
     champ.dmg_on_target(
         target_stats,
-        (0., magic_dmg, 0.),
+        PartDmg(0., magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         1.,
@@ -1934,17 +1932,17 @@ fn hullbreaker_skipper(
     {
         champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] = 1;
         champ.effects_values[EffectValueId::HullbreakerSkipperLastStackTime] = champ.time;
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
     else if champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] < 4 {
         champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] += 1;
         champ.effects_values[EffectValueId::HullbreakerSkipperLastStackTime] = champ.time;
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if fully stacked, (previous conditions) reset stacks and return skipper dmg
     champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] = 0;
-    (0.84 * champ.stats.base_ad + 0.035 * champ.stats.hp, 0., 0.) //value for ranged champions
+    PartDmg(0.84 * champ.stats.base_ad + 0.035 * champ.stats.hp, 0., 0.) //value for ranged champions
 }
 
 pub const HULLBREAKER: Item = Item {
@@ -2012,24 +2010,24 @@ fn iceborn_gauntlet_spellblade_on_basic_attack_hit(
     from_other_effect: bool,
 ) -> PartDmg {
     if from_other_effect {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
 
     //do nothing if not empowered
     if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
     else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if empowered and last ability cast is recent enough (previous condition), reset and trigger spellblade
     champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
     champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
-    (1.5 * champ.stats.base_ad, 0., 0.)
+    PartDmg(1.5 * champ.stats.base_ad, 0., 0.)
 }
 
 pub const ICEBORN_GAUNTLET: Item = Item {
@@ -2395,19 +2393,19 @@ fn kraken_slayer_bring_it_down(
     {
         champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] = 1;
         champ.effects_values[EffectValueId::KrakenSlayerBringItDownLastStackTime] = champ.time;
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
     else if champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] < 2 {
         champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] += 1;
         champ.effects_values[EffectValueId::KrakenSlayerBringItDownLastStackTime] = champ.time;
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if fully stacked (previous conditions), reset stacks, update coef and return bring it down dmg
     champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] = 0;
     let phys_dmg: f32 = (1. + 0.5 * KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT)
         * KRAKEN_SLAYER_BRING_IT_DOWN_PHYS_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)];
-    (phys_dmg, 0., 0.) //value for ranged champions
+    PartDmg(phys_dmg, 0., 0.) //value for ranged champions
 }
 
 pub const KRAKEN_SLAYER: Item = Item {
@@ -2484,7 +2482,7 @@ fn liandrys_torment_torment(champ: &mut Unit, target_stats: &UnitStats, n_target
         champ.time - champ.effects_values[EffectValueId::LiandrysTormentTormentLastApplicationTime],
     ); //account for DoT overlap with the previous ability hit
     champ.effects_values[EffectValueId::LiandrysTormentTormentLastApplicationTime] = champ.time;
-    (
+    PartDmg(
         0.,
         n_targets * dot_time * (0.01 / 0.5) * target_stats.hp,
         0.,
@@ -2540,7 +2538,7 @@ const LIANDRYS_TORMENT_SUFFERING: TemporaryEffect = TemporaryEffect {
 
 fn liandrys_torment_suffering(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&LIANDRYS_TORMENT_SUFFERING, champ.stats.item_haste);
-    (0., 0., 0.)
+    PartDmg(0., 0., 0.)
 }
 
 pub const LIANDRYS_TORMENT: Item = Item {
@@ -2623,12 +2621,12 @@ fn lich_bane_spellblade_on_basic_attack_hit(
     from_other_effect: bool,
 ) -> PartDmg {
     if from_other_effect {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
 
     //do nothing if not empowered
     if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
     else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
@@ -2636,13 +2634,13 @@ fn lich_bane_spellblade_on_basic_attack_hit(
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
         champ.stats.bonus_as -= LICH_BANE_SPELLBLADE_BONUS_AS;
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if empowered and last ability cast is recent enough (previous condition), reset and trigger spellblade
     champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
     champ.stats.bonus_as -= LICH_BANE_SPELLBLADE_BONUS_AS;
     champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
-    (0., 0.75 * champ.stats.base_ad + 0.4 * champ.stats.ap(), 0.)
+    PartDmg(0., 0.75 * champ.stats.base_ad + 0.4 * champ.stats.ap(), 0.)
 }
 
 pub const LICH_BANE: Item = Item {
@@ -2774,7 +2772,7 @@ fn ludens_companion_fire(champ: &mut Unit, _target_stats: &UnitStats, n_targets:
     if champ.time - champ.effects_values[EffectValueId::LudensCompanionFireLastConsumeTime]
         <= LUDENS_COMPANION_FIRE_STACKS_CHARGE_TIME
     {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
 
     //if stacks loaded (previous condition), consume stacks
@@ -2785,7 +2783,7 @@ fn ludens_companion_fire(champ: &mut Unit, _target_stats: &UnitStats, n_targets:
         n_targets * (60. + 0.04 * champ.stats.ap())
             + (LUDENS_COMPANION_FIRE_LOADED_STACKS - n_targets) * (30. + 0.02 * champ.stats.ap())
     };
-    (0., dmg, 0.)
+    PartDmg(0., dmg, 0.)
 }
 
 pub const LUDENS_COMPANION: Item = Item {
@@ -2874,10 +2872,10 @@ const MALIGNANCE_HATEFOG_CURSE: TemporaryEffect = TemporaryEffect {
 fn malignance_hatefog(champ: &mut Unit, _target_stats: &UnitStats, n_targets: f32) -> PartDmg {
     //if on cooldown, do nothing
     if !champ.add_temporary_effect(&MALIGNANCE_HATEFOG_CURSE, champ.stats.item_haste) {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if not on cooldown (previous condition), return dmg
-    (
+    PartDmg(
         0.,
         n_targets * (MALIGNANCE_HATEFOG_CURSE_TIME / 0.25) * (15. + 0.0125 * champ.stats.ap()),
         0.,
@@ -3201,7 +3199,7 @@ fn muramana_shock_on_spell_hit(
 ) -> PartDmg {
     //set shock last ability hit, to prevent potential on basic attack hit effects triggered by this ability to apply shock twice
     champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] = champ.time;
-    (n_targets * 0.03 * champ.stats.mana, 0., 0.) //value for ranged champions
+    PartDmg(n_targets * 0.03 * champ.stats.mana, 0., 0.) //value for ranged champions
 }
 
 fn muramana_shock_on_basic_attack_hit(
@@ -3213,10 +3211,10 @@ fn muramana_shock_on_basic_attack_hit(
     //it is okay to have this condition in static on hit (exception)
     //if same instance of dmg (==exact same time) as muramana_shock_on_spell_hit, do nothing (to prevent basic attack that trigger on hit to apply muramana passive twice)
     if champ.time == champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if not the same instance, return dmg (no need to update shock last ability hit time since ability effects are called first)
-    (n_targets * (0.012 * champ.stats.mana), 0., 0.)
+    PartDmg(n_targets * (0.012 * champ.stats.mana), 0., 0.)
 }
 
 pub const MURAMANA: Item = Item {
@@ -3282,7 +3280,7 @@ fn nashors_tooth_icathian_bite(
     n_targets: f32,
     _from_other_effect: bool,
 ) -> PartDmg {
-    (0., n_targets * (15. + 0.15 * champ.stats.ap()), 0.)
+    PartDmg(0., n_targets * (15. + 0.15 * champ.stats.ap()), 0.)
 }
 
 pub const NASHORS_TOOTH: Item = Item {
@@ -3615,11 +3613,11 @@ pub const PHANTOM_DANCER: Item = Item {
 };
 
 //Profane hydra
-fn _profane_hydra_heretical_cleave(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn _profane_hydra_heretical_cleave(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //we do not reduce the dmg value because the cd is short enough (10 sec, as of patch 14.06)
     champ.dmg_on_target(
         target_stats,
-        (0.8 * champ.stats.ad(), 0., 0.),
+        PartDmg(0.8 * champ.stats.ad(), 0., 0.),
         (1, 1),
         enum_set!(),
         1.,
@@ -3632,7 +3630,7 @@ fn profane_hydra_cleave(
     n_targets: f32,
     _from_other_effect: bool,
 ) -> PartDmg {
-    (
+    PartDmg(
         n_targets * (PROFANE_HYDRA_CLEAVE_AVG_TARGETS * 0.20 * champ.stats.ad()),
         0.,
         0.,
@@ -3823,7 +3821,7 @@ fn rapid_firecannon_sharpshooter(
     from_other_effect: bool,
 ) -> PartDmg {
     if from_other_effect {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
 
     //if not enough energy, add basic attack energy stacks
@@ -3833,12 +3831,12 @@ fn rapid_firecannon_sharpshooter(
     {
         champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance] -=
             ENERGIZED_ATTACKS_TRAVEL_REQUIRED * 6. / 100.; //basic attacks generate 6 energy stacks
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if enough energy (previous condition), trigger energized attack
     champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance] =
         champ.sim_logs.units_travelled;
-    (0., 40., 0.)
+    PartDmg(0., 40., 0.)
 }
 
 pub const RAPID_FIRECANNON: Item = Item {
@@ -3898,16 +3896,16 @@ pub const RAPID_FIRECANNON: Item = Item {
 };
 
 //Ravenous hydra
-fn _ravenous_hydra_ravenous_crescent(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn _ravenous_hydra_ravenous_crescent(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //we do not reduce the dmg value because the cd is short enough (10 sec, as of patch 14.06)
-    let dmg: f32 = champ.dmg_on_target(
+    let dmg: PartDmg = champ.dmg_on_target(
         target_stats,
-        (0.8 * champ.stats.ad(), 0., 0.),
+        PartDmg(0.8 * champ.stats.ad(), 0., 0.),
         (1, 1),
         enum_set!(),
         1.,
     );
-    champ.sim_logs.periodic_heals_shields += dmg * champ.stats.life_steal; //life steal applies to crescent
+    champ.sim_logs.periodic_heals_shields += dmg.as_sum() * champ.stats.life_steal; //life steal applies to crescent
     dmg
 }
 
@@ -3917,7 +3915,7 @@ fn ravenous_hydra_cleave(
     n_targets: f32,
     _from_other_effect: bool,
 ) -> PartDmg {
-    (
+    PartDmg(
         n_targets * (RAVENOUS_HYDRA_CLEAVE_AVG_TARGETS * 0.20 * champ.stats.ad()),
         0.,
         0.,
@@ -4053,9 +4051,9 @@ const RIFTMAKER_VOID_CORRUPTION: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn riftmaker_void_corruption(champ: &mut Unit, _target_stats: &UnitStats) -> (f32, f32, f32) {
+fn riftmaker_void_corruption(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&RIFTMAKER_VOID_CORRUPTION, champ.stats.item_haste);
-    (0., 0., 0.)
+    PartDmg(0., 0., 0.)
 }
 
 pub const RIFTMAKER: Item = Item {
@@ -4181,10 +4179,10 @@ fn runaans_hurricane_winds_fury(
     from_other_effect: bool,
 ) -> PartDmg {
     if from_other_effect {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     n_targets /= 1. + RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS; //get number of targets without runaans bolts
-    (
+    PartDmg(
         n_targets
             * RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS
             * (0.55 * champ.stats.ad() * champ.stats.crit_coef()),
@@ -4571,9 +4569,9 @@ fn spear_of_shojin_focused_will(
     champ: &mut Unit,
     _target_stats: &UnitStats,
     _n_targets: f32,
-) -> (f32, f32, f32) {
+) -> PartDmg {
     champ.add_temporary_effect(&SPEAR_OF_SHOJIN_FOCUSED_WILL, champ.stats.item_haste);
-    (0., 0., 0.)
+    PartDmg(0., 0., 0.)
 }
 
 fn spear_of_shojin_focused_will_add_stack(champ: &mut Unit, _availability_coef: f32) {
@@ -4838,13 +4836,13 @@ fn stormsurge_stormraider(champ: &mut Unit, _target_stats: &UnitStats) -> PartDm
         let avalability_coef: f32 = effect_availability_formula(
             STORMSURGE_STORMRAIDER_COOLDOWN * haste_formula(champ.stats.item_haste),
         );
-        return (
+        return PartDmg(
             0.,
             STORMSURGE_STORMRAIDER_COEF * avalability_coef * (150. + 0.15 * champ.stats.ap()),
             0.,
         );
     }
-    (0., 0., 0.)
+    PartDmg(0., 0., 0.)
 }
 
 pub const STORMSURGE: Item = Item {
@@ -4932,10 +4930,10 @@ const STRIDEBREAKER_BREAKING_SHOCKWAVE_MS: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn stridebreaker_breaking_shockwave(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
-    let dmg: f32 = champ.dmg_on_target(
+fn stridebreaker_breaking_shockwave(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+    let dmg: PartDmg = champ.dmg_on_target(
         target_stats,
-        (0.8 * champ.stats.ad(), 0., 0.),
+        PartDmg(0.8 * champ.stats.ad(), 0., 0.),
         (1, 1),
         enum_set!(),
         1.,
@@ -4950,7 +4948,7 @@ fn stridebreaker_cleave(
     n_targets: f32,
     _from_other_effect: bool,
 ) -> PartDmg {
-    (
+    PartDmg(
         n_targets * (STRIDEBREAKER_CLEAVE_AVG_TARGETS * 0.20 * champ.stats.ad()),
         0.,
         0.,
@@ -5054,14 +5052,14 @@ fn sundered_sky_lightshield_strike(
     from_other_effect: bool,
 ) -> PartDmg {
     if from_other_effect {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
 
     //if on cooldown, do nothing
     if champ.time - champ.effects_values[EffectValueId::SunderedSkyLastTriggerTime]
         <= SUNDERED_SKY_COOLDOWN
     {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if not on cooldown, put on cooldown and trigger effect
     champ.effects_values[EffectValueId::SunderedSkyLastTriggerTime] = champ.time;
@@ -5069,7 +5067,7 @@ fn sundered_sky_lightshield_strike(
         champ.stats.base_ad + SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP * 0.06 * champ.stats.hp;
     let phys_dmg: f32 =
         champ.stats.ad() * (1. - champ.stats.crit_chance) * (champ.stats.crit_dmg - 1.); //bonus dmg from a basic attack with 100% crit chance compared to an average basic_attack
-    (phys_dmg, 0., 0.)
+    PartDmg(phys_dmg, 0., 0.)
 }
 
 pub const SUNDERED_SKY: Item = Item {
@@ -5247,7 +5245,7 @@ fn terminus_on_basic_attack_hit(
 ) -> PartDmg {
     let shadow_ap_dmg: f32 = n_targets * (30.);
     if from_other_effect {
-        return (0., shadow_ap_dmg, 0.);
+        return PartDmg(0., shadow_ap_dmg, 0.);
     }
 
     if champ.effects_stacks[EffectStackId::TerminusJuxtapositionMode] == 0 {
@@ -5259,7 +5257,7 @@ fn terminus_on_basic_attack_hit(
         champ.add_temporary_effect(&TERMINUS_JUXTAPOSITION_DARK, champ.stats.item_haste);
         champ.effects_stacks[EffectStackId::TerminusJuxtapositionMode] = 0;
     }
-    (0., shadow_ap_dmg, 0.)
+    PartDmg(0., shadow_ap_dmg, 0.)
 }
 
 pub const TERMINUS: Item = Item {
@@ -5326,12 +5324,13 @@ fn the_collector_init(champ: &mut Unit) {
 const THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD: f32 = 0.05;
 fn the_collector_death(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     if champ.effects_stacks[EffectStackId::TheCollectorExecuted] != 1
-        && champ.sim_logs.dmg_done >= (1. - THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD) * target_stats.hp
+        && champ.sim_logs.dmg_done.as_sum()
+            >= (1. - THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD) * target_stats.hp
     {
-        champ.sim_logs.dmg_done += THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD * target_stats.hp;
+        champ.sim_logs.dmg_done.2 += THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD * target_stats.hp;
         champ.effects_stacks[EffectStackId::TheCollectorExecuted] = 1;
     }
-    (0., 0., 0.)
+    PartDmg(0., 0., 0.)
 }
 
 pub const THE_COLLECTOR: Item = Item {
@@ -5393,11 +5392,11 @@ pub const THE_COLLECTOR: Item = Item {
 //Thornmail (useless?)
 
 //Titanic hydra
-fn titanic_hydra_titanic_crescent(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn titanic_hydra_titanic_crescent(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //only return bonus dmg (doesn't take into account if basic_attack hits multiple target e.g. with runaans but not a big deal)
     champ.dmg_on_target(
         target_stats,
-        (
+        PartDmg(
             0.02 * champ.stats.hp + TITANIC_HYDRA_CLEAVE_AVG_TARGETS * 0.045 * champ.stats.hp,
             0.,
             0.,
@@ -5414,7 +5413,7 @@ fn titanic_hydra_cleave(
     n_targets: f32,
     _from_other_effect: bool,
 ) -> PartDmg {
-    (
+    PartDmg(
         TITANIC_HYDRA_CLEAVE_AVG_TARGETS * 0.015 * champ.stats.hp
             + n_targets * (0.005 * champ.stats.hp),
         0.,
@@ -5517,7 +5516,7 @@ fn trinity_force_spellblade_on_basic_attack_hit(
     from_other_effect: bool,
 ) -> PartDmg {
     if from_other_effect {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
 
     //quicken
@@ -5526,19 +5525,19 @@ fn trinity_force_spellblade_on_basic_attack_hit(
     //spellblade
     //do nothing if not empowered
     if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
     else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if empowered and last ability cast is recent enough (previous condition), reset and trigger spellblade
     champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
     champ.effects_values[EffectValueId::SpellbladeLastConsumeTime] = champ.time;
-    (2. * champ.stats.base_ad, 0., 0.)
+    PartDmg(2. * champ.stats.base_ad, 0., 0.)
 }
 
 pub const TRINITY_FORCE: Item = Item {
@@ -5728,7 +5727,7 @@ fn voltaic_cyclosword_firmament(
     from_other_effect: bool,
 ) -> PartDmg {
     if from_other_effect {
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
 
     //if not enough energy, add basic attack energy stacks
@@ -5738,12 +5737,12 @@ fn voltaic_cyclosword_firmament(
     {
         champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance] -=
             ENERGIZED_ATTACKS_TRAVEL_REQUIRED * 6. / 100.; //basic attacks generate 6 energy stacks
-        return (0., 0., 0.);
+        return PartDmg(0., 0., 0.);
     }
     //if enough energy (previous condition), trigger energized attack
     champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance] =
         champ.sim_logs.units_travelled;
-    (100., 0., 0.) //slow not implemented
+    PartDmg(100., 0., 0.) //slow not implemented
 }
 
 pub const VOLTAIC_CYCLOSWORD: Item = Item {
@@ -5813,7 +5812,7 @@ fn wits_end_fray(
     n_targets: f32,
     _from_other_effect: bool,
 ) -> PartDmg {
-    (0., n_targets * (45.), 0.)
+    PartDmg(0., n_targets * (45.), 0.)
 }
 
 pub const WITS_END: Item = Item {
@@ -5878,9 +5877,9 @@ fn youmuus_ghostblade_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::YoumuusGhostbladeWraithStepMsPercent] = 0.;
 }
 
-fn youmuus_ghostblade_wraith_step_active(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn youmuus_ghostblade_wraith_step_active(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&YOUMUUS_GHOSTBLADE_WRAITH_STEP, champ.stats.item_haste);
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 fn youmuus_ghostblade_wraith_step_enable(champ: &mut Unit, availability_coef: f32) {
@@ -5968,7 +5967,7 @@ fn yun_tal_serrated_edge(
     n_targets: f32,
     _from_other_effect: bool,
 ) -> PartDmg {
-    (n_targets * (champ.stats.crit_chance * 70.), 0., 0.)
+    PartDmg(n_targets * (champ.stats.crit_chance * 70.), 0., 0.)
 }
 
 pub const YUN_TAL_WILDARROWS: Item = Item {

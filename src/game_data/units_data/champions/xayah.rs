@@ -18,7 +18,7 @@ fn xayah_init_abilities(champ: &mut Unit) {
     champ.effects_values[EffectValueId::XayahDeadlyPlumageMsPercent] = 0.;
 }
 
-fn xayah_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn xayah_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //if empowered by w, basic attack gives ms
     if champ.effects_values[EffectValueId::XayahWBasicAttackCoef] != 1. {
         champ.add_temporary_effect(&XAYAH_DEADLY_PLUMAGE_MS, 0.);
@@ -35,7 +35,7 @@ fn xayah_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         * champ.stats.crit_coef();
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::BasicAttack),
         1.,
@@ -47,7 +47,7 @@ const XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY: u8 = 3;
 
 const XAYAH_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [45., 60., 75., 90., 105.];
 
-fn xayah_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn xayah_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
         XAYAH_CLEAN_CUTS_MAX_STACKS,
         champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
@@ -62,7 +62,7 @@ fn xayah_q(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (XAYAH_Q_HIT_PERCENT * phys_dmg, 0., 0.),
+        PartDmg(XAYAH_Q_HIT_PERCENT * phys_dmg, 0., 0.),
         (2, 1),
         enum_set!(DmgTag::Ability),
         XAYAH_Q_HIT_PERCENT,
@@ -117,19 +117,19 @@ const XAYAH_DEADLY_PLUMAGE_AS: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn xayah_w(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
+fn xayah_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
         XAYAH_CLEAN_CUTS_MAX_STACKS,
         champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
             + XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY,
     );
     champ.add_temporary_effect(&XAYAH_DEADLY_PLUMAGE_AS, 0.);
-    0.
+    PartDmg(0., 0., 0.)
 }
 
 const XAYAH_E_PHYS_DMG_PER_FEATHER_BY_E_LVL: [f32; 5] = [55., 65., 75., 85., 95.];
 
-fn xayah_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn xayah_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
         XAYAH_CLEAN_CUTS_MAX_STACKS,
         champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
@@ -147,7 +147,7 @@ fn xayah_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (XAYAH_FEATHERS_N_TARGETS * phys_dmg, 0., 0.),
+        PartDmg(XAYAH_FEATHERS_N_TARGETS * phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
         XAYAH_FEATHERS_N_TARGETS,
@@ -156,7 +156,7 @@ fn xayah_e(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
 const XAYAH_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [200., 300., 400.];
 
-fn xayah_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+fn xayah_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
         XAYAH_CLEAN_CUTS_MAX_STACKS,
         champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
@@ -171,7 +171,7 @@ fn xayah_r(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 
     champ.dmg_on_target(
         target_stats,
-        (phys_dmg, 0., 0.),
+        PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
         1.,
