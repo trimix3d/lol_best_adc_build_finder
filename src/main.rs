@@ -6,19 +6,12 @@ pub mod game_data;
 use game_data::items_data::{items::*, *};
 use game_data::units_data::*;
 
-use runes_data::{RuneShard, RunesPage};
+use runes_data::RunesPage;
 
 #[allow(dead_code)]
 /// Test ground for validating champions implementations.
 fn champion_test_ground() {
     //target dummy properties
-    const TARGET_DUMMY_RUNES_PAGE: RunesPage = RunesPage {
-        shard1: RuneShard::Left,
-        shard2: RuneShard::Left,
-        shard3: RuneShard::Left,
-    };
-    const TARGET_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no ability (except passing validity checks when creating the dummy)
-
     const TARGET_DUMMY_BASE_AS: f32 = 0.658; //in game default value is 0.658
     const TARGET_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         name: "target_dummy",
@@ -72,8 +65,8 @@ fn champion_test_ground() {
         r: NULL_ULTIMATE_ABILITY,
         fight_scenarios: &[(null_simulate_fight, "null")],
         unit_defaults: UnitDefaults {
-            runes_pages: &TARGET_DUMMY_RUNES_PAGE,
-            skill_order: &TARGET_DUMMY_SKILL_ORDER,
+            runes_pages: RunesPage::const_default(),
+            skill_order: SkillOrder::const_default(), //does nothing since dummy has no ability
             legendary_items_pool: &ALL_LEGENDARY_ITEMS,
             boots_pool: &ALL_BOOTS,
             support_items_pool: &ALL_SUPPORT_ITEMS,
@@ -81,28 +74,28 @@ fn champion_test_ground() {
     };
 
     //creation of target dummy
-    let target_dummy: Unit = Unit::from_defaults(&TARGET_DUMMY_PROPERTIES, 6, Build::default())
+    let dummy: Unit = Unit::from_defaults(&TARGET_DUMMY_PROPERTIES, 6, Build::default())
         .expect("Failed to create target dummy");
 
     //creation of champion
     let mut champ: Unit = Unit::from_defaults(
-        &Unit::EZREAL_PROPERTIES,
+        &Unit::LUCIAN_PROPERTIES,
         6,
         Build([
-            &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM,
+            &GUINSOOS_RAGEBLADE,
+            &WITS_END,
+            &NULL_ITEM,
+            &NULL_ITEM,
+            &NULL_ITEM,
+            &NULL_ITEM,
         ]),
     )
     .expect("Failed to create unit");
 
     //champion actions
     println!("{}", champ);
-    println!("{} - t: {}", champ.q(&target_dummy.stats), champ.time,);
-    println!(
-        "{} - t: {}",
-        champ.basic_attack(&target_dummy.stats),
-        champ.time,
-    );
     champ.walk(champ.basic_attack_cd);
+    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
 }
 
 fn main() -> Result<(), ()> {

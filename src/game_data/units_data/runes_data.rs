@@ -10,11 +10,31 @@ pub enum RuneShard {
 
 /// Represents the runes page of a champion.
 /// For now, only implements runes shards.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct RunesPage {
     pub shard1: RuneShard,
     pub shard2: RuneShard,
     pub shard3: RuneShard,
+}
+
+impl Default for RunesPage {
+    /// Returns runes pages with only Left `RuneShards`.
+    fn default() -> Self {
+        Self::const_default()
+    }
+}
+
+impl RunesPage {
+    /// Returns runes pages with only Left `RuneShards`.
+    /// Provides a default valid value for `SkillOrder` usable in compile time constants (unlike `Default::default()` which is not const).
+    #[must_use]
+    pub const fn const_default() -> Self {
+        Self {
+            shard1: RuneShard::Left,
+            shard2: RuneShard::Left,
+            shard3: RuneShard::Left,
+        }
+    }
 }
 
 impl Unit {

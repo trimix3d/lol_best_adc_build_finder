@@ -55,7 +55,7 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
             target_stats,
             (basic_attack_phys_dmg, vigilance_dmg, 0.),
             (1, 1),
-            enum_set!(DmgTag::BasickAttack),
+            enum_set!(DmgTag::BasicAttack),
             1.,
         );
         champ.apply_on_basic_attack_cast();
@@ -70,7 +70,7 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
                     0.,
                 ),
                 (1, 1),
-                enum_set!(DmgTag::BasickAttack),
+                enum_set!(DmgTag::BasicAttack),
                 1.,
             )
     } else {
@@ -139,7 +139,7 @@ fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
 }
 
 fn lucian_e(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
-    champ.sim_results.units_travelled += 425.; //maximum dash range
+    champ.sim_logs.units_travelled += 425.; //maximum dash range
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
     0.
 }
@@ -238,109 +238,6 @@ fn lucian_fight_scenario_poke(champ: &mut Unit, target_stats: &UnitStats, fight_
     //add weighted r dmg at the end
     champ.weighted_r(target_stats);
 }
-
-const LUCIAN_DEFAULT_RUNES_PAGE: RunesPage = RunesPage {
-    shard1: RuneShard::Middle, //todo: test other runes
-    shard2: RuneShard::Left,
-    shard3: RuneShard::Left,
-};
-
-const LUCIAN_DEFAULT_SKILL_ORDER: SkillOrder = SkillOrder {
-    //lvls:
-    //  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18
-    q: [1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    e: [0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0],
-    w: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1],
-    r: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
-};
-
-const LUCIAN_DEFAULT_LEGENDARY_ITEMS: [&Item; 43] = [
-    //&ABYSSAL_MASK,
-    //&AXIOM_ARC,
-    //&BANSHEES_VEIL,
-    &BLACK_CLEAVER,
-    //&BLACKFIRE_TORCH,
-    &BLADE_OF_THE_RUINED_KING,
-    &BLOODTHIRSTER,
-    &CHEMPUNK_CHAINSWORD,
-    //&COSMIC_DRIVE,
-    //&CRYPTBLOOM,
-    &DEAD_MANS_PLATE,
-    &DEATHS_DANCE,
-    &ECLIPSE,
-    &EDGE_OF_NIGHT,
-    &ESSENCE_REAVER,
-    //&EXPERIMENTAL_HEXPLATE,
-    //&FROZEN_HEART,
-    &GUARDIAN_ANGEL,
-    &GUINSOOS_RAGEBLADE,
-    //&HEXTECH_ROCKETBELT,
-    //&HORIZON_FOCUS,
-    &HUBRIS,
-    &HULLBREAKER,
-    &ICEBORN_GAUNTLET,
-    &IMMORTAL_SHIELDBOW,
-    &INFINITY_EDGE,
-    //&JAKSHO,
-    //&KAENIC_ROOKERN,
-    &KRAKEN_SLAYER,
-    //&LIANDRYS_TORMENT,
-    //&LICH_BANE,
-    &LORD_DOMINIKS_REGARDS,
-    //&LUDENS_COMPANION,
-    //&MALIGNANCE,
-    &MAW_OF_MALMORTIUS,
-    &MERCURIAL_SCIMITAR,
-    //&MORELLONOMICON,
-    &MORTAL_REMINDER,
-    &MURAMANA,
-    //&NASHORS_TOOTH,
-    &NAVORI_FLICKERBLADE,
-    &OPPORTUNITY,
-    &OVERLORDS_BLOODMAIL,
-    &PHANTOM_DANCER,
-    //&PROFANE_HYDRA,
-    //&RABADONS_DEATHCAP,
-    //&RANDUINS_OMEN,
-    &RAPID_FIRECANNON,
-    //&RAVENOUS_HYDRA,
-    //&RIFTMAKER,
-    //&ROD_OF_AGES,
-    &RUNAANS_HURRICANE,
-    //&RYLAIS_CRYSTAL_SCEPTER,
-    //&SERAPHS_EMBRACE,
-    &SERPENTS_FANG,
-    &SERYLDAS_GRUDGE,
-    //&SHADOWFLAME,
-    &SPEAR_OF_SHOJIN,
-    &STATIKK_SHIV,
-    &STERAKS_GAGE,
-    //&STORMSURGE,
-    //&STRIDEBREAKER,
-    &SUNDERED_SKY,
-    &TERMINUS,
-    &THE_COLLECTOR,
-    &TITANIC_HYDRA,
-    &TRINITY_FORCE,
-    &UMBRAL_GLAIVE,
-    //&VOID_STAFF,
-    &VOLTAIC_CYCLOSWORD,
-    &WITS_END,
-    &YOUMUUS_GHOSTBLADE,
-    &YUN_TAL_WILDARROWS,
-    //&ZHONYAS_HOURGLASS,
-];
-
-const LUCIAN_DEFAULT_BOOTS: [&Item; 3] = [
-    &BERSERKERS_GREAVES,
-    &BOOTS_OF_SWIFTNESS,
-    &IONIAN_BOOTS_OF_LUCIDITY,
-    //&MERCURYS_TREADS,
-    //&PLATED_STEELCAPS,
-    //&SORCERERS_SHOES,
-];
-
-const LUCIAN_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const LUCIAN_BASE_AS: f32 = 0.638;
 impl Unit {
@@ -448,11 +345,104 @@ impl Unit {
             (lucian_fight_scenario_poke, "poke"),
         ],
         unit_defaults: UnitDefaults {
-            runes_pages: &LUCIAN_DEFAULT_RUNES_PAGE,
-            skill_order: &LUCIAN_DEFAULT_SKILL_ORDER,
-            legendary_items_pool: &LUCIAN_DEFAULT_LEGENDARY_ITEMS,
-            boots_pool: &LUCIAN_DEFAULT_BOOTS,
-            support_items_pool: &LUCIAN_DEFAULT_SUPPORT_ITEMS,
+            runes_pages: RunesPage {
+                shard1: RuneShard::Middle, //todo: test other runes
+                shard2: RuneShard::Left,
+                shard3: RuneShard::Left,
+            },
+            skill_order: SkillOrder {
+                //lvls:
+                //  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18
+                q: [1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                e: [0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0],
+                w: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1],
+                r: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
+            },
+            legendary_items_pool: &[
+                //&ABYSSAL_MASK,
+                //&AXIOM_ARC,
+                //&BANSHEES_VEIL,
+                &BLACK_CLEAVER,
+                //&BLACKFIRE_TORCH,
+                &BLADE_OF_THE_RUINED_KING,
+                &BLOODTHIRSTER,
+                &CHEMPUNK_CHAINSWORD,
+                //&COSMIC_DRIVE,
+                //&CRYPTBLOOM,
+                //&DEAD_MANS_PLATE, //passive handles dashes incorrectly
+                &DEATHS_DANCE,
+                &ECLIPSE,
+                &EDGE_OF_NIGHT,
+                &ESSENCE_REAVER,
+                //&EXPERIMENTAL_HEXPLATE,
+                //&FROZEN_HEART,
+                &GUARDIAN_ANGEL,
+                &GUINSOOS_RAGEBLADE,
+                //&HEXTECH_ROCKETBELT,
+                //&HORIZON_FOCUS,
+                &HUBRIS,
+                &HULLBREAKER,
+                &ICEBORN_GAUNTLET,
+                &IMMORTAL_SHIELDBOW,
+                &INFINITY_EDGE,
+                //&JAKSHO,
+                //&KAENIC_ROOKERN,
+                &KRAKEN_SLAYER,
+                //&LIANDRYS_TORMENT,
+                //&LICH_BANE,
+                &LORD_DOMINIKS_REGARDS,
+                //&LUDENS_COMPANION,
+                //&MALIGNANCE,
+                &MAW_OF_MALMORTIUS,
+                &MERCURIAL_SCIMITAR,
+                //&MORELLONOMICON,
+                &MORTAL_REMINDER,
+                &MURAMANA,
+                //&NASHORS_TOOTH,
+                &NAVORI_FLICKERBLADE,
+                &OPPORTUNITY,
+                &OVERLORDS_BLOODMAIL,
+                &PHANTOM_DANCER,
+                //&PROFANE_HYDRA,
+                //&RABADONS_DEATHCAP,
+                //&RANDUINS_OMEN,
+                &RAPID_FIRECANNON,
+                //&RAVENOUS_HYDRA,
+                //&RIFTMAKER,
+                //&ROD_OF_AGES,
+                &RUNAANS_HURRICANE,
+                //&RYLAIS_CRYSTAL_SCEPTER,
+                //&SERAPHS_EMBRACE,
+                &SERPENTS_FANG,
+                &SERYLDAS_GRUDGE,
+                //&SHADOWFLAME,
+                &SPEAR_OF_SHOJIN,
+                &STATIKK_SHIV,
+                &STERAKS_GAGE,
+                //&STORMSURGE,
+                //&STRIDEBREAKER,
+                &SUNDERED_SKY,
+                &TERMINUS,
+                &THE_COLLECTOR,
+                &TITANIC_HYDRA,
+                &TRINITY_FORCE,
+                &UMBRAL_GLAIVE,
+                //&VOID_STAFF,
+                &VOLTAIC_CYCLOSWORD,
+                &WITS_END,
+                &YOUMUUS_GHOSTBLADE,
+                &YUN_TAL_WILDARROWS,
+                //&ZHONYAS_HOURGLASS,
+            ],
+            boots_pool: &[
+                &BERSERKERS_GREAVES,
+                &BOOTS_OF_SWIFTNESS,
+                &IONIAN_BOOTS_OF_LUCIDITY,
+                //&MERCURYS_TREADS,
+                //&PLATED_STEELCAPS,
+                //&SORCERERS_SHOES,
+            ],
+            support_items_pool: &[],
         },
     };
 }

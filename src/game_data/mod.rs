@@ -28,8 +28,8 @@ pub const STARTING_GOLDS: f32 = 500.;
 /// Passive gold generation per minute on summoners rift.
 pub const PASSIVE_GOLDS_GEN_PER_MIN: f32 = 122.4;
 /// CS/min of the player of the champion we want to optimize,
-/// a bit inflated to take other sources of golds into account (kills, towers, ...).
-pub const CS_PER_MIN: f32 = 8.;
+/// a bit inflated (~+20%) to take other sources of golds into account (kills, towers, ...).
+pub const CS_PER_MIN: f32 = 9.0;
 const GOLDS_PER_MELEE_CS: f32 = 21.;
 const GOLDS_PER_CASTER_CS: f32 = 14.;
 /// Average gold per siege minion over a 30min game.
@@ -46,6 +46,8 @@ pub const AVG_GOLDS_PER_CS: f32 = 15. / 30.
         / (6. + 1. / 2.)
     + 5. / 30. * (3. * GOLDS_PER_MELEE_CS + 3. * GOLDS_PER_CASTER_CS + 1. * AVG_GOLDS_PER_SIEGE_CS)
         / 7.;
+/// Total amount of golds income per minute considering farm + passive generation
+const TOT_GOLDS_PER_MIN: f32 = AVG_GOLDS_PER_CS * CS_PER_MIN + PASSIVE_GOLDS_GEN_PER_MIN;
 const XP_PER_MELEE_CS: f32 = 61.75;
 const XP_PER_CASTER_CS: f32 = 30.4;
 const XP_PER_SIEGE_CS: f32 = 95.;
@@ -61,16 +63,15 @@ pub const AVG_XP_PER_CS: f32 = 15. / 30.
     + 5. / 30. * (3. * XP_PER_MELEE_CS + 3. * XP_PER_CASTER_CS + 1. * XP_PER_SIEGE_CS) / 7.;
 /// Amount of experience gained farming for the average legendary item.
 /// We approximate that the gold income is only from cs golds and passive golds generation.
-const XP_PER_LEGENDARY_ITEM: f32 = AVG_XP_PER_CS * AVG_LEGENDARY_ITEM_COST * CS_PER_MIN
-    / (AVG_GOLDS_PER_CS * CS_PER_MIN + PASSIVE_GOLDS_GEN_PER_MIN);
+const XP_PER_LEGENDARY_ITEM: f32 =
+    AVG_XP_PER_CS * CS_PER_MIN * AVG_LEGENDARY_ITEM_COST / TOT_GOLDS_PER_MIN;
 /// Amount of experience gained farming for the average boots item.
 /// We approximate that the gold income is only from cs golds and passive golds generation.
-const XP_PER_BOOTS_ITEM: f32 = AVG_XP_PER_CS * AVG_BOOTS_COST * CS_PER_MIN
-    / (AVG_GOLDS_PER_CS * CS_PER_MIN + PASSIVE_GOLDS_GEN_PER_MIN);
+const XP_PER_BOOTS_ITEM: f32 = AVG_XP_PER_CS * CS_PER_MIN * AVG_BOOTS_COST / TOT_GOLDS_PER_MIN;
 /// Amount of experience gained farming for the average support item.
 /// We approximate that the gold income is only from cs golds and passive golds generation.
-const XP_PER_SUPPORT_ITEM: f32 = AVG_XP_PER_CS * AVG_SUPPORT_ITEM_COST * CS_PER_MIN
-    / (AVG_GOLDS_PER_CS * CS_PER_MIN + PASSIVE_GOLDS_GEN_PER_MIN);
+const XP_PER_SUPPORT_ITEM: f32 =
+    AVG_XP_PER_CS * CS_PER_MIN * AVG_SUPPORT_ITEM_COST / TOT_GOLDS_PER_MIN;
 
 /// Amount of cumulative xp required to reach the given lvl.
 const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [

@@ -1,6 +1,6 @@
 pub mod items;
 
-use super::units_data::{RawDmg, Unit, UnitStats, MAX_UNIT_ITEMS};
+use super::units_data::{PartDmg, Unit, UnitStats, MAX_UNIT_ITEMS};
 
 use constcat::concat_slices;
 use enumset::{EnumSet, EnumSetType};
@@ -160,32 +160,19 @@ pub struct Item {
     /// Applies effects triggered when ultimate is casted (additionnal to `on_ability_cast`).
     pub on_ultimate_cast: Option<fn(&mut Unit)>,
 
-    /// Returns on-ability-hit raw dmg and applies effects (updates effect variables accordingly).
+    /// Returns on-ability-hit dmg and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the ability (affected by on-ability-hit).
-    pub on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-    /// Returns on-ultimate-hit raw dmg (additionnal to `on_ability_cast`) and applies effects (updates effect variables accordingly).
+    pub on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
+    /// Returns on-ultimate-hit dmg (additionnal to `on_ability_cast`) and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the ultimate (affected by on-ultimate-hit).
-    pub on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-
-    /// Returns the static part of on-basic-attack-hit raw dmg.
-    /// on-basic-attack-hit is divided in two parts :
-    /// - static: dmg that applies on all targets unconditionally
-    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
-    /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
-    pub on_basic_attack_hit_static: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
-    /// Returns the dynamic part of on-basic-attack-hit raw dmg.
-    /// on-basic-attack-hit is divided in two parts:
-    /// - static: dmg that applies on all targets unconditionally
-    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
-    /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
-    pub on_basic_attack_hit_dynamic: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
+    pub on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
 
     /// Applies effects triggered when a basic attack is casted (updates effect variables accordingly).
     pub on_basic_attack_cast: Option<fn(&mut Unit)>,
-    /// Returns on-basic_attack-hit raw dmg and applies effects (updates effect variables accordingly).
+    /// Returns on-basic_attack-hit dmg and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the basic attack (affected by on-basic-attack-hit).
     /// 4th argument (bool) indicates if the function is called internally from other on-action-fns.
-    pub on_basic_attack_hit: Option<fn(&mut Unit, &UnitStats, f32, bool) -> RawDmg>,
+    pub on_basic_attack_hit: Option<fn(&mut Unit, &UnitStats, f32, bool) -> PartDmg>,
 
     /// Applies effects on the unit triggered when phys dmg is done (updates effect variables accordingly).
     pub on_phys_hit: Option<fn(&mut Unit)>,
@@ -195,7 +182,7 @@ pub struct Item {
     pub on_true_dmg_hit: Option<fn(&mut Unit)>,
     /// Applies effects on the unit triggered when any dmg is done (updates effect variables accordingly).
     /// This function is called every hit, in addition to others on_..._hit functions.
-    pub on_any_hit: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
+    pub on_any_hit: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
 }
 
 //no impl Default for Item because they are compile time constants and can't use non-constant functions

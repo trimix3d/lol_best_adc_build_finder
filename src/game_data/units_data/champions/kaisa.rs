@@ -121,7 +121,7 @@ fn kaisa_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
         target_stats,
         (phys_dmg, p_magic_dmg, 0.),
         (1, 1),
-        enum_set!(DmgTag::BasickAttack),
+        enum_set!(DmgTag::BasicAttack),
         1.,
     )
 }
@@ -238,10 +238,10 @@ const KAISA_R_SHIELD_AD_RATIO_BY_R_LVL: [f32; 3] = [0.90, 1.35, 1.8];
 
 fn kaisa_r(champ: &mut Unit, _target_stats: &UnitStats) -> f32 {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
-    champ.sim_results.single_use_heals_shields += KAISA_R_SHIELD_BY_R_LVL[r_lvl_idx]
+    champ.sim_logs.single_use_heals_shields += KAISA_R_SHIELD_BY_R_LVL[r_lvl_idx]
         + KAISA_R_SHIELD_AD_RATIO_BY_R_LVL[r_lvl_idx] * champ.stats.ad()
         + 1.2 * champ.stats.ap();
-    champ.sim_results.units_travelled += 425.; //assumed dash range (max r radius around the ennemy - champion width)
+    champ.sim_logs.units_travelled += 425.; //assumed dash range (max r radius around the ennemy - champion width)
     0.
 }
 
@@ -275,109 +275,6 @@ fn kaisa_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durati
     //add weighted r dmg at the end
     champ.weighted_r(target_stats);
 }
-
-const KAISA_DEFAULT_RUNES_PAGE: RunesPage = RunesPage {
-    shard1: RuneShard::Middle,
-    shard2: RuneShard::Left,
-    shard3: RuneShard::Left,
-};
-
-const KAISA_DEFAULT_SKILL_ORDER: SkillOrder = SkillOrder {
-    //lvls:
-    //  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18
-    q: [1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    e: [0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0],
-    w: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1],
-    r: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
-};
-
-const KAISA_DEFAULT_LEGENDARY_ITEMS: [&Item; 57] = [
-    //&ABYSSAL_MASK,
-    //&AXIOM_ARC,
-    &BANSHEES_VEIL,
-    &BLACK_CLEAVER,
-    &BLACKFIRE_TORCH,
-    &BLADE_OF_THE_RUINED_KING,
-    &BLOODTHIRSTER,
-    &CHEMPUNK_CHAINSWORD,
-    //&COSMIC_DRIVE,
-    &CRYPTBLOOM,
-    &DEAD_MANS_PLATE,
-    &DEATHS_DANCE,
-    &ECLIPSE,
-    &EDGE_OF_NIGHT,
-    &ESSENCE_REAVER,
-    //&EXPERIMENTAL_HEXPLATE,
-    //&FROZEN_HEART,
-    &GUARDIAN_ANGEL,
-    &GUINSOOS_RAGEBLADE,
-    //&HEXTECH_ROCKETBELT,
-    &HORIZON_FOCUS,
-    &HUBRIS,
-    &HULLBREAKER,
-    //&ICEBORN_GAUNTLET,
-    &IMMORTAL_SHIELDBOW,
-    &INFINITY_EDGE,
-    //&JAKSHO,
-    //&KAENIC_ROOKERN,
-    &KRAKEN_SLAYER,
-    &LIANDRYS_TORMENT,
-    //&LICH_BANE,
-    &LORD_DOMINIKS_REGARDS,
-    &LUDENS_COMPANION,
-    //&MALIGNANCE, //cannot trigger passive
-    &MAW_OF_MALMORTIUS,
-    &MERCURIAL_SCIMITAR,
-    &MORELLONOMICON,
-    &MORTAL_REMINDER,
-    &MURAMANA,
-    &NASHORS_TOOTH,
-    &NAVORI_FLICKERBLADE,
-    &OPPORTUNITY,
-    &OVERLORDS_BLOODMAIL,
-    &PHANTOM_DANCER,
-    //&PROFANE_HYDRA,
-    &RABADONS_DEATHCAP,
-    //&RANDUINS_OMEN,
-    &RAPID_FIRECANNON,
-    //&RAVENOUS_HYDRA,
-    //&RIFTMAKER,
-    &ROD_OF_AGES,
-    &RUNAANS_HURRICANE,
-    //&RYLAIS_CRYSTAL_SCEPTER,
-    &SERAPHS_EMBRACE,
-    &SERPENTS_FANG,
-    &SERYLDAS_GRUDGE,
-    &SHADOWFLAME,
-    &SPEAR_OF_SHOJIN,
-    &STATIKK_SHIV,
-    &STERAKS_GAGE,
-    &STORMSURGE,
-    //&STRIDEBREAKER,
-    &SUNDERED_SKY,
-    &TERMINUS,
-    &THE_COLLECTOR,
-    &TITANIC_HYDRA,
-    &TRINITY_FORCE,
-    &UMBRAL_GLAIVE,
-    &VOID_STAFF,
-    &VOLTAIC_CYCLOSWORD,
-    &WITS_END,
-    &YOUMUUS_GHOSTBLADE,
-    &YUN_TAL_WILDARROWS,
-    &ZHONYAS_HOURGLASS,
-];
-
-const KAISA_DEFAULT_BOOTS: [&Item; 4] = [
-    &BERSERKERS_GREAVES,
-    &BOOTS_OF_SWIFTNESS,
-    &IONIAN_BOOTS_OF_LUCIDITY,
-    //&MERCURYS_TREADS,
-    //&PLATED_STEELCAPS,
-    &SORCERERS_SHOES,
-];
-
-const KAISA_DEFAULT_SUPPORT_ITEMS: [&Item; 0] = [];
 
 const KAISA_BASE_AS: f32 = 0.644;
 impl Unit {
@@ -482,11 +379,104 @@ impl Unit {
         },
         fight_scenarios: &[(kaisa_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {
-            runes_pages: &KAISA_DEFAULT_RUNES_PAGE,
-            skill_order: &KAISA_DEFAULT_SKILL_ORDER,
-            legendary_items_pool: &KAISA_DEFAULT_LEGENDARY_ITEMS,
-            boots_pool: &KAISA_DEFAULT_BOOTS,
-            support_items_pool: &KAISA_DEFAULT_SUPPORT_ITEMS,
+            runes_pages: RunesPage {
+                shard1: RuneShard::Middle,
+                shard2: RuneShard::Left,
+                shard3: RuneShard::Left,
+            },
+            skill_order: SkillOrder {
+                //lvls:
+                //  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18
+                q: [1, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                e: [0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0],
+                w: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1],
+                r: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
+            },
+            legendary_items_pool: &[
+                //&ABYSSAL_MASK,
+                //&AXIOM_ARC,
+                &BANSHEES_VEIL,
+                &BLACK_CLEAVER,
+                &BLACKFIRE_TORCH,
+                &BLADE_OF_THE_RUINED_KING,
+                &BLOODTHIRSTER,
+                &CHEMPUNK_CHAINSWORD,
+                //&COSMIC_DRIVE,
+                &CRYPTBLOOM,
+                &DEAD_MANS_PLATE,
+                &DEATHS_DANCE,
+                &ECLIPSE,
+                &EDGE_OF_NIGHT,
+                &ESSENCE_REAVER,
+                //&EXPERIMENTAL_HEXPLATE,
+                //&FROZEN_HEART,
+                &GUARDIAN_ANGEL,
+                &GUINSOOS_RAGEBLADE,
+                //&HEXTECH_ROCKETBELT,
+                &HORIZON_FOCUS,
+                &HUBRIS,
+                &HULLBREAKER,
+                //&ICEBORN_GAUNTLET,
+                &IMMORTAL_SHIELDBOW,
+                &INFINITY_EDGE,
+                //&JAKSHO,
+                //&KAENIC_ROOKERN,
+                &KRAKEN_SLAYER,
+                &LIANDRYS_TORMENT,
+                //&LICH_BANE,
+                &LORD_DOMINIKS_REGARDS,
+                &LUDENS_COMPANION,
+                //&MALIGNANCE, //cannot trigger passive
+                &MAW_OF_MALMORTIUS,
+                &MERCURIAL_SCIMITAR,
+                &MORELLONOMICON,
+                &MORTAL_REMINDER,
+                &MURAMANA,
+                &NASHORS_TOOTH,
+                &NAVORI_FLICKERBLADE,
+                &OPPORTUNITY,
+                &OVERLORDS_BLOODMAIL,
+                &PHANTOM_DANCER,
+                //&PROFANE_HYDRA,
+                &RABADONS_DEATHCAP,
+                //&RANDUINS_OMEN,
+                &RAPID_FIRECANNON,
+                //&RAVENOUS_HYDRA,
+                //&RIFTMAKER,
+                &ROD_OF_AGES,
+                &RUNAANS_HURRICANE,
+                //&RYLAIS_CRYSTAL_SCEPTER,
+                &SERAPHS_EMBRACE,
+                &SERPENTS_FANG,
+                &SERYLDAS_GRUDGE,
+                &SHADOWFLAME,
+                &SPEAR_OF_SHOJIN,
+                &STATIKK_SHIV,
+                &STERAKS_GAGE,
+                &STORMSURGE,
+                //&STRIDEBREAKER,
+                &SUNDERED_SKY,
+                &TERMINUS,
+                &THE_COLLECTOR,
+                &TITANIC_HYDRA,
+                &TRINITY_FORCE,
+                &UMBRAL_GLAIVE,
+                &VOID_STAFF,
+                &VOLTAIC_CYCLOSWORD,
+                &WITS_END,
+                &YOUMUUS_GHOSTBLADE,
+                &YUN_TAL_WILDARROWS,
+                &ZHONYAS_HOURGLASS,
+            ],
+            boots_pool: &[
+                &BERSERKERS_GREAVES,
+                &BOOTS_OF_SWIFTNESS,
+                &IONIAN_BOOTS_OF_LUCIDITY,
+                //&MERCURYS_TREADS,
+                //&PLATED_STEELCAPS,
+                &SORCERERS_SHOES,
+            ],
+            support_items_pool: &[],
         },
     };
 }

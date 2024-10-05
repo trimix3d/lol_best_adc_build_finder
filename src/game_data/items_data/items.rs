@@ -7,6 +7,7 @@ use units_data::*;
 use enumset::{enum_set, EnumSet};
 
 // This is the file containing every items stats + effects
+//todo: from_other_effect MEANS FROM GUINSOO, check all on_basic_attack_hit (especially cleave items)
 
 //items parameters:
 //for effects that depends on the target hp, we calculate an adapted value based on the assumption that pdf for ennemy hp % is f(x)=x on ]0, 1]
@@ -69,7 +70,7 @@ fn spellblade_on_spell_cast(champ: &mut Unit) {
 }
 
 /*
-fn template_item_spellblade_on_basic_attack_hit(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn template_item_spellblade_on_basic_attack_hit(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     //do nothing if not empowered
     if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
@@ -174,8 +175,6 @@ pub const TEMPLATE_ITEM: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -192,7 +191,7 @@ fn template_energized_item_init(champ: &mut Unit) {
         -(ENERGIZED_ATTACKS_TRAVEL_REQUIRED + F32_TOL); // to allow for effect at time == 0
 }
 
-fn template_energized_item_energized_passive(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn template_energized_item_energized_passive(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     //if not enough energy, add basic attack energy stacks
     if champ.sim_results.units_travelled
         - champ.effects_values[EffectValueId::TemplateEnergizedItemEnergizedPassiveLastTriggerDistance]
@@ -261,8 +260,6 @@ pub const NULL_ITEM: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -330,8 +327,6 @@ pub const ABYSSAL_MASK: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -393,8 +388,6 @@ pub const AXIOM_ARC: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -452,8 +445,6 @@ pub const BANSHEES_VEIL: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -579,8 +570,6 @@ pub const BLACK_CLEAVER: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: Some(black_cleaver_on_phys_hit),
@@ -600,7 +589,7 @@ fn blackfire_torch_baleful_blaze(
     champ: &mut Unit,
     _target_stats: &UnitStats,
     n_targets: f32,
-) -> RawDmg {
+) -> PartDmg {
     let dot_time: f32 = f32::min(
         BLACKFIRE_TORCH_BALEFUL_BLAZE_DOT_DURATION,
         champ.time
@@ -662,8 +651,6 @@ pub const BLACKFIRE_TORCH: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: Some(blackfire_torch_baleful_blaze),
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -678,7 +665,7 @@ fn blade_of_the_ruined_king_mists_edge(
     target_stats: &UnitStats,
     n_targets: f32,
     from_other_effect: bool,
-) -> RawDmg {
+) -> PartDmg {
     if from_other_effect {
         return (0., 0., 0.);
     }
@@ -738,8 +725,6 @@ pub const BLADE_OF_THE_RUINED_KING: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: Some(blade_of_the_ruined_king_mists_edge),
     on_phys_hit: None,
@@ -771,7 +756,7 @@ const BLOODTHIRSTER_ICHORSHIELD_MAX_SHIELD_BY_LVL: [f32; MAX_UNIT_LVL] = [
 ];
 fn bloodthirster_init(champ: &mut Unit) {
     //ichorshield passive
-    champ.sim_results.single_use_heals_shields +=
+    champ.sim_logs.single_use_heals_shields +=
         BLOODTHIRSTER_ICHORSHIELD_MAX_SHIELD_BY_LVL[usize::from(champ.lvl.get() - 1)];
 }
 
@@ -823,8 +808,6 @@ pub const BLOODTHIRSTER: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -882,8 +865,6 @@ pub const CHEMPUNK_CHAINSWORD: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -970,8 +951,6 @@ pub const COSMIC_DRIVE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1029,8 +1008,6 @@ pub const CRYPTBLOOM: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1052,8 +1029,19 @@ fn dead_mans_plate_init(champ: &mut Unit) {
         -ms * 100. / DEAD_MANS_PLATE_SHIPWRECKER_STACKS_PER_SEC; //to allow for effect at time == 0
 }
 
-fn dead_mans_plate_shipwrecker(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
-    let time_moving: f32 = (champ.sim_results.units_travelled
+fn dead_mans_plate_shipwrecker(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    if from_other_effect {
+        return (0., 0., 0.);
+    }
+
+    //not affected by n_targets and from_other_effect
+    //current implementation doesn't handle dashes correctly, so maybe disable item on concerned champs
+    let time_moving: f32 = (champ.sim_logs.units_travelled
         - champ.effects_values[EffectValueId::DeadMansPlateShipwreckerLastHitdistance])
         / champ.stats.ms();
 
@@ -1063,7 +1051,7 @@ fn dead_mans_plate_shipwrecker(champ: &mut Unit, _target_stats: &UnitStats) -> R
     ); //bound stacks to 100.
 
     champ.effects_values[EffectValueId::DeadMansPlateShipwreckerLastHitdistance] =
-        champ.sim_results.units_travelled;
+        champ.sim_logs.units_travelled;
     ((stacks / 100.) * (40. + champ.stats.base_ad), 0., 0.)
 }
 
@@ -1115,10 +1103,8 @@ pub const DEAD_MANS_PLATE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(dead_mans_plate_shipwrecker),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: None,
+    on_basic_attack_hit: Some(dead_mans_plate_shipwrecker),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -1174,8 +1160,6 @@ pub const DEATHS_DANCE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1199,7 +1183,7 @@ fn eclipse_init(champ: &mut Unit) {
         -(ECLIPSE_EVER_RISING_MOON_COOLDOWN + F32_TOL); //to allow for effect at time = 0.
 }
 
-fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> RawDmg {
+fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //do nothing if on cooldown
     if champ.time - champ.effects_values[EffectValueId::EclipseEverRisingMoonLastTriggerTime]
         <= ECLIPSE_EVER_RISING_MOON_COOLDOWN * haste_formula(champ.stats.item_haste)
@@ -1226,7 +1210,7 @@ fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> RawDm
     //if last hit is recent enough and fully stacked (previous condition), reset stacks and trigger ever rising moon
     champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] = 0;
     champ.effects_values[EffectValueId::EclipseEverRisingMoonLastTriggerTime] = champ.time;
-    champ.sim_results.periodic_heals_shields += 80. + 0.2 * champ.stats.bonus_ad; //value for ranged champions
+    champ.sim_logs.periodic_heals_shields += 80. + 0.2 * champ.stats.bonus_ad; //value for ranged champions
     (0.04 * target_stats.hp, 0., 0.)
 }
 
@@ -1278,8 +1262,6 @@ pub const ECLIPSE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1337,8 +1319,6 @@ pub const EDGE_OF_NIGHT: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1396,8 +1376,6 @@ pub const ESSENCE_REAVER: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1493,8 +1471,6 @@ pub const EXPERIMENTAL_HEXPLATE: Item = Item {
     on_ultimate_cast: Some(experimental_hexplate_overdrive_on_r_cast),
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1556,8 +1532,6 @@ pub const FROZEN_HEART: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1615,8 +1589,6 @@ pub const GUARDIAN_ANGEL: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1629,15 +1601,6 @@ pub const GUARDIAN_ANGEL: Item = Item {
 fn guinsoos_rageblade_init(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks] = 0;
     champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] = 0;
-}
-
-fn guinsoos_rageblade_wrath(
-    _champ: &mut Unit,
-    _target_stats: &UnitStats,
-    n_targets: f32,
-    _from_other_effect: bool,
-) -> RawDmg {
-    (0., n_targets * (30.), 0.)
 }
 
 const GUINSOOS_RAGEBLADE_SEETHING_STRIKE_MAX_STACKS: u8 = 4;
@@ -1667,10 +1630,20 @@ const GUINSOOS_RAGEBLADE_SEETHING_STRIKE: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn guinsoos_rageblade_seething_strike_on_basic_attack_hit(
+//todo: test
+fn guinsoos_rageblade_on_basic_attack_hit(
     champ: &mut Unit,
     target_stats: &UnitStats,
-) -> RawDmg {
+    n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    //if from other effect, only wrath passive
+    let wrath_ap_dmg: f32 = n_targets * (30.);
+    if from_other_effect {
+        return (0., wrath_ap_dmg, 0.);
+    }
+
+    //if not from other effect, wrath + seething strike passives
     //seething strike effect (and stacks) must be applied first, phantom stacks second
     champ.add_temporary_effect(&GUINSOOS_RAGEBLADE_SEETHING_STRIKE, champ.stats.item_haste);
 
@@ -1678,16 +1651,22 @@ fn guinsoos_rageblade_seething_strike_on_basic_attack_hit(
     if champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks]
         < GUINSOOS_RAGEBLADE_SEETHING_STRIKE_MAX_STACKS
     {
-        return (0., 0., 0.);
+        return (0., wrath_ap_dmg, 0.);
     }
     //if seething strike is fully stacked (previous condition) but phantom stacks are not fully stacked, add 1 phantom stack
     else if champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] < 2 {
         champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] += 1;
-        return (0., 0., 0.);
+        return (0., wrath_ap_dmg, 0.);
     }
     //if seething strike is fully stacked and phantom stacks are fully stacked (previous conditions), reset and return phantom hit dmg
     champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] = 0;
-    champ.get_on_basic_attack_hit_static(target_stats)
+    let (phantom_hit_ad_dmg, phantom_hit_ap_dmg, phantom_hit_true_dmg) =
+        champ.get_on_basic_attack_hit(target_stats, n_targets, true);
+    (
+        phantom_hit_ad_dmg,
+        phantom_hit_ap_dmg + wrath_ap_dmg,
+        phantom_hit_true_dmg,
+    )
 }
 
 pub const GUINSOOS_RAGEBLADE: Item = Item {
@@ -1738,10 +1717,8 @@ pub const GUINSOOS_RAGEBLADE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(guinsoos_rageblade_seething_strike_on_basic_attack_hit),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: Some(guinsoos_rageblade_wrath),
+    on_basic_attack_hit: Some(guinsoos_rageblade_on_basic_attack_hit),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -1754,7 +1731,7 @@ pub const GUINSOOS_RAGEBLADE: Item = Item {
 fn hextech_rocketbelt_supersonic(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
     let availability_coef: f32 =
         effect_availability_formula(40. * haste_formula(champ.stats.item_haste));
-    champ.sim_results.units_travelled += availability_coef * 275.; //maximum dash distance
+    champ.sim_logs.units_travelled += availability_coef * 275.; //maximum dash distance
     let magic_dmg: f32 = availability_coef * (100. + 0.1 * champ.stats.ap());
     champ.dmg_on_target(
         target_stats,
@@ -1813,8 +1790,6 @@ pub const HEXTECH_ROCKETBELT: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1874,8 +1849,6 @@ pub const HORIZON_FOCUS: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1933,8 +1906,6 @@ pub const HUBRIS: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -1951,7 +1922,12 @@ fn hullbreaker_init(champ: &mut Unit) {
         -(HULLBREAKER_SKIPPER_DELAY + F32_TOL); //to allow for effect at time = 0.
 }
 
-fn hullbreaker_skipper(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn hullbreaker_skipper(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    _from_other_effect: bool,
+) -> PartDmg {
     //if last hit from too long ago, reset stacks and add 1
     if champ.time - champ.effects_values[EffectValueId::HullbreakerSkipperLastStackTime]
         >= HULLBREAKER_SKIPPER_DELAY
@@ -2019,10 +1995,8 @@ pub const HULLBREAKER: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(hullbreaker_skipper),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: None,
+    on_basic_attack_hit: Some(hullbreaker_skipper),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -2034,7 +2008,13 @@ pub const HULLBREAKER: Item = Item {
 fn iceborn_gauntlet_spellblade_on_basic_attack_hit(
     champ: &mut Unit,
     _target_stats: &UnitStats,
-) -> RawDmg {
+    _n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    if from_other_effect {
+        return (0., 0., 0.);
+    }
+
     //do nothing if not empowered
     if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
@@ -2100,10 +2080,8 @@ pub const ICEBORN_GAUNTLET: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(iceborn_gauntlet_spellblade_on_basic_attack_hit),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: None,
+    on_basic_attack_hit: Some(iceborn_gauntlet_spellblade_on_basic_attack_hit),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -2133,7 +2111,7 @@ const IMMORTAL_SHIELDBOW_LIFELINE_SHIELD_BY_LVL: [f32; MAX_UNIT_LVL] = [
 ];
 fn immortal_shieldbow_init(champ: &mut Unit) {
     //lifeline passive
-    champ.sim_results.single_use_heals_shields += IMMORTAL_SHIELDBOW_LIFELINE_SHIELD_BY_LVL
+    champ.sim_logs.single_use_heals_shields += IMMORTAL_SHIELDBOW_LIFELINE_SHIELD_BY_LVL
         [usize::from(champ.lvl.get() - 1)]
         * effect_availability_formula(
             90. * haste_formula(champ.lvl_stats.item_haste + champ.items_stats.item_haste),
@@ -2188,8 +2166,6 @@ pub const IMMORTAL_SHIELDBOW: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -2249,8 +2225,6 @@ pub const INFINITY_EDGE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -2308,8 +2282,6 @@ pub const JAKSHO: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -2321,8 +2293,7 @@ pub const JAKSHO: Item = Item {
 //Kaenic Rookern
 fn kaenic_rookern_init(champ: &mut Unit) {
     //magebane passive
-    champ.sim_results.single_use_heals_shields +=
-        0.15 * (champ.lvl_stats.hp + champ.items_stats.hp);
+    champ.sim_logs.single_use_heals_shields += 0.15 * (champ.lvl_stats.hp + champ.items_stats.hp);
 }
 
 pub const KAENIC_ROOKERN: Item = Item {
@@ -2374,8 +2345,6 @@ pub const KAENIC_ROOKERN: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -2414,7 +2383,12 @@ const KRAKEN_SLAYER_BRING_IT_DOWN_PHYS_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     156., //lvl 17
     160., //lvl 18
 ];
-fn kraken_slayer_bring_it_down(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn kraken_slayer_bring_it_down(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    _from_other_effect: bool,
+) -> PartDmg {
     //if last hit from too long ago, reset stacks and add 1
     if champ.time - champ.effects_values[EffectValueId::KrakenSlayerBringItDownLastStackTime]
         >= KRAKEN_SLAYER_BRING_IT_DOWN_DELAY
@@ -2484,10 +2458,8 @@ pub const KRAKEN_SLAYER: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(kraken_slayer_bring_it_down),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: None,
+    on_basic_attack_hit: Some(kraken_slayer_bring_it_down),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -2506,7 +2478,7 @@ fn liandrys_torment_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::LiandrysTormentSufferingTotDmgModifier] = 0.;
 }
 
-fn liandrys_torment_torment(champ: &mut Unit, target_stats: &UnitStats, n_targets: f32) -> RawDmg {
+fn liandrys_torment_torment(champ: &mut Unit, target_stats: &UnitStats, n_targets: f32) -> PartDmg {
     let dot_time: f32 = f32::min(
         LIANDRYS_TORMENT_TORMENT_DOT_DURATION,
         champ.time - champ.effects_values[EffectValueId::LiandrysTormentTormentLastApplicationTime],
@@ -2566,7 +2538,7 @@ const LIANDRYS_TORMENT_SUFFERING: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn liandrys_torment_suffering(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn liandrys_torment_suffering(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&LIANDRYS_TORMENT_SUFFERING, champ.stats.item_haste);
     (0., 0., 0.)
 }
@@ -2619,8 +2591,6 @@ pub const LIANDRYS_TORMENT: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: Some(liandrys_torment_torment),
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -2646,7 +2616,16 @@ fn lich_bane_spellblade_on_spell_cast(champ: &mut Unit) {
     }
 }
 
-fn lich_bane_spellblade_on_basic_attack_hit(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn lich_bane_spellblade_on_basic_attack_hit(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    if from_other_effect {
+        return (0., 0., 0.);
+    }
+
     //do nothing if not empowered
     if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] != 1 {
         return (0., 0., 0.);
@@ -2714,10 +2693,8 @@ pub const LICH_BANE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(lich_bane_spellblade_on_basic_attack_hit),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: None,
+    on_basic_attack_hit: Some(lich_bane_spellblade_on_basic_attack_hit),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -2775,8 +2752,6 @@ pub const LORD_DOMINIKS_REGARDS: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -2794,7 +2769,7 @@ fn ludens_companion_init(champ: &mut Unit) {
     //to allow for max stacks at time==0
 }
 
-fn ludens_companion_fire(champ: &mut Unit, _target_stats: &UnitStats, n_targets: f32) -> RawDmg {
+fn ludens_companion_fire(champ: &mut Unit, _target_stats: &UnitStats, n_targets: f32) -> PartDmg {
     //if stacks not loaded, do nothing (previous condition), consume them and return fire dmg
     if champ.time - champ.effects_values[EffectValueId::LudensCompanionFireLastConsumeTime]
         <= LUDENS_COMPANION_FIRE_STACKS_CHARGE_TIME
@@ -2861,8 +2836,6 @@ pub const LUDENS_COMPANION: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: Some(ludens_companion_fire),
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -2898,7 +2871,7 @@ const MALIGNANCE_HATEFOG_CURSE: TemporaryEffect = TemporaryEffect {
     cooldown: 3.,
 };
 
-fn malignance_hatefog(champ: &mut Unit, _target_stats: &UnitStats, n_targets: f32) -> RawDmg {
+fn malignance_hatefog(champ: &mut Unit, _target_stats: &UnitStats, n_targets: f32) -> PartDmg {
     //if on cooldown, do nothing
     if !champ.add_temporary_effect(&MALIGNANCE_HATEFOG_CURSE, champ.stats.item_haste) {
         return (0., 0., 0.);
@@ -2959,8 +2932,6 @@ pub const MALIGNANCE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: Some(malignance_hatefog),
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -2974,7 +2945,7 @@ pub const MALIGNANCE: Item = Item {
 //Maw of malmortius
 fn maw_of_malmortius_init(champ: &mut Unit) {
     //lifeline passive (omnivamp not implemented)
-    champ.sim_results.single_use_heals_shields += (150.
+    champ.sim_logs.single_use_heals_shields += (150.
         + 1.125 * (champ.lvl_stats.bonus_ad + champ.items_stats.bonus_ad))
         * effect_availability_formula(
             90. * haste_formula(champ.lvl_stats.item_haste + champ.items_stats.item_haste),
@@ -3030,8 +3001,6 @@ pub const MAW_OF_MALMORTIUS: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -3091,8 +3060,6 @@ pub const MERCURIAL_SCIMITAR: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -3154,8 +3121,6 @@ pub const MORELLONOMICON: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -3213,8 +3178,6 @@ pub const MORTAL_REMINDER: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -3235,7 +3198,7 @@ fn muramana_shock_on_spell_hit(
     champ: &mut Unit,
     _target_stats: &UnitStats,
     n_targets: f32,
-) -> RawDmg {
+) -> PartDmg {
     //set shock last ability hit, to prevent potential on basic attack hit effects triggered by this ability to apply shock twice
     champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] = champ.time;
     (n_targets * 0.03 * champ.stats.mana, 0., 0.) //value for ranged champions
@@ -3246,7 +3209,7 @@ fn muramana_shock_on_basic_attack_hit(
     _target_stats: &UnitStats,
     n_targets: f32,
     _from_other_effect: bool,
-) -> RawDmg {
+) -> PartDmg {
     //it is okay to have this condition in static on hit (exception)
     //if same instance of dmg (==exact same time) as muramana_shock_on_spell_hit, do nothing (to prevent basic attack that trigger on hit to apply muramana passive twice)
     if champ.time == champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] {
@@ -3304,8 +3267,6 @@ pub const MURAMANA: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: Some(muramana_shock_on_spell_hit),
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: Some(muramana_shock_on_basic_attack_hit),
     on_phys_hit: None,
@@ -3320,7 +3281,7 @@ fn nashors_tooth_icathian_bite(
     _target_stats: &UnitStats,
     n_targets: f32,
     _from_other_effect: bool,
-) -> RawDmg {
+) -> PartDmg {
     (0., n_targets * (15. + 0.15 * champ.stats.ap()), 0.)
 }
 
@@ -3372,8 +3333,6 @@ pub const NASHORS_TOOTH: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: Some(nashors_tooth_icathian_bite),
     on_phys_hit: None,
@@ -3438,8 +3397,6 @@ pub const NAVORI_FLICKERBLADE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: Some(navori_flickerblade_transcendence),
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -3528,8 +3485,6 @@ pub const OPPORTUNITY: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -3594,8 +3549,6 @@ pub const OVERLORDS_BLOODMAIL: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -3653,8 +3606,6 @@ pub const PHANTOM_DANCER: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -3680,7 +3631,7 @@ fn profane_hydra_cleave(
     _target_stats: &UnitStats,
     n_targets: f32,
     _from_other_effect: bool,
-) -> RawDmg {
+) -> PartDmg {
     (
         n_targets * (PROFANE_HYDRA_CLEAVE_AVG_TARGETS * 0.20 * champ.stats.ad()),
         0.,
@@ -3737,8 +3688,6 @@ pub const PROFANE_HYDRA: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: Some(profane_hydra_cleave),
     on_phys_hit: None,
@@ -3796,8 +3745,6 @@ pub const RABADONS_DEATHCAP: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -3855,8 +3802,6 @@ pub const RANDUINS_OMEN: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -3871,9 +3816,18 @@ fn rapid_firecannon_init(champ: &mut Unit) {
         -(ENERGIZED_ATTACKS_TRAVEL_REQUIRED + F32_TOL); // to allow for effect at time == 0
 }
 
-fn rapid_firecannon_sharpshooter(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn rapid_firecannon_sharpshooter(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    if from_other_effect {
+        return (0., 0., 0.);
+    }
+
     //if not enough energy, add basic attack energy stacks
-    if champ.sim_results.units_travelled
+    if champ.sim_logs.units_travelled
         - champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance]
         < ENERGIZED_ATTACKS_TRAVEL_REQUIRED
     {
@@ -3883,7 +3837,7 @@ fn rapid_firecannon_sharpshooter(champ: &mut Unit, _target_stats: &UnitStats) ->
     }
     //if enough energy (previous condition), trigger energized attack
     champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance] =
-        champ.sim_results.units_travelled;
+        champ.sim_logs.units_travelled;
     (0., 40., 0.)
 }
 
@@ -3935,10 +3889,8 @@ pub const RAPID_FIRECANNON: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(rapid_firecannon_sharpshooter),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: None,
+    on_basic_attack_hit: Some(rapid_firecannon_sharpshooter),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -3955,7 +3907,7 @@ fn _ravenous_hydra_ravenous_crescent(champ: &mut Unit, target_stats: &UnitStats)
         enum_set!(),
         1.,
     );
-    champ.sim_results.periodic_heals_shields += dmg * champ.stats.life_steal; //life steal applies to crescent
+    champ.sim_logs.periodic_heals_shields += dmg * champ.stats.life_steal; //life steal applies to crescent
     dmg
 }
 
@@ -3964,7 +3916,7 @@ fn ravenous_hydra_cleave(
     _target_stats: &UnitStats,
     n_targets: f32,
     _from_other_effect: bool,
-) -> RawDmg {
+) -> PartDmg {
     (
         n_targets * (RAVENOUS_HYDRA_CLEAVE_AVG_TARGETS * 0.20 * champ.stats.ad()),
         0.,
@@ -4021,8 +3973,6 @@ pub const RAVENOUS_HYDRA: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: Some(ravenous_hydra_cleave),
     on_phys_hit: None,
@@ -4156,8 +4106,6 @@ pub const RIFTMAKER: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -4167,6 +4115,7 @@ pub const RIFTMAKER: Item = Item {
 };
 
 //Rod of ages, timeless and eternity passives implemented as permanent stats
+//todo: impl rod of ages passives in init fct to give stats based on lvl (get item slot -> get gold gained since roa -> get time spent since roa)
 const ROD_OF_AGES_TIMELESS_COEF: f32 = 0.50; //proportion of the timeless additionnal stats we consider permanent for the item (since timeless passive is not implemented)
 pub const ROD_OF_AGES: Item = Item {
     id: ItemId::RodOfAges,
@@ -4216,8 +4165,6 @@ pub const ROD_OF_AGES: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -4232,7 +4179,7 @@ fn runaans_hurricane_winds_fury(
     _target_stats: &UnitStats,
     mut n_targets: f32,
     from_other_effect: bool,
-) -> RawDmg {
+) -> PartDmg {
     if from_other_effect {
         return (0., 0., 0.);
     }
@@ -4294,8 +4241,6 @@ pub const RUNAANS_HURRICANE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: Some(runaans_hurricane_winds_fury),
     on_phys_hit: None,
@@ -4353,8 +4298,6 @@ pub const RYLAIS_CRYSTAL_SCEPTER: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -4369,7 +4312,7 @@ fn seraphs_embrace_init(champ: &mut Unit) {
     champ.stats.ap_flat += 0.02 * champ.items_stats.mana; //only take bonus mana into account
 
     //lifeline passive
-    champ.sim_results.single_use_heals_shields += (200.
+    champ.sim_logs.single_use_heals_shields += (200.
         + SERAPHS_EMBRACE_LIFELINE_MANA_PERCENT
             * 0.2
             * (champ.lvl_stats.mana + champ.items_stats.mana))
@@ -4427,8 +4370,6 @@ pub const SERAPHS_EMBRACE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -4486,8 +4427,6 @@ pub const SERPENTS_FANG: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -4545,8 +4484,6 @@ pub const SERYLDAS_GRUDGE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -4611,8 +4548,6 @@ pub const SHADOWFLAME: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -4725,8 +4660,6 @@ pub const SPEAR_OF_SHOJIN: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: Some(spear_of_shojin_focused_will),
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -4788,8 +4721,6 @@ pub const STATIKK_SHIV: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -4804,7 +4735,7 @@ fn steraks_gage_init(champ: &mut Unit) {
     champ.stats.bonus_ad += 0.45 * (champ.lvl_stats.base_ad + champ.items_stats.base_ad);
 
     //lifeline passive
-    champ.sim_results.single_use_heals_shields += 0.5
+    champ.sim_logs.single_use_heals_shields += 0.5
         * 0.6
         * champ.items_stats.hp
         * effect_availability_formula(
@@ -4862,8 +4793,6 @@ pub const STERAKS_GAGE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -4900,7 +4829,7 @@ const STORMSURGE_STORMRAIDER_MS: TemporaryEffect = TemporaryEffect {
 };
 
 const STORMSURGE_STORMRAIDER_COOLDOWN: f32 = 30.;
-fn stormsurge_stormraider(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn stormsurge_stormraider(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     //stormraider passive, triggers once, after a fixed time after the first dmg instance since we don't record dmg done over time and cannot check the real activation condition
     if champ.effects_stacks[EffectStackId::StormsurgeStormraiderTriggered] == 0 && champ.time > 2.0
     {
@@ -4966,8 +4895,6 @@ pub const STORMSURGE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -5022,7 +4949,7 @@ fn stridebreaker_cleave(
     _target_stats: &UnitStats,
     n_targets: f32,
     _from_other_effect: bool,
-) -> RawDmg {
+) -> PartDmg {
     (
         n_targets * (STRIDEBREAKER_CLEAVE_AVG_TARGETS * 0.20 * champ.stats.ad()),
         0.,
@@ -5105,8 +5032,6 @@ pub const STRIDEBREAKER: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: Some(stridebreaker_cleave),
     on_phys_hit: None, //Some(stridebreaker_temper_on_phys_hit),
@@ -5122,7 +5047,16 @@ fn sundered_sky_init(champ: &mut Unit) {
         -(SUNDERED_SKY_COOLDOWN + F32_TOL); //to allow for effect at time==0
 }
 
-fn sundered_sky_lightshield_strike(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn sundered_sky_lightshield_strike(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    if from_other_effect {
+        return (0., 0., 0.);
+    }
+
     //if on cooldown, do nothing
     if champ.time - champ.effects_values[EffectValueId::SunderedSkyLastTriggerTime]
         <= SUNDERED_SKY_COOLDOWN
@@ -5131,7 +5065,7 @@ fn sundered_sky_lightshield_strike(champ: &mut Unit, _target_stats: &UnitStats) 
     }
     //if not on cooldown, put on cooldown and trigger effect
     champ.effects_values[EffectValueId::SunderedSkyLastTriggerTime] = champ.time;
-    champ.sim_results.periodic_heals_shields +=
+    champ.sim_logs.periodic_heals_shields +=
         champ.stats.base_ad + SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP * 0.06 * champ.stats.hp;
     let phys_dmg: f32 =
         champ.stats.ad() * (1. - champ.stats.crit_chance) * (champ.stats.crit_dmg - 1.); //bonus dmg from a basic attack with 100% crit chance compared to an average basic_attack
@@ -5186,10 +5120,8 @@ pub const SUNDERED_SKY: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(sundered_sky_lightshield_strike),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: None,
+    on_basic_attack_hit: Some(sundered_sky_lightshield_strike),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -5205,15 +5137,6 @@ fn terminus_init(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::TerminusJuxtapositionDarkStacks] = 0;
     champ.effects_values[EffectValueId::TerminusJuxtapositionLightRes] = 0.;
     champ.effects_values[EffectValueId::TerminusJuxtapositionDarkPen] = 0.;
-}
-
-fn terminus_shadow(
-    _champ: &mut Unit,
-    _target_stats: &UnitStats,
-    n_targets: f32,
-    _from_other_effect: bool,
-) -> RawDmg {
-    (0., n_targets * (30.), 0.)
 }
 
 const TERMINUS_JUXTAPOSITION_MAX_STACKS: u8 = 3;
@@ -5316,7 +5239,17 @@ const TERMINUS_JUXTAPOSITION_DARK: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-fn terminus_juxtaposition(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn terminus_on_basic_attack_hit(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    let shadow_ap_dmg: f32 = n_targets * (30.);
+    if from_other_effect {
+        return (0., shadow_ap_dmg, 0.);
+    }
+
     if champ.effects_stacks[EffectStackId::TerminusJuxtapositionMode] == 0 {
         //add light stack and swap mode
         champ.add_temporary_effect(&TERMINUS_JUXTAPOSITION_LIGHT, champ.stats.item_haste);
@@ -5326,7 +5259,7 @@ fn terminus_juxtaposition(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg
         champ.add_temporary_effect(&TERMINUS_JUXTAPOSITION_DARK, champ.stats.item_haste);
         champ.effects_stacks[EffectStackId::TerminusJuxtapositionMode] = 0;
     }
-    (0., 0., 0.)
+    (0., shadow_ap_dmg, 0.)
 }
 
 pub const TERMINUS: Item = Item {
@@ -5377,10 +5310,8 @@ pub const TERMINUS: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(terminus_juxtaposition),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: Some(terminus_shadow),
+    on_basic_attack_hit: Some(terminus_on_basic_attack_hit),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -5393,12 +5324,11 @@ fn the_collector_init(champ: &mut Unit) {
 }
 
 const THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD: f32 = 0.05;
-fn the_collector_death(champ: &mut Unit, target_stats: &UnitStats) -> RawDmg {
+fn the_collector_death(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     if champ.effects_stacks[EffectStackId::TheCollectorExecuted] != 1
-        && champ.sim_results.dmg_done
-            >= (1. - THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD) * target_stats.hp
+        && champ.sim_logs.dmg_done >= (1. - THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD) * target_stats.hp
     {
-        champ.sim_results.dmg_done += THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD * target_stats.hp;
+        champ.sim_logs.dmg_done += THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD * target_stats.hp;
         champ.effects_stacks[EffectStackId::TheCollectorExecuted] = 1;
     }
     (0., 0., 0.)
@@ -5452,8 +5382,6 @@ pub const THE_COLLECTOR: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -5484,17 +5412,14 @@ fn titanic_hydra_cleave(
     champ: &mut Unit,
     _target_stats: &UnitStats,
     n_targets: f32,
-    from_other_effect: bool,
-) -> RawDmg {
-    if from_other_effect {
-        return (n_targets * (0.005 * champ.stats.hp), 0., 0.); //value for ranged champions
-    }
+    _from_other_effect: bool,
+) -> PartDmg {
     (
         TITANIC_HYDRA_CLEAVE_AVG_TARGETS * 0.015 * champ.stats.hp
             + n_targets * (0.005 * champ.stats.hp),
         0.,
         0.,
-    ) //value for ranged champions
+    ) //value for ranged champions, cleave not affected by n_targets because AoE is behind target
 }
 
 pub const TITANIC_HYDRA: Item = Item {
@@ -5545,8 +5470,6 @@ pub const TITANIC_HYDRA: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: Some(titanic_hydra_cleave),
     on_phys_hit: None,
@@ -5590,7 +5513,13 @@ const TRINITY_FORCE_QUICKEN: TemporaryEffect = TemporaryEffect {
 fn trinity_force_spellblade_on_basic_attack_hit(
     champ: &mut Unit,
     _target_stats: &UnitStats,
-) -> RawDmg {
+    _n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    if from_other_effect {
+        return (0., 0., 0.);
+    }
+
     //quicken
     champ.add_temporary_effect(&TRINITY_FORCE_QUICKEN, champ.stats.item_haste);
 
@@ -5660,10 +5589,8 @@ pub const TRINITY_FORCE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(trinity_force_spellblade_on_basic_attack_hit),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: None,
+    on_basic_attack_hit: Some(trinity_force_spellblade_on_basic_attack_hit),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -5719,8 +5646,6 @@ pub const UMBRAL_GLAIVE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -5782,8 +5707,6 @@ pub const VOID_STAFF: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -5798,9 +5721,18 @@ fn voltaic_cyclosword_init(champ: &mut Unit) {
         -(ENERGIZED_ATTACKS_TRAVEL_REQUIRED + F32_TOL); // to allow for effect at time == 0
 }
 
-fn voltaic_cyclosword_firmament(champ: &mut Unit, _target_stats: &UnitStats) -> RawDmg {
+fn voltaic_cyclosword_firmament(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    if from_other_effect {
+        return (0., 0., 0.);
+    }
+
     //if not enough energy, add basic attack energy stacks
-    if champ.sim_results.units_travelled
+    if champ.sim_logs.units_travelled
         - champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance]
         < ENERGIZED_ATTACKS_TRAVEL_REQUIRED
     {
@@ -5810,7 +5742,7 @@ fn voltaic_cyclosword_firmament(champ: &mut Unit, _target_stats: &UnitStats) -> 
     }
     //if enough energy (previous condition), trigger energized attack
     champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance] =
-        champ.sim_results.units_travelled;
+        champ.sim_logs.units_travelled;
     (100., 0., 0.) //slow not implemented
 }
 
@@ -5862,10 +5794,8 @@ pub const VOLTAIC_CYCLOSWORD: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: Some(voltaic_cyclosword_firmament),
     on_basic_attack_cast: None,
-    on_basic_attack_hit: None,
+    on_basic_attack_hit: Some(voltaic_cyclosword_firmament),
     on_phys_hit: None,
     on_magic_hit: None,
     on_true_dmg_hit: None,
@@ -5882,7 +5812,7 @@ fn wits_end_fray(
     _target_stats: &UnitStats,
     n_targets: f32,
     _from_other_effect: bool,
-) -> RawDmg {
+) -> PartDmg {
     (0., n_targets * (45.), 0.)
 }
 
@@ -5935,8 +5865,6 @@ pub const WITS_END: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: Some(wits_end_fray),
     on_phys_hit: None,
@@ -6025,8 +5953,6 @@ pub const YOUMUUS_GHOSTBLADE: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -6041,7 +5967,7 @@ fn yun_tal_serrated_edge(
     _target_stats: &UnitStats,
     n_targets: f32,
     _from_other_effect: bool,
-) -> RawDmg {
+) -> PartDmg {
     (n_targets * (champ.stats.crit_chance * 70.), 0., 0.)
 }
 
@@ -6093,8 +6019,6 @@ pub const YUN_TAL_WILDARROWS: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: Some(yun_tal_serrated_edge),
     on_phys_hit: None,
@@ -6156,8 +6080,6 @@ pub const ZHONYAS_HOURGLASS: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -6219,8 +6141,6 @@ pub const BERSERKERS_GREAVES: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -6278,8 +6198,6 @@ pub const BOOTS_OF_SWIFTNESS: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -6337,8 +6255,6 @@ pub const IONIAN_BOOTS_OF_LUCIDITY: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -6396,8 +6312,6 @@ pub const MERCURYS_TREADS: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -6455,8 +6369,6 @@ pub const PLATED_STEELCAPS: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,
@@ -6514,8 +6426,6 @@ pub const SORCERERS_SHOES: Item = Item {
     on_ultimate_cast: None,
     on_ability_hit: None,
     on_ultimate_hit: None,
-    on_basic_attack_hit_static: None,
-    on_basic_attack_hit_dynamic: None,
     on_basic_attack_cast: None,
     on_basic_attack_hit: None,
     on_phys_hit: None,

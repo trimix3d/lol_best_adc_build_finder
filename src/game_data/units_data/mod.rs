@@ -339,7 +339,7 @@ impl UnitStats {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct BasicAbility {
     /// Returns ability dmg and triggers effects.
     cast: fn(&mut Unit, &UnitStats) -> f32,
@@ -347,7 +347,7 @@ pub struct BasicAbility {
     base_cooldown_by_ability_lvl: [f32; 6], //length 6 to account aphelios case, normal abilities only use the first 5 values
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct UltimateAbility {
     /// Returns ability dmg and triggers effects.
     /// Should call `Unit.dmg_on_target()` only for the return value at the end of the function !
@@ -356,16 +356,16 @@ pub struct UltimateAbility {
     base_cooldown_by_ability_lvl: [f32; 3], //ultimate has 3 lvls
 }
 
+pub type FightScenario = (fn(&mut Unit, &UnitStats, f32), &'static str);
+
 #[derive(Debug)]
 pub struct UnitDefaults {
-    pub runes_pages: &'static RunesPage,
-    pub skill_order: &'static SkillOrder,
+    pub runes_pages: RunesPage,
+    pub skill_order: SkillOrder,
     pub legendary_items_pool: &'static [&'static Item],
     pub boots_pool: &'static [&'static Item],
     pub support_items_pool: &'static [&'static Item],
 }
-
-pub type FightScenario = (fn(&mut Unit, &UnitStats, f32), &'static str);
 
 /// Holds properties that don't change at runtime for a given unit.
 #[derive(Debug)]
@@ -390,6 +390,7 @@ pub struct UnitProperties {
     pub w: BasicAbility,
     pub e: BasicAbility,
     pub r: UltimateAbility,
+    //on action functions
     pub fight_scenarios: &'static [FightScenario],
     pub unit_defaults: UnitDefaults,
 }
@@ -473,8 +474,6 @@ impl SkillOrder {
     }
 }
 
-//todo: getter fn to apply effects e.g. on_action_fns_holder.get_on_basick_attack_hit(...) (for every field)
-
 /// Holds different function that must be executed on the `Unit` after specific trigger events.
 /// Trigger event are basic attacks, ability hits, ...
 ///
@@ -486,12 +485,16 @@ impl SkillOrder {
 ///
 /// For program correctness, these function should NEVER modify the `Unit` outside of temporary effects and effect variables.
 #[derive(Debug)]
+#[allow(clippy::type_complexity)]
 struct OnActionFns {
+    /// Perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to `lvl_stats`).
+    on_lvl_set: Option<fn(&mut Unit)>,
+
     /// Init `Unit`/`Item` effect variables and temporary effects on the `Unit`. These function should ensure that all effect
     /// variables used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
     /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
     /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
-    init: Option<fn(&mut Unit)>,
+    on_fight_init: Option<fn(&mut Unit)>,
 
     /// Triggers special actives and returns dmg done.
     special_active: Option<fn(&mut Unit, &UnitStats) -> f32>,
@@ -501,32 +504,19 @@ struct OnActionFns {
     /// Applies effects triggered when ultimate is casted (additionnal to `on_ability_cast`).
     on_ultimate_cast: Option<fn(&mut Unit)>,
 
-    /// Returns on-ability-hit raw dmg and applies effects (updates effect variables accordingly).
+    /// Returns on-ability-hit dmg and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the ability (affected by on-ability-hit).
-    on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-    /// Returns on-ultimate-hit raw dmg (additionnal to `on_ability_cast`) and applies effects (updates effect variables accordingly).
+    on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
+    /// Returns on-ultimate-hit dmg (additionnal to `on_ability_cast`) and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the ultimate (affected by on-ultimate-hit).
-    on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> RawDmg>,
-
-    /// Returns the static part of on-basic-attack-hit raw dmg.
-    /// on-basic-attack-hit is divided in two parts :
-    /// - static: dmg that applies on all targets unconditionally
-    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
-    /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
-    on_basic_attack_hit_static: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
-    /// Returns the dynamic part of on-basic-attack-hit raw dmg.
-    /// on-basic-attack-hit is divided in two parts:
-    /// - static: dmg that applies on all targets unconditionally
-    ///     (SHOULD NEVER SET conditional values in their logic, but can sometimes exceptionnally read them)
-    /// - dynamic: dmg that applies only on the first target hit conditionnally (like energized passives, ...)
-    on_basic_attack_hit_dynamic: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
+    on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
 
     /// Applies effects triggered when a basic attack is casted (updates effect variables accordingly).
     on_basic_attack_cast: Option<fn(&mut Unit)>,
-    /// Returns on-basic_attack-hit raw dmg and applies effects (updates effect variables accordingly).
+    /// Returns on-basic_attack-hit dmg and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the basic attack (affected by on-basic-attack-hit).
     /// 4th argument (bool) indicates if the function is called internally from other on-action-fns.
-    on_basic_attack_hit: Option<fn(&mut Unit, &UnitStats, f32, bool) -> RawDmg>,
+    on_basic_attack_hit: Option<fn(&mut Unit, &UnitStats, f32, bool) -> PartDmg>,
 
     /// Applies effects on the unit triggered when phys dmg is done (updates effect variables accordingly).
     on_phys_hit: Option<fn(&mut Unit)>,
@@ -536,32 +526,102 @@ struct OnActionFns {
     on_true_dmg_hit: Option<fn(&mut Unit)>,
     /// Applies effects on the unit triggered when any dmg is done (updates effect variables accordingly).
     /// This function is called every hit, in addition to others on_..._hit functions.
-    on_any_hit: Option<fn(&mut Unit, &UnitStats) -> RawDmg>,
+    on_any_hit: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct UnitSimulationResult {
-    pub dmg_done: f32,
-    pub periodic_heals_shields: f32, //heals and shields obtained over a duration
-    pub single_use_heals_shields: f32, //heals and shields obtained once
-    pub units_travelled: f32,
+/// This is a struct used as container for holding multiple `OnActionFns`.
+/// For the documentation of the fields, see `OnActionFns`.
+#[derive(Debug)]
+#[allow(clippy::type_complexity)]
+struct OnActionFnsHolder {
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_lvl_set: Vec<fn(&mut Unit)>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_fight_init: Vec<fn(&mut Unit)>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    special_active: Vec<fn(&mut Unit, &UnitStats) -> f32>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_ability_cast: Vec<fn(&mut Unit)>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_ultimate_cast: Vec<fn(&mut Unit)>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_ability_hit: Vec<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_ultimate_hit: Vec<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_basic_attack_cast: Vec<fn(&mut Unit)>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_basic_attack_hit: Vec<fn(&mut Unit, &UnitStats, f32, bool) -> PartDmg>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_phys_hit: Vec<fn(&mut Unit)>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_magic_hit: Vec<fn(&mut Unit)>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_true_dmg_hit: Vec<fn(&mut Unit)>,
+    /// For the documentation of the fields, see `OnActionFns`.
+    on_any_hit: Vec<fn(&mut Unit, &UnitStats) -> PartDmg>,
 }
 
-impl Default for UnitSimulationResult {
-    fn default() -> Self {
-        UnitSimulationResult {
-            dmg_done: 0.,
-            periodic_heals_shields: 0.,
-            single_use_heals_shields: 0.,
-            units_travelled: 0.,
+impl OnActionFnsHolder {
+    fn extend(&mut self, on_action_fns: &OnActionFns) {
+        if let Some(function) = on_action_fns.on_lvl_set {
+            self.on_lvl_set.push(function);
+        }
+        if let Some(function) = on_action_fns.on_fight_init {
+            self.on_fight_init.push(function);
+        }
+        if let Some(function) = on_action_fns.special_active {
+            self.special_active.push(function);
+        }
+        if let Some(function) = on_action_fns.on_ability_cast {
+            self.on_ability_cast.push(function);
+        }
+        if let Some(function) = on_action_fns.on_ultimate_cast {
+            self.on_ultimate_cast.push(function);
+        }
+        if let Some(function) = on_action_fns.on_ability_hit {
+            self.on_ability_hit.push(function);
+        }
+        if let Some(function) = on_action_fns.on_ultimate_hit {
+            self.on_ultimate_hit.push(function);
+        }
+        if let Some(function) = on_action_fns.on_basic_attack_cast {
+            self.on_basic_attack_cast.push(function);
+        }
+        if let Some(function) = on_action_fns.on_basic_attack_hit {
+            self.on_basic_attack_hit.push(function);
+        }
+        if let Some(function) = on_action_fns.on_phys_hit {
+            self.on_phys_hit.push(function);
+        }
+        if let Some(function) = on_action_fns.on_magic_hit {
+            self.on_magic_hit.push(function);
+        }
+        if let Some(function) = on_action_fns.on_true_dmg_hit {
+            self.on_true_dmg_hit.push(function);
+        }
+        if let Some(function) = on_action_fns.on_any_hit {
+            self.on_any_hit.push(function);
         }
     }
-}
 
-impl UnitSimulationResult {
     fn clear(&mut self) {
-        *self = Self::default();
+        self.on_lvl_set.clear();
+        self.on_fight_init.clear();
+        self.special_active.clear();
+        self.on_ability_cast.clear();
+        self.on_ultimate_cast.clear();
+        self.on_ability_hit.clear();
+        self.on_ultimate_hit.clear();
+        self.on_basic_attack_cast.clear();
+        self.on_basic_attack_hit.clear();
+        self.on_phys_hit.clear();
+        self.on_magic_hit.clear();
+        self.on_true_dmg_hit.clear();
+        self.on_any_hit.clear();
     }
+
+    //todo: getter fn that call all fn from vec (for each field)
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -587,27 +647,63 @@ impl fmt::Display for UnitAction {
     }
 }
 
+//todo: dmg_done should be PartDmg and impl fn that return dmg_done (as sum of ad, ap, true)
+#[derive(Debug, Clone)]
+pub struct UnitSimulationLogs {
+    pub dmg_done: f32,
+    pub periodic_heals_shields: f32, //heals and shields obtained over a duration
+    pub single_use_heals_shields: f32, //heals and shields obtained once
+    pub units_travelled: f32,
+    pub actions_performed: Vec<(f32, UnitAction)>, //records each action performed and at what time in execution order
+}
+
+impl Default for UnitSimulationLogs {
+    fn default() -> Self {
+        UnitSimulationLogs {
+            dmg_done: 0.,
+            periodic_heals_shields: 0.,
+            single_use_heals_shields: 0.,
+            units_travelled: 0.,
+            actions_performed: Vec::new(),
+        }
+    }
+}
+
+impl UnitSimulationLogs {
+    fn clear(&mut self) {
+        self.dmg_done = 0.;
+        self.periodic_heals_shields = 0.;
+        self.single_use_heals_shields = 0.;
+        self.units_travelled = 0.;
+        self.actions_performed.clear();
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Unit {
+    //properties
     pub properties: &'static UnitProperties,
-    pub stats: UnitStats,
-    //lvl related
+    runes_page: RunesPage,
     skill_order: SkillOrder,
+    pub build: Build,
+    pub build_cost: f32,
+    pub fight_scenario: FightScenario, //active fight scenario
+
+    //stats
+    /// Stats that only comes from the Unit base stats (only change with lvl)
+    pub lvl_stats: UnitStats,
+    /// Stats that only comes from items
+    pub items_stats: UnitStats,
+    runes_stats: UnitStats, //not pub on purpose because must not be used in items calculation
+    pub stats: UnitStats, //actual combat stats (the only stat field that changes dynamically during simulation)
+
+    //lvl and abilities lvl
     pub lvl: NonZeroU8, //this is intentionally NonZeroU8 and not usize, so when used for indexing it reminds you to substract 1 to access array elements
     q_lvl: u8,
     w_lvl: u8,
     e_lvl: u8,
     r_lvl: u8,
-    /// Stats that only comes from the Unit base stats (only change with lvl)
-    pub lvl_stats: UnitStats,
-    //build related
-    pub build: Build,
-    pub build_cost: f32,
-    /// Stats that only comes from items
-    pub items_stats: UnitStats,
-    //runes related
-    runes_page: RunesPage,
-    runes_stats: UnitStats, //not pub on purpose because must not be used in items calculation
+
     //simulation timings
     pub time: f32,
     pub basic_attack_cd: f32,
@@ -615,18 +711,18 @@ pub struct Unit {
     pub w_cd: f32,
     pub e_cd: f32,
     pub r_cd: f32,
-    //on trigger functions
+
+    //on action functions
+    //a
 
     //temporary effects
     pub effects_stacks: EnumMap<EffectStackId, u8>, //holds various effects integers values on the unit
     pub effects_values: EnumMap<EffectValueId, f32>, //holds various effects floats values on the unit
     temporary_effects_durations: IndexMap<&'static TemporaryEffect, f32, FxBuildHasher>, //IndexMap of active temporary effects on the unit and their remaining duration
     temporary_effects_cooldowns: IndexMap<&'static TemporaryEffect, f32, FxBuildHasher>, //IndexMap of temporary effects on cooldown on the unit
-    //active fight scenario
-    pub fight_scenario: FightScenario,
-    //simulation results
-    pub sim_results: UnitSimulationResult,
-    pub actions_log: Vec<(f32, UnitAction)>,
+
+    //simulation logs
+    pub sim_logs: UnitSimulationLogs,
 }
 
 impl fmt::Display for Unit {
@@ -645,7 +741,7 @@ impl fmt::Display for Unit {
         writeln!(
             f,
             "time: {:.1}, dmg done: {:.0}, periodic heals & shields : {:.0}, single use heals & shields: {:.0}, units tavelled: {:.0}",
-            self.time, self.sim_results.dmg_done, self.sim_results.periodic_heals_shields, self.sim_results.single_use_heals_shields, self.sim_results.units_travelled
+            self.time, self.sim_logs.dmg_done, self.sim_logs.periodic_heals_shields, self.sim_logs.single_use_heals_shields, self.sim_logs.units_travelled
         )?;
         writeln!(f, "hp: {:.0}", self.stats.hp)?;
         writeln!(f, "mana: {:.0}", self.stats.mana)?;
@@ -735,13 +831,13 @@ impl fmt::Display for Unit {
 /// Indicates the type of a damage instance.
 #[derive(Debug, EnumSetType)]
 pub enum DmgTag {
-    BasickAttack,
+    BasicAttack,
     Ability,
     Ultimate,
 }
 
-/// Used to return (`phys_dmg`, `magic_dmg`, `true_dmg`) of a damage instance.
-pub type RawDmg = (f32, f32, f32);
+/// Contains a damage value divided in (`phys_dmg`, `magic_dmg`, `true_dmg`).
+pub type PartDmg = (f32, f32, f32);
 
 impl Unit {
     /// base crit damage value for an Unit.
@@ -804,37 +900,46 @@ impl Unit {
 
         //create the unit
         let mut new_unit: Self = Self {
+            //properties
             properties: properties_ref,
-            stats: UnitStats::default(),
-            runes_page: RunesPage {
-                shard1: RuneShard::Left,
-                shard2: RuneShard::Left,
-                shard3: RuneShard::Left,
-            }, //trash temporary value until initialized by setter function
-            runes_stats: UnitStats::default(),
+            runes_page: RunesPage::default(), //temporary value until initialized by setter function
             skill_order: SkillOrder::default(), //temporary value until initialized by setter function (must still be a valid skill order!)
-            lvl: NonZeroU8::new(MIN_UNIT_LVL).expect("Unit lvl cannot be 0"), //trash temporary value until initialized by setter function
-            q_lvl: 0, //trash temporary value until initialized by setter function
-            w_lvl: 0, //trash temporary value until initialized by setter function
-            e_lvl: 0, //trash temporary value until initialized by setter function
-            r_lvl: 0, //trash temporary value until initialized by setter function
-            lvl_stats: UnitStats::default(),
-            build: Build::default(), //trash temporary value until initialized by setter function
+            build: Build::default(),
             build_cost: 0.,
-            items_stats: UnitStats::default(),
+            fight_scenario: properties_ref.fight_scenarios[0], //todo: test empty
+
+            //stats
+            lvl_stats: UnitStats::default(), //temporary value until initialized by setter function
+            items_stats: UnitStats::default(), //temporary value until initialized by setter function
+            runes_stats: UnitStats::default(), //temporary value until initialized by setter function
+            stats: UnitStats::default(), //temporary value until initialized by setter function
+
+            //lvl and abilities lvl
+            lvl: NonZeroU8::new(MIN_UNIT_LVL).expect("Unit lvl cannot be 0"), //temporary value until initialized by setter function
+            q_lvl: 0,
+            w_lvl: 0,
+            e_lvl: 0,
+            r_lvl: 0,
+
+            //simulation timings
             time: 0.,
             basic_attack_cd: 0.,
             q_cd: 0.,
             w_cd: 0.,
             e_cd: 0.,
             r_cd: 0.,
+
+            //on action functions
+            //a
+
+            //temporary effects
             effects_stacks: EnumMap::default(),
             effects_values: EnumMap::default(),
             temporary_effects_durations: IndexMap::with_hasher(FxBuildHasher),
             temporary_effects_cooldowns: IndexMap::with_hasher(FxBuildHasher),
-            fight_scenario: properties_ref.fight_scenarios[0],
-            sim_results: UnitSimulationResult::default(),
-            actions_log: Vec::new(),
+
+            //simulation logs
+            sim_logs: UnitSimulationLogs::default(),
         };
 
         //check and set runes
@@ -863,7 +968,7 @@ impl Unit {
     ) -> Result<Self, String> {
         Self::new(
             properties_ref,
-            properties_ref.unit_defaults.runes_pages.clone(),
+            properties_ref.unit_defaults.runes_pages,
             properties_ref.unit_defaults.skill_order.clone(),
             lvl,
             build,
@@ -1046,12 +1151,8 @@ impl Unit {
         self.update_runes_stats();
         self.stats.add(&self.runes_stats);
 
-        //reset simulation results
-        self.sim_results.clear();
-
-        //reset actions log
-        self.actions_log.clear();
-        //self.actions_log.shrink_to_fit(); //hits performance a bit, i don't think the reduced memory usage is worth it
+        //reset simulation logs
+        self.sim_logs.clear();
     }
 
     /// Attempt to add the given effect to the Unit. If the effect is not on cooldown, the function
@@ -1150,35 +1251,13 @@ impl Unit {
                 .unwrap(); //will never panic as we chain with once so there is at minimum 1 element
 
             //walk until next expiring effect
-            self.sim_results.units_travelled += self.stats.ms() * min_duration; //must be before self.wait() to still benefit from temporary effects
+            self.sim_logs.units_travelled += self.stats.ms() * min_duration; //must be before self.wait() to still benefit from temporary effects
             self.wait(min_duration);
             dt -= min_duration;
         }
     }
 
-    //todo: remove this
-    /// Returns items on basic attack hit static dmg.
-    pub fn get_on_basic_attack_hit_static(&mut self, target_stats: &UnitStats) -> RawDmg {
-        let mut phys_dmg: f32 = 0.;
-        let mut magic_dmg: f32 = 0.;
-        let mut true_dmg: f32 = 0.;
-        //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-        //this is hacky but the init function should never change self.build
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_basic_attack_hit_static) = self.build[i].on_basic_attack_hit_static {
-                let (
-                    on_basic_attack_hit_static_phys_dmg,
-                    on_basic_attack_hit_static_magic_dmg,
-                    on_basic_attack_hit_static_true_dmg,
-                ) = (on_basic_attack_hit_static)(self, target_stats);
-                phys_dmg += on_basic_attack_hit_static_phys_dmg;
-                magic_dmg += on_basic_attack_hit_static_magic_dmg;
-                true_dmg += on_basic_attack_hit_static_true_dmg;
-            }
-        }
-        (phys_dmg, magic_dmg, true_dmg)
-    }
-
+    //todo: remove and use of OnActionFnsHolder
     pub fn apply_on_basic_attack_cast(&mut self) {
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
         //this is hacky but the init function should never change self.build
@@ -1189,13 +1268,14 @@ impl Unit {
         }
     }
 
+    //todo: remove and use of OnActionFnsHolder
     /// Returns items on basic attack hit dmg.
     pub fn get_on_basic_attack_hit(
         &mut self,
         target_stats: &UnitStats,
         n_targets: f32,
         from_other_effect: bool,
-    ) -> RawDmg {
+    ) -> PartDmg {
         let mut phys_dmg: f32 = 0.;
         let mut magic_dmg: f32 = 0.;
         let mut true_dmg: f32 = 0.;
@@ -1216,7 +1296,7 @@ impl Unit {
         (phys_dmg, magic_dmg, true_dmg)
     }
 
-    /// From raw dmg (separated ad, ap & true dmg values without taking resistances into account),
+    /// From partial dmg (separated ad, ap & true dmg values without taking resistances into account),
     /// returns the actual dmg taken by the target. Also stacks Unit/items passive effects.
     ///
     /// Since this is a relatively expensive function to run, try to call it as little as possible and use
@@ -1229,7 +1309,7 @@ impl Unit {
     ///
     /// - `target_stats`: target stats used for the dmg calculations.
     ///
-    /// - (`phys_dmg`, `magic_dmg`, `true_dmg)`: raw dmg used to calculate final dmg on the target.
+    /// - (`phys_dmg`, `magic_dmg`, `true_dmg)`: dmg used to calculate final dmg on the target.
     ///
     /// - (`n_dmg_instances`, `n_stacking_instances)`:
     ///     - `n_dmg_instances`: number of dmg instances on one of the targets considered for items on ad/magic dmg effects
@@ -1244,11 +1324,11 @@ impl Unit {
     /// - `dmg_tags`: types of the instance of dmg, applies effects if it contains specific tags (e.g. on-ability-hit).
     ///
     /// - `n_targets`: number of targets hit, affects items on-basic-attack/on-ability-hit effects ONLY
-    ///   (raw dmg received by this function must already be the sum on all targets).
+    ///   (dmg received by this function must already be the sum on all targets).
     pub fn dmg_on_target(
         &mut self,
         target_stats: &UnitStats,
-        (mut phys_dmg, mut magic_dmg, mut true_dmg): RawDmg,
+        (mut phys_dmg, mut magic_dmg, mut true_dmg): PartDmg,
         (n_dmg_instances, n_stacking_instances): (u8, u8),
         dmg_tags: EnumSet<DmgTag>,
         n_targets: f32,
@@ -1328,7 +1408,7 @@ impl Unit {
         }
 
         //on basic attack hit
-        if dmg_tags.contains(DmgTag::BasickAttack) {
+        if dmg_tags.contains(DmgTag::BasicAttack) {
             //runaans increases the number of targets hit by on-basic-attack-hit
             //exceptionally, use runaans variables here (shouldn't because outside of module, but it didn't find a better way)
             let basic_attack_n_targets: f32 = if self.build.contains(&&items::RUNAANS_HURRICANE) {
@@ -1345,37 +1425,6 @@ impl Unit {
                 phys_dmg += on_basic_attack_hit_phys_dmg;
                 magic_dmg += on_basic_attack_hit_magic_dmg;
                 true_dmg += on_basic_attack_hit_true_dmg;
-            }
-
-            //todo: remove this (static + dynamic)
-            for i in 0..MAX_UNIT_ITEMS {
-                //on basic attack hit static
-                if let Some(on_basic_attack_hit_static) = self.build[i].on_basic_attack_hit_static {
-                    for _ in 0..n_stacking_instances {
-                        let (
-                            on_basic_attack_hit_static_phys_dmg,
-                            on_basic_attack_hit_static_magic_dmg,
-                            on_basic_attack_hit_static_true_dmg,
-                        ) = (on_basic_attack_hit_static)(self, target_stats);
-                        phys_dmg += n_targets * on_basic_attack_hit_static_phys_dmg;
-                        magic_dmg += n_targets * on_basic_attack_hit_static_magic_dmg;
-                        true_dmg += n_targets * on_basic_attack_hit_static_true_dmg;
-                    }
-                }
-                //on basic attack hit dynamic
-                if let Some(on_basic_attack_hit_dynamic) = self.build[i].on_basic_attack_hit_dynamic
-                {
-                    for _ in 0..n_stacking_instances {
-                        let (
-                            on_basic_attack_hit_dynamic_phys_dmg,
-                            on_basic_attack_hit_dynamic_magic_dmg,
-                            on_basic_attack_hit_dynamic_true_dmg,
-                        ) = (on_basic_attack_hit_dynamic)(self, target_stats);
-                        phys_dmg += on_basic_attack_hit_dynamic_phys_dmg;
-                        magic_dmg += on_basic_attack_hit_dynamic_magic_dmg;
-                        true_dmg += on_basic_attack_hit_dynamic_true_dmg;
-                    }
-                }
             }
         }
 
@@ -1432,21 +1481,22 @@ impl Unit {
             * (1. + self.stats.tot_dmg_modifier);
 
         //lifesteal and omnivamp
-        self.sim_results.periodic_heals_shields += tot_dmg * self.stats.omnivamp; //omnivamp
-        if dmg_tags.contains(DmgTag::BasickAttack) {
-            self.sim_results.periodic_heals_shields += tot_dmg * self.stats.life_steal;
+        self.sim_logs.periodic_heals_shields += tot_dmg * self.stats.omnivamp; //omnivamp
+        if dmg_tags.contains(DmgTag::BasicAttack) {
+            self.sim_logs.periodic_heals_shields += tot_dmg * self.stats.life_steal;
             //lifesteal
         }
 
         self.time += F32_TOL; //to differentiate different dmg instances
-        self.sim_results.dmg_done += tot_dmg;
+        self.sim_logs.dmg_done += tot_dmg;
         tot_dmg
     }
 
     /// Triggers every item actives on the unit and returns dmg done.
     pub fn use_all_special_actives(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
-        self.actions_log
+        self.sim_logs
+            .actions_performed
             .push((self.time, UnitAction::SpecialActives));
 
         //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
@@ -1464,7 +1514,9 @@ impl Unit {
     /// Performs a basic attack and returns dmg done.
     pub fn basic_attack(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
-        self.actions_log.push((self.time, UnitAction::BasicAttack));
+        self.sim_logs
+            .actions_performed
+            .push((self.time, UnitAction::BasicAttack));
 
         //wait cast (windup) time
         let windup_time: f32 = real_windup_time(windup_formula(
@@ -1494,7 +1546,9 @@ impl Unit {
     /// cast q and returns dmg done.
     pub fn q(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
-        self.actions_log.push((self.time, UnitAction::Q));
+        self.sim_logs
+            .actions_performed
+            .push((self.time, UnitAction::Q));
 
         //wait cast time
         self.wait(self.properties.q.cast_time);
@@ -1518,7 +1572,9 @@ impl Unit {
     /// cast w and returns dmg done.
     pub fn w(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
-        self.actions_log.push((self.time, UnitAction::W));
+        self.sim_logs
+            .actions_performed
+            .push((self.time, UnitAction::W));
 
         //wait cast time
         self.wait(self.properties.w.cast_time);
@@ -1542,7 +1598,9 @@ impl Unit {
     /// cast e and returns dmg done.
     pub fn e(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
-        self.actions_log.push((self.time, UnitAction::E));
+        self.sim_logs
+            .actions_performed
+            .push((self.time, UnitAction::E));
 
         //wait cast time
         self.wait(self.properties.e.cast_time);
@@ -1566,7 +1624,9 @@ impl Unit {
     /// cast r and returns dmg done.
     pub fn r(&mut self, target_stats: &UnitStats) -> f32 {
         //save log
-        self.actions_log.push((self.time, UnitAction::R));
+        self.sim_logs
+            .actions_performed
+            .push((self.time, UnitAction::R));
 
         //wait cast time
         self.wait(self.properties.r.cast_time);
@@ -1594,21 +1654,21 @@ impl Unit {
     /// according to the availability formula (to account for the r cooldown).
     /// Useless to use for ultimates that only adds a effect.
     pub fn weighted_r(&mut self, target_stats: &UnitStats) -> f32 {
-        let dmg_done_before_r: f32 = self.sim_results.dmg_done;
-        let periodic_heals_shields_before_r: f32 = self.sim_results.periodic_heals_shields;
-        let single_use_heals_shields_before_r: f32 = self.sim_results.single_use_heals_shields;
-        let units_travelled_before_r: f32 = self.sim_results.units_travelled;
+        let dmg_done_before_r: f32 = self.sim_logs.dmg_done;
+        let periodic_heals_shields_before_r: f32 = self.sim_logs.periodic_heals_shields;
+        let single_use_heals_shields_before_r: f32 = self.sim_logs.single_use_heals_shields;
+        let units_travelled_before_r: f32 = self.sim_logs.units_travelled;
         self.r(target_stats);
         let percent_to_remove: f32 = 1. - effect_availability_formula(self.r_cd);
 
-        let tot_dmg: f32 = self.sim_results.dmg_done - dmg_done_before_r;
-        self.sim_results.dmg_done -= percent_to_remove * tot_dmg;
-        self.sim_results.periodic_heals_shields -= percent_to_remove
-            * (self.sim_results.periodic_heals_shields - periodic_heals_shields_before_r);
-        self.sim_results.single_use_heals_shields -= percent_to_remove
-            * (self.sim_results.single_use_heals_shields - single_use_heals_shields_before_r);
-        self.sim_results.units_travelled -=
-            percent_to_remove * (self.sim_results.units_travelled - units_travelled_before_r);
+        let tot_dmg: f32 = self.sim_logs.dmg_done - dmg_done_before_r;
+        self.sim_logs.dmg_done -= percent_to_remove * tot_dmg;
+        self.sim_logs.periodic_heals_shields -= percent_to_remove
+            * (self.sim_logs.periodic_heals_shields - periodic_heals_shields_before_r);
+        self.sim_logs.single_use_heals_shields -= percent_to_remove
+            * (self.sim_logs.single_use_heals_shields - single_use_heals_shields_before_r);
+        self.sim_logs.units_travelled -=
+            percent_to_remove * (self.sim_logs.units_travelled - units_travelled_before_r);
 
         (1. - percent_to_remove) * tot_dmg //return weighted dmg
     }
@@ -1630,7 +1690,7 @@ impl Unit {
             target_stats,
             (phys_dmg, 0., 0.),
             (1, 1),
-            enum_set!(DmgTag::BasickAttack),
+            enum_set!(DmgTag::BasicAttack),
             1.,
         )
     }

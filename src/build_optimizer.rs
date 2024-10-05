@@ -1,7 +1,7 @@
 use super::game_data::*;
 
 use items_data::{items::NULL_ITEM, *};
-use runes_data::{RuneShard, RunesPage};
+use runes_data::RunesPage;
 use units_data::*;
 
 use enumset::{enum_set, EnumSet};
@@ -24,13 +24,9 @@ pub const HIGH_SEARCH_THRESHOLD_VALUE_WARNING: f32 = 0.25;
 
 //optimizer dummy, used as a shared, read only target to compute dmg from during the optimisation process
 //here we want every stats to be close to those of a real champion (unlike in game dummy)
-const OPTIMIZER_DUMMY_RUNES_PAGE: RunesPage = RunesPage {
-    shard1: RuneShard::Left,
-    shard2: RuneShard::Left,
-    shard3: RuneShard::Left,
-};
+const OPTIMIZER_DUMMY_RUNES_PAGE: RunesPage = RunesPage::const_default();
 
-const OPTIMIZER_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no ability (except passing validity checks when creating the dummy)
+const OPTIMIZER_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no ability
 
 #[allow(clippy::cast_precision_loss)]
 const MAX_UNIT_LVL_F32: f32 = MAX_UNIT_LVL as f32; //`MAX_UNIT_LVL` is well whithin f32's range to avoid precision loss
@@ -121,8 +117,8 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
     r: NULL_ULTIMATE_ABILITY,
     fight_scenarios: &[(null_simulate_fight, "null")],
     unit_defaults: UnitDefaults {
-        runes_pages: &OPTIMIZER_DUMMY_RUNES_PAGE,
-        skill_order: &OPTIMIZER_DUMMY_SKILL_ORDER,
+        runes_pages: OPTIMIZER_DUMMY_RUNES_PAGE,
+        skill_order: OPTIMIZER_DUMMY_SKILL_ORDER,
         legendary_items_pool: &ALL_LEGENDARY_ITEMS,
         boots_pool: &ALL_BOOTS,
         support_items_pool: &ALL_SUPPORT_ITEMS,
@@ -219,8 +215,8 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
     r: NULL_ULTIMATE_ABILITY,
     fight_scenarios: &[(null_simulate_fight, "null")],
     unit_defaults: UnitDefaults {
-        runes_pages: &OPTIMIZER_DUMMY_RUNES_PAGE,
-        skill_order: &OPTIMIZER_DUMMY_SKILL_ORDER,
+        runes_pages: OPTIMIZER_DUMMY_RUNES_PAGE,
+        skill_order: OPTIMIZER_DUMMY_SKILL_ORDER,
         legendary_items_pool: &ALL_LEGENDARY_ITEMS,
         boots_pool: &ALL_BOOTS,
         support_items_pool: &ALL_SUPPORT_ITEMS,
@@ -320,8 +316,8 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
     r: NULL_ULTIMATE_ABILITY,
     fight_scenarios: &[(null_simulate_fight, "null")],
     unit_defaults: UnitDefaults {
-        runes_pages: &OPTIMIZER_DUMMY_RUNES_PAGE,
-        skill_order: &OPTIMIZER_DUMMY_SKILL_ORDER,
+        runes_pages: OPTIMIZER_DUMMY_RUNES_PAGE,
+        skill_order: OPTIMIZER_DUMMY_SKILL_ORDER,
         legendary_items_pool: &ALL_LEGENDARY_ITEMS,
         boots_pool: &ALL_BOOTS,
         support_items_pool: &ALL_SUPPORT_ITEMS,
@@ -805,15 +801,15 @@ fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usiz
 fn get_scores_from_sim_results(champ: &Unit, phys_dmg_taken_percent: f32) -> (f32, f32, f32) {
     let actual_time: f32 = champ.time; //take champ.time instead of fight_duration in scores calculations, since simulation can be slighlty extended
 
-    let dps: f32 = champ.sim_results.dmg_done / actual_time; //average dps of the unit over the fight simulation
+    let dps: f32 = champ.sim_logs.dmg_done / actual_time; //average dps of the unit over the fight simulation
 
     let effective_hp: f32 = (champ.stats.hp
-        + champ.sim_results.single_use_heals_shields
-        + DEFAULT_FIGHT_DURATION * champ.sim_results.periodic_heals_shields / actual_time)
+        + champ.sim_logs.single_use_heals_shields
+        + DEFAULT_FIGHT_DURATION * champ.sim_logs.periodic_heals_shields / actual_time)
         / (phys_dmg_taken_percent * resistance_formula(champ.stats.armor)
             + (1. - phys_dmg_taken_percent) * resistance_formula(champ.stats.mr));
 
-    let move_speed: f32 = champ.sim_results.units_travelled / actual_time; //average move speed of the unit over the fight simulation
+    let move_speed: f32 = champ.sim_logs.units_travelled / actual_time; //average move speed of the unit over the fight simulation
 
     (dps, effective_hp, move_speed)
 }
