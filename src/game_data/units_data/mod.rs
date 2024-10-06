@@ -1,7 +1,7 @@
 mod champions;
 mod effects_data;
 pub mod items_data;
-pub mod runes_data; //todo: check pub
+pub mod runes_data;
 
 use super::{F32_TOL, TIME_BETWEEN_CLICKS, *};
 use effects_data::*;
@@ -642,7 +642,6 @@ impl Unit {
     fn all_special_active(&mut self, target_stats: &UnitStats) -> PartDmg {
         //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
         //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
-        //todo: test this
         let n: usize = self.on_action_fns_holder.special_active.len();
         let mut sum: PartDmg = PartDmg(0., 0., 0.);
         for i in 0..n {
@@ -787,7 +786,6 @@ impl fmt::Display for UnitAction {
     }
 }
 
-//todo: dmg_done should be PartDmg and impl fn that return dmg_done (as sum of ad, ap, true)
 #[derive(Debug, Clone)]
 pub struct UnitSimulationLogs {
     pub dmg_done: PartDmg,
@@ -967,7 +965,6 @@ impl fmt::Display for Unit {
     }
 }
 
-//todo: add basic attack (+ remove bool arg that indicates if trigger on basic attack effects ìn dmg_on_target()) + add dot?
 /// Indicates the type of a damage instance.
 #[derive(EnumSetType, Debug)]
 pub enum DmgTag {
@@ -998,7 +995,10 @@ impl Unit {
             || properties_ref.e.cast_time < F32_TOL
             || properties_ref.r.cast_time < F32_TOL
         {
-            return Err("Abilities cast time should be >= F32_TOL".to_string());
+            return Err(format!(
+                "{} abilities cast time should be >= F32_TOL",
+                properties_ref.name
+            ));
         }
 
         //for similar reasons cooldowns must be >= F32_TOL
@@ -1008,7 +1008,10 @@ impl Unit {
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
-            return Err("Q ability cooldown should be >= F32_TOL".to_string());
+            return Err(format!(
+                "{} abilities cast time should be >= F32_TOL",
+                properties_ref.name
+            ));
         }
         if properties_ref
             .w
@@ -1016,7 +1019,10 @@ impl Unit {
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
-            return Err("W ability cooldown should be >= F32_TOL".to_string());
+            return Err(format!(
+                "{} W ability cooldown should be >= F32_TOL",
+                properties_ref.name
+            ));
         }
         if properties_ref
             .e
@@ -1024,7 +1030,10 @@ impl Unit {
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
-            return Err("E ability cooldown should be >= F32_TOL".to_string());
+            return Err(format!(
+                "{} E ability cooldown should be >= F32_TOL",
+                properties_ref.name
+            ));
         }
         if properties_ref
             .r
@@ -1032,7 +1041,17 @@ impl Unit {
             .iter()
             .any(|cooldown| *cooldown < F32_TOL)
         {
-            return Err("R ability cooldown should be >= F32_TOL".to_string());
+            return Err(format!(
+                "{} R ability cooldown should be >= F32_TOL",
+                properties_ref.name
+            ));
+        }
+
+        if properties_ref.fight_scenarios.is_empty() {
+            return Err(format!(
+                "{} should have at least 1 fight scenario",
+                properties_ref.name
+            ));
         }
 
         //create the unit
@@ -1043,7 +1062,7 @@ impl Unit {
             skill_order: SkillOrder::default(), //temporary value until initialized by setter function (must still be a valid skill order!)
             build: Build::default(),
             build_cost: 0.,
-            fight_scenario: properties_ref.fight_scenarios[0], //todo: test empty
+            fight_scenario: properties_ref.fight_scenarios[0],
 
             //stats
             lvl_stats: UnitStats::default(), //temporary value until initialized by setter function
@@ -1468,7 +1487,6 @@ impl Unit {
             mr_coef = resistance_formula_neg(virtual_mr);
         }
 
-        //todo: test new dmg algo
         //on ability hit and ability coef, must be done before on-basic-attack-hit (because of muramana shock that applies ability part first)
         if dmg_tags.contains(DmgTag::Ability) {
             //ability dmg modifier (as of patch 14.19, it doesn't affect on_ability_hit and on_ultimate_hit dmg anymore)

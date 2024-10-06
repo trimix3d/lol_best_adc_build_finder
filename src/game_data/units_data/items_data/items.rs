@@ -1516,7 +1516,6 @@ pub const EXPERIMENTAL_HEXPLATE: Item = Item {
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    //todo: check all on_lvl_set are empty
     on_action_fns: OnActionFns {
         on_lvl_set: None,
         on_fight_init: Some(experimental_hexplate_init),

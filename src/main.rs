@@ -26,8 +26,8 @@ fn champion_test_ground() {
             bonus_ad: 0.,
             ap_flat: 0.,
             ap_percent: 0.,
-            armor: 0., //in game default value is 0.
-            mr: 0.,    //in game default value is 0.
+            armor: 100., //in game default value is 0.
+            mr: 100.,    //in game default value is 0.
             base_as: TARGET_DUMMY_BASE_AS,
             bonus_as: 0.,
             ability_haste: 0.,
@@ -92,14 +92,14 @@ fn champion_test_ground() {
 
     //creation of champion
     let mut champ: Unit = Unit::from_defaults(
-        &Unit::LUCIAN_PROPERTIES,
+        &Unit::ASHE_PROPERTIES,
         6,
         Build([
-            &RUNAANS_HURRICANE,
-            &KRAKEN_SLAYER,
-            &INFINITY_EDGE,
-            &PHANTOM_DANCER,
-            &NAVORI_FLICKERBLADE,
+            &TRINITY_FORCE,
+            &MURAMANA,
+            &GUINSOOS_RAGEBLADE,
+            &TERMINUS,
+            &NULL_ITEM,
             &NULL_ITEM,
         ]),
     )
@@ -108,23 +108,10 @@ fn champion_test_ground() {
     //champion actions
     println!("{}", champ);
     champ.walk(champ.basic_attack_cd);
-    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
-    champ.walk(champ.basic_attack_cd);
-    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
-    champ.walk(champ.basic_attack_cd);
-    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
-    champ.walk(champ.basic_attack_cd);
-    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
-    champ.walk(champ.basic_attack_cd);
-    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
-    champ.walk(champ.basic_attack_cd);
-    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
-    champ.walk(champ.basic_attack_cd);
-    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
+    println!("{} - t: {}", champ.q(&dummy.stats), champ.time,);
 }
 
 fn main() {
-    //todo: remove all "!!!"
     //champion_test_ground();
     cli::launch_interface();
 }

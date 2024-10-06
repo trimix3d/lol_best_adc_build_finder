@@ -52,7 +52,6 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
             };
         let basic_attack_phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
 
-        //todo: test dmg with on hit items
         let first_hit: PartDmg = champ.dmg_on_target(
             target_stats,
             PartDmg(basic_attack_phys_dmg, vigilance_dmg, 0.),

@@ -5,7 +5,7 @@ use items_data::items::*;
 use enumset::enum_set;
 
 //champion parameters (constants):
-const EZREAL_Q_HIT_PERCENT: f32 = 1.; //0.9 !!!
+const EZREAL_Q_HIT_PERCENT: f32 = 0.9;
 const EZREAL_W_HIT_PERCENT: f32 = 0.8;
 /// Number of targets hit by ezreal R.
 const EZREAL_R_N_TARGETS: f32 = 1.;
@@ -79,7 +79,6 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //add passive stack
     champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
-    //todo: check behavior after on action fn changes (with luden, shojin, etc)
     w_mark_dmg
         + champ.dmg_on_target(
             target_stats,
