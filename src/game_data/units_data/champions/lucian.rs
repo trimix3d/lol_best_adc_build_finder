@@ -1,4 +1,6 @@
-use crate::game_data::{items_data::items::*, units_data::*};
+use crate::game_data::units_data::{default_basic_attack, *};
+
+use items_data::items::*;
 
 use enumset::enum_set;
 
@@ -58,7 +60,7 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
             enum_set!(DmgTag::BasicAttack),
             1.,
         );
-        champ.apply_on_basic_attack_cast();
+        champ.all_on_basic_attack_cast();
         first_hit
             + champ.dmg_on_target(
                 target_stats,
@@ -74,7 +76,7 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
                 1.,
             )
     } else {
-        Unit::default_basic_attack(champ, target_stats)
+        default_basic_attack(champ, target_stats)
     }
 }
 
@@ -317,8 +319,6 @@ impl Unit {
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
-        on_lvl_set: None,
-        init_abilities: Some(lucian_init_abilities),
         basic_attack: lucian_basic_attack,
         q: BasicAbility {
             cast: lucian_q,
@@ -340,13 +340,29 @@ impl Unit {
             cast_time: F32_TOL,
             base_cooldown_by_ability_lvl: [110., 100., 90.],
         },
+        on_action_fns: OnActionFns {
+            on_lvl_set: None,
+            on_fight_init: Some(lucian_init_abilities),
+            special_active: None,
+            on_ability_cast: None,
+            on_ultimate_cast: None,
+            on_ability_hit: None,
+            on_ultimate_hit: None,
+            on_basic_attack_cast: None,
+            on_basic_attack_hit: None,
+            on_phys_hit: None,
+            on_magic_hit: None,
+            on_true_dmg_hit: None,
+            on_any_hit: None,
+        },
         fight_scenarios: &[
             (lucian_fight_scenario_all_out, "all out"),
             (lucian_fight_scenario_poke, "poke"),
         ],
         unit_defaults: UnitDefaults {
             runes_pages: RunesPage {
-                shard1: RuneShard::Middle, //todo: test other runes
+                keystone: &RunesPage::EMPTY_RUNE_KEYSTONE, //todo: add keystone
+                shard1: RuneShard::Middle,                 //todo: test other runes
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,
             },

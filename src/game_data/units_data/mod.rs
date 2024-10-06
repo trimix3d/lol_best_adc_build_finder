@@ -1,14 +1,11 @@
 mod champions;
-pub mod runes_data;
+mod effects_data;
+pub mod items_data;
+pub mod runes_data; //todo: check pub
 
-use super::{
-    effect_availability_formula,
-    effects_data::*,
-    haste_formula,
-    items_data::{items, Build, Item},
-    F32_TOL, TIME_BETWEEN_CLICKS,
-};
-use items::NULL_ITEM;
+use super::{F32_TOL, TIME_BETWEEN_CLICKS, *};
+use effects_data::*;
+use items_data::{items, items::NULL_ITEM, Build, Item};
 
 use enum_map::EnumMap;
 use enumset::{enum_set, EnumSet, EnumSetType};
@@ -37,7 +34,7 @@ fn growth_stat_formula(lvl: NonZeroU8, base: f32, growth: f32) -> f32 {
 /// <https://leagueoflegends.fandom.com/wiki/Movement_speed>
 #[inline]
 #[must_use]
-pub fn capped_ms(raw_ms: f32) -> f32 {
+fn capped_ms(raw_ms: f32) -> f32 {
     if raw_ms >= 490. {
         raw_ms * 0.5 + 230.
     } else if raw_ms >= 415. {
@@ -57,6 +54,7 @@ pub fn capped_ms(raw_ms: f32) -> f32 {
 
 /// Returns coefficient multiplying dmg dealt, in the case when resistance stat is positive.
 /// <https://leagueoflegends.fandom.com/wiki/Armor> <https://leagueoflegends.fandom.com/wiki/Magic_resistance>
+#[inline]
 #[must_use]
 fn resistance_formula_pos(res: f32) -> f32 {
     100. / (100. + res)
@@ -64,6 +62,7 @@ fn resistance_formula_pos(res: f32) -> f32 {
 
 /// Returns coefficient multiplying dmg dealt, in the case when resistance stat is negative.
 /// <https://leagueoflegends.fandom.com/wiki/Armor> <https://leagueoflegends.fandom.com/wiki/Magic_resistance>
+#[inline]
 #[must_use]
 fn resistance_formula_neg(res: f32) -> f32 {
     2. - 100. / (100. - res)
@@ -82,6 +81,7 @@ pub fn resistance_formula(res: f32) -> f32 {
 }
 
 /// Returns the ideal windup time (= basic attack cast time) for the given unit.
+#[inline]
 fn windup_formula(
     windup_percent: f32,
     windup_modifier: f32,
@@ -95,33 +95,35 @@ fn windup_formula(
 /// This is to account for player clicks when basic attacking at very high attack speeds, as the player likely waits
 /// a bit longer than the ideal windup time before clicking to move again, to avoid cancelling basic attacks.
 /// The real windup time cannot go below `TIME_BETWEEN_CLICKS`.
+#[inline]
 fn real_windup_time(windup_time: f32) -> f32 {
     windup_time + TIME_BETWEEN_CLICKS * TIME_BETWEEN_CLICKS / (TIME_BETWEEN_CLICKS + windup_time)
 }
 
 /// Returns HP given by runes at the given lvl.
 /// <https://leagueoflegends.fandom.com/wiki/Rune_(League_of_Legends)#Rune_paths>
+#[inline]
 fn runes_hp_by_lvl(lvl: NonZeroU8) -> f32 {
     10. * f32::from(lvl.get())
 }
 
 #[inline]
-pub fn increase_multiplicatively_scaling_stat(stat: &mut f32, amount: f32) {
+fn increase_multiplicatively_scaling_stat(stat: &mut f32, amount: f32) {
     *stat += (1. - *stat) * amount;
 }
 
 #[inline]
-pub fn decrease_multiplicatively_scaling_stat(stat: &mut f32, amount: f32) {
+fn decrease_multiplicatively_scaling_stat(stat: &mut f32, amount: f32) {
     *stat = 1. - (1. - *stat) / (1. - amount);
 }
 
 #[inline]
-pub fn increase_exponentially_scaling_stat(stat: &mut f32, amount: f32) {
+fn increase_exponentially_scaling_stat(stat: &mut f32, amount: f32) {
     *stat += (1. + *stat) * amount;
 }
 
 #[inline]
-pub fn decrease_exponentially_scaling_stat(stat: &mut f32, amount: f32) {
+fn decrease_exponentially_scaling_stat(stat: &mut f32, amount: f32) {
     *stat = (1. + *stat) / (1. + amount) - 1.;
 }
 
@@ -339,41 +341,6 @@ impl UnitStats {
     }
 }
 
-/// Contains a damage value divided in (`phys_dmg`, `magic_dmg`, `true_dmg`).
-#[derive(Debug, Clone, Copy)]
-pub struct PartDmg(pub f32, pub f32, pub f32);
-
-impl fmt::Display for PartDmg {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({} phys, {} magic, {} true)", self.0, self.1, self.2)
-    }
-}
-
-impl core::ops::Add for PartDmg {
-    type Output = Self;
-
-    fn add(self, other: Self) -> Self {
-        Self(self.0 + other.0, self.1 + other.1, self.2 + other.2)
-    }
-}
-
-impl core::ops::AddAssign for PartDmg {
-    fn add_assign(&mut self, other: Self) {
-        self.0 += other.0;
-        self.1 += other.1;
-        self.2 += other.2;
-    }
-}
-
-impl PartDmg {
-    /// Returns the sum of each dmg type (`phys_dmg`, `magic_dmg`, `true_dmg`) contained in the dmg value.
-    #[inline]
-    #[must_use]
-    pub fn as_sum(&self) -> f32 {
-        self.0 + self.1 + self.2
-    }
-}
-
 #[derive(Debug)]
 pub struct BasicAbility {
     /// Returns ability dmg and triggers effects.
@@ -412,20 +379,13 @@ pub struct UnitProperties {
     pub windup_modifier: f32, //get it from <https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks>
     pub base_stats: UnitStats,
     pub growth_stats: UnitStats,
-    /// Perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to `lvl_stats`).
-    pub on_lvl_set: Option<fn(&mut Unit)>,
-    /// Init effect variables and temporary effects on the `Unit`. This function should ensure that all effect variables
-    /// used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
-    /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
-    /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
-    pub init_abilities: Option<fn(&mut Unit)>,
     pub basic_attack: fn(&mut Unit, &UnitStats) -> PartDmg, //returns basic attack dmg and triggers effects
     //no field for passive (implemented directly in the Unit abilities)
     pub q: BasicAbility, //todo: maybe put this in Unit for better cache locality
     pub w: BasicAbility,
     pub e: BasicAbility,
     pub r: UltimateAbility,
-    //on action functions
+    pub on_action_fns: OnActionFns,
     pub fight_scenarios: &'static [FightScenario],
     pub unit_defaults: UnitDefaults,
 }
@@ -521,52 +481,52 @@ impl SkillOrder {
 /// For program correctness, these function should NEVER modify the `Unit` outside of temporary effects and effect variables.
 #[derive(Debug)]
 #[allow(clippy::type_complexity)]
-struct OnActionFns {
+pub struct OnActionFns {
     /// Perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to `lvl_stats`).
-    on_lvl_set: Option<fn(&mut Unit)>,
+    pub on_lvl_set: Option<fn(&mut Unit)>,
 
     /// Init `Unit`/`Item` effect variables and temporary effects on the `Unit`. These function should ensure that all effect
     /// variables used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
     /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
     /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
-    on_fight_init: Option<fn(&mut Unit)>,
+    pub on_fight_init: Option<fn(&mut Unit)>,
 
     /// Triggers special actives and returns dmg done.
-    special_active: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
+    pub special_active: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
 
     /// Applies effects triggered when an ability is casted (updates effect variables accordingly).
-    on_ability_cast: Option<fn(&mut Unit)>,
+    pub on_ability_cast: Option<fn(&mut Unit)>,
     /// Applies effects triggered when ultimate is casted (additionnal to `on_ability_cast`).
-    on_ultimate_cast: Option<fn(&mut Unit)>,
+    pub on_ultimate_cast: Option<fn(&mut Unit)>,
 
     /// Returns on-ability-hit dmg and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the ability (affected by on-ability-hit).
-    on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
+    pub on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
     /// Returns on-ultimate-hit dmg (additionnal to `on_ability_cast`) and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the ultimate (affected by on-ultimate-hit).
-    on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
+    pub on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
 
     /// Applies effects triggered when a basic attack is casted (updates effect variables accordingly).
-    on_basic_attack_cast: Option<fn(&mut Unit)>,
+    pub on_basic_attack_cast: Option<fn(&mut Unit)>,
     /// Returns on-basic_attack-hit dmg and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the basic attack (affected by on-basic-attack-hit).
     /// 4th argument (bool) indicates if the function is called internally from other on-action-fns.
-    on_basic_attack_hit: Option<fn(&mut Unit, &UnitStats, f32, bool) -> PartDmg>,
+    pub on_basic_attack_hit: Option<fn(&mut Unit, &UnitStats, f32, bool) -> PartDmg>,
 
     /// Applies effects on the unit triggered when phys dmg is done (updates effect variables accordingly).
-    on_phys_hit: Option<fn(&mut Unit)>,
+    pub on_phys_hit: Option<fn(&mut Unit)>,
     /// Applies effects on the unit triggered when magic dmg is done (updates effect variables accordingly).
-    on_magic_hit: Option<fn(&mut Unit)>,
+    pub on_magic_hit: Option<fn(&mut Unit)>,
     /// Applies effects on the unit triggered when true dmg is done (updates effect variables accordingly).
-    on_true_dmg_hit: Option<fn(&mut Unit)>,
+    pub on_true_dmg_hit: Option<fn(&mut Unit)>,
     /// Applies effects on the unit triggered when any dmg is done (updates effect variables accordingly).
     /// This function is called every hit, in addition to others on_..._hit functions.
-    on_any_hit: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
+    pub on_any_hit: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
 }
 
 /// This is a struct used as container for holding multiple `OnActionFns`.
 /// For the documentation of the fields, see `OnActionFns`.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[allow(clippy::type_complexity)]
 struct OnActionFnsHolder {
     /// For the documentation of the fields, see `OnActionFns`.
@@ -598,6 +558,7 @@ struct OnActionFnsHolder {
 }
 
 impl OnActionFnsHolder {
+    /// Add the functions to self.
     fn extend(&mut self, on_action_fns: &OnActionFns) {
         if let Some(function) = on_action_fns.on_lvl_set {
             self.on_lvl_set.push(function);
@@ -640,6 +601,7 @@ impl OnActionFnsHolder {
         }
     }
 
+    //clear every function from self.
     fn clear(&mut self) {
         self.on_lvl_set.clear();
         self.on_fight_init.clear();
@@ -655,8 +617,151 @@ impl OnActionFnsHolder {
         self.on_true_dmg_hit.clear();
         self.on_any_hit.clear();
     }
+}
 
-    //todo: getter fn that call all fn from vec (for each field)
+impl Unit {
+    fn all_on_lvl_set(&mut self) {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_lvl_set.len();
+        for i in 0..n {
+            (self.on_action_fns_holder.on_lvl_set[i])(self);
+        }
+    }
+
+    fn all_on_fight_init(&mut self) {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_fight_init.len();
+        for i in 0..n {
+            (self.on_action_fns_holder.on_fight_init[i])(self);
+        }
+    }
+
+    #[must_use]
+    fn all_special_active(&mut self, target_stats: &UnitStats) -> PartDmg {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        //todo: test this
+        let n: usize = self.on_action_fns_holder.special_active.len();
+        let mut sum: PartDmg = PartDmg(0., 0., 0.);
+        for i in 0..n {
+            sum += (self.on_action_fns_holder.special_active[i])(self, target_stats);
+        }
+        sum
+    }
+
+    fn all_on_ability_cast(&mut self) {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_ability_cast.len();
+        for i in 0..n {
+            (self.on_action_fns_holder.on_ability_cast[i])(self);
+        }
+    }
+
+    fn all_on_ultimate_cast(&mut self) {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_ultimate_cast.len();
+        for i in 0..n {
+            (self.on_action_fns_holder.on_ultimate_cast[i])(self);
+        }
+    }
+
+    #[must_use]
+    fn all_on_ability_hit(&mut self, target_stats: &UnitStats, n_targets: f32) -> PartDmg {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_ability_hit.len();
+        let mut sum: PartDmg = PartDmg(0., 0., 0.);
+        for i in 0..n {
+            sum += (self.on_action_fns_holder.on_ability_hit[i])(self, target_stats, n_targets);
+        }
+        sum
+    }
+
+    #[must_use]
+    fn all_on_ultimate_hit(&mut self, target_stats: &UnitStats, n_targets: f32) -> PartDmg {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_ultimate_hit.len();
+        let mut sum: PartDmg = PartDmg(0., 0., 0.);
+        for i in 0..n {
+            sum += (self.on_action_fns_holder.on_ultimate_hit[i])(self, target_stats, n_targets);
+        }
+        sum
+    }
+
+    fn all_on_basic_attack_cast(&mut self) {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_basic_attack_cast.len();
+        for i in 0..n {
+            (self.on_action_fns_holder.on_basic_attack_cast[i])(self);
+        }
+    }
+
+    #[must_use]
+    fn all_on_basic_attack_hit(
+        &mut self,
+        target_stats: &UnitStats,
+        n_targets: f32,
+        from_other_effect: bool,
+    ) -> PartDmg {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_basic_attack_hit.len();
+        let mut sum: PartDmg = PartDmg(0., 0., 0.);
+        for i in 0..n {
+            sum += (self.on_action_fns_holder.on_basic_attack_hit[i])(
+                self,
+                target_stats,
+                n_targets,
+                from_other_effect,
+            );
+        }
+        sum
+    }
+
+    fn all_on_phys_hit(&mut self) {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_phys_hit.len();
+        for i in 0..n {
+            (self.on_action_fns_holder.on_phys_hit[i])(self);
+        }
+    }
+
+    fn all_on_magic_hit(&mut self) {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_magic_hit.len();
+        for i in 0..n {
+            (self.on_action_fns_holder.on_magic_hit[i])(self);
+        }
+    }
+
+    fn all_on_true_dmg_hit(&mut self) {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_true_dmg_hit.len();
+        for i in 0..n {
+            (self.on_action_fns_holder.on_true_dmg_hit[i])(self);
+        }
+    }
+
+    #[must_use]
+    fn all_on_any_hit(&mut self, target_stats: &UnitStats) -> PartDmg {
+        //we iterate over an index because we can't mut borrow self twice (since we pass a mutable reference to on-action-functions)
+        //this is hacky but fine as long as the on-action-function doesn't change self.on_action_fns_holder
+        let n: usize = self.on_action_fns_holder.on_any_hit.len();
+        let mut sum: PartDmg = PartDmg(0., 0., 0.);
+        for i in 0..n {
+            sum += (self.on_action_fns_holder.on_any_hit[i])(self, target_stats);
+        }
+        sum
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -726,9 +831,9 @@ pub struct Unit {
 
     //stats
     /// Stats that only comes from the Unit base stats (only change with lvl)
-    pub lvl_stats: UnitStats,
+    lvl_stats: UnitStats,
     /// Stats that only comes from items
-    pub items_stats: UnitStats,
+    items_stats: UnitStats,
     runes_stats: UnitStats, //not pub on purpose because must not be used in items calculation
     pub stats: UnitStats, //actual combat stats (the only stat field that changes dynamically during simulation)
 
@@ -748,11 +853,11 @@ pub struct Unit {
     pub r_cd: f32,
 
     //on action functions
-    //a
+    on_action_fns_holder: OnActionFnsHolder,
 
     //temporary effects
-    pub effects_stacks: EnumMap<EffectStackId, u8>, //holds various effects integers values on the unit
-    pub effects_values: EnumMap<EffectValueId, f32>, //holds various effects floats values on the unit
+    effects_stacks: EnumMap<EffectStackId, u8>, //holds various effects integers values on the unit
+    effects_values: EnumMap<EffectValueId, f32>, //holds various effects floats values on the unit
     temporary_effects_durations: IndexMap<&'static TemporaryEffect, f32, FxBuildHasher>, //IndexMap of active temporary effects on the unit and their remaining duration
     temporary_effects_cooldowns: IndexMap<&'static TemporaryEffect, f32, FxBuildHasher>, //IndexMap of temporary effects on cooldown on the unit
 
@@ -962,7 +1067,21 @@ impl Unit {
             r_cd: 0.,
 
             //on action functions
-            //a
+            on_action_fns_holder: OnActionFnsHolder {
+                on_lvl_set: Vec::new(),
+                on_fight_init: Vec::new(),
+                special_active: Vec::new(),
+                on_ability_cast: Vec::new(),
+                on_ultimate_cast: Vec::new(),
+                on_ability_hit: Vec::new(),
+                on_ultimate_hit: Vec::new(),
+                on_basic_attack_cast: Vec::new(),
+                on_basic_attack_hit: Vec::new(),
+                on_phys_hit: Vec::new(),
+                on_magic_hit: Vec::new(),
+                on_true_dmg_hit: Vec::new(),
+                on_any_hit: Vec::new(),
+            },
 
             //temporary effects
             effects_stacks: EnumMap::default(),
@@ -974,13 +1093,20 @@ impl Unit {
             sim_logs: UnitSimulationLogs::default(),
         };
 
+        //set on-action-fns
+        new_unit.on_action_fns_holder.clear();
+        new_unit
+            .on_action_fns_holder
+            .extend(&properties_ref.on_action_fns);
+        new_unit.on_action_fns_holder.extend(runes_page.keystone);
+
         //check and set runes
         new_unit.set_runes(runes_page)?;
 
         //check and set lvl
         new_unit.set_lvl(lvl)?;
 
-        //check and set skill order
+        //check and set skill order (after setting lvl)
         new_unit.set_skill_order(skill_order)?;
 
         //check and set build
@@ -1111,9 +1237,7 @@ impl Unit {
             growth_stat_formula(self.lvl, base.tot_dmg_modifier, growth.tot_dmg_modifier);
 
         //perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to lvl_stats)
-        if let Some(on_lvl_set) = self.properties.on_lvl_set {
-            on_lvl_set(self);
-        }
+        self.all_on_lvl_set();
 
         Ok(())
     }
@@ -1133,12 +1257,19 @@ impl Unit {
         //no build validity check
         self.build = build;
 
-        //update unit items stats
+        //clear items from unit
         self.items_stats.clear();
         self.build_cost = 0.;
+        self.on_action_fns_holder.clear();
+        self.on_action_fns_holder
+            .extend(&self.properties.on_action_fns);
+        self.on_action_fns_holder.extend(self.runes_page.keystone);
+
+        //add items one by one to unit
         for &item_ref in build.iter().filter(|&&item_ref| *item_ref != NULL_ITEM) {
             self.items_stats.add(&item_ref.stats);
             self.build_cost += item_ref.cost;
+            self.on_action_fns_holder.extend(&item_ref.on_action_fns);
         }
     }
 
@@ -1162,22 +1293,8 @@ impl Unit {
         self.temporary_effects_durations.clear(); //this is needed to remove every temporary effects
         self.temporary_effects_cooldowns.clear(); //same as above
 
-        //self.temporary_effects_durations.shrink_to_fit(); //hits performance a bit, i don't think the reduced memory usage is worth it
-        //self.temporary_effects_cooldowns.shrink_to_fit(); //hits performance a bit, i don't think the reduced memory usage is worth it
-
         //init effect variables and temporary effects on the unit (after effects reset)
-        //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-        //this is hacky but the init function should never change self.build
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(init_item) = self.build[i].init {
-                init_item(self);
-            }
-        }
-
-        //init effect variables and temporary effects on the unit
-        if let Some(init_abilities) = self.properties.init_abilities {
-            init_abilities(self);
-        }
+        self.all_on_fight_init();
 
         //runes stats (after items passives init)
         self.update_runes_stats();
@@ -1192,11 +1309,7 @@ impl Unit {
     /// If the effect is on cooldown, it does nothing and returns false.
     ///
     /// The haste argument is to specify which haste value to use for the effect cooldown (ability haste, item haste, ...)
-    pub fn add_temporary_effect(
-        &mut self,
-        effect_ref: &'static TemporaryEffect,
-        haste: f32,
-    ) -> bool {
+    fn add_temporary_effect(&mut self, effect_ref: &'static TemporaryEffect, haste: f32) -> bool {
         //return early if effect is on cooldown
         if self.temporary_effects_cooldowns.contains_key(effect_ref) {
             return false;
@@ -1238,7 +1351,23 @@ impl Unit {
         self.e_cd = f32::max(0., self.e_cd - dt);
         self.r_cd = f32::max(0., self.r_cd - dt);
 
-        //update effects durations
+        //update effects cooldowns
+        let mut i: usize = 0;
+        while i < self.temporary_effects_cooldowns.len() {
+            //update effect cooldown
+            let (_, cooldown_ref) = self.temporary_effects_cooldowns.get_index_mut(i).unwrap();
+            *cooldown_ref -= dt;
+
+            //remove effect from storage if its cooldown ends
+            if *cooldown_ref < F32_TOL {
+                self.temporary_effects_cooldowns.swap_remove_index(i);
+            } else {
+                i += 1;
+            }
+        }
+
+        //todo: traverse hash map in reverse order to allow for effects to re add themselves when removed? (e.g.: varus ult giving stacks)
+        //update effects durations, must be done after effects cooldowns to not interfere when effects re-add themselves when removed
         let mut i: usize = 0;
         while i < self.temporary_effects_durations.len() {
             //update effect duration
@@ -1250,21 +1379,6 @@ impl Unit {
             if *duration_ref < F32_TOL {
                 (effect_ref.remove_every_stack)(self);
                 self.temporary_effects_durations.swap_remove_index(i);
-            } else {
-                i += 1;
-            }
-        }
-
-        //update effects cooldowns
-        let mut i: usize = 0;
-        while i < self.temporary_effects_cooldowns.len() {
-            //update effect cooldown
-            let (_, cooldown_ref) = self.temporary_effects_cooldowns.get_index_mut(i).unwrap();
-            *cooldown_ref -= dt;
-
-            //remove effect from storage if its cooldown ends
-            if *cooldown_ref < F32_TOL {
-                self.temporary_effects_cooldowns.swap_remove_index(i);
             } else {
                 i += 1;
             }
@@ -1287,45 +1401,6 @@ impl Unit {
             self.wait(min_duration);
             dt -= min_duration;
         }
-    }
-
-    //todo: remove and use of OnActionFnsHolder
-    pub fn apply_on_basic_attack_cast(&mut self) {
-        //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-        //this is hacky but the init function should never change self.build
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_basic_attack_cast) = self.build[i].on_basic_attack_cast {
-                (on_basic_attack_cast)(self);
-            }
-        }
-    }
-
-    //todo: remove and use of OnActionFnsHolder
-    /// Returns items on basic attack hit dmg.
-    pub fn get_on_basic_attack_hit(
-        &mut self,
-        target_stats: &UnitStats,
-        n_targets: f32,
-        from_other_effect: bool,
-    ) -> PartDmg {
-        let mut phys_dmg: f32 = 0.;
-        let mut magic_dmg: f32 = 0.;
-        let mut true_dmg: f32 = 0.;
-        //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-        //this is hacky but the init function should never change self.build
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_basic_attack_hit) = self.build[i].on_basic_attack_hit {
-                let PartDmg(
-                    on_basic_attack_hit_phys_dmg,
-                    on_basic_attack_hit_magic_dmg,
-                    on_basic_attack_hit_true_dmg,
-                ) = (on_basic_attack_hit)(self, target_stats, n_targets, from_other_effect);
-                phys_dmg += on_basic_attack_hit_phys_dmg;
-                magic_dmg += on_basic_attack_hit_magic_dmg;
-                true_dmg += on_basic_attack_hit_true_dmg;
-            }
-        }
-        PartDmg(phys_dmg, magic_dmg, true_dmg)
     }
 
     /// From partial dmg (separated ad, ap & true dmg values without taking resistances into account),
@@ -1357,10 +1432,10 @@ impl Unit {
     ///
     /// - `n_targets`: number of targets hit, affects items on-basic-attack/on-ability-hit effects ONLY
     ///   (dmg received by this function must already be the sum on all targets).
-    pub fn dmg_on_target(
+    fn dmg_on_target(
         &mut self,
         target_stats: &UnitStats,
-        PartDmg(mut phys_dmg, mut magic_dmg, mut true_dmg): PartDmg,
+        mut part_dmg: PartDmg,
         (n_dmg_instances, n_stacking_instances): (u8, u8),
         dmg_tags: EnumSet<DmgTag>,
         n_targets: f32,
@@ -1398,136 +1473,80 @@ impl Unit {
         if dmg_tags.contains(DmgTag::Ability) {
             //ability dmg modifier (as of patch 14.19, it doesn't affect on_ability_hit and on_ultimate_hit dmg anymore)
             //ability dmg modifier must be applied before others effects modify it
-            phys_dmg *= 1. + self.stats.ability_dmg_modifier;
-            magic_dmg *= 1. + self.stats.ability_dmg_modifier;
-            true_dmg *= 1. + self.stats.ability_dmg_modifier;
+            part_dmg *= 1. + self.stats.ability_dmg_modifier;
 
             //on ability hit
-            //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-            //this is hacky but the init function should never change self.build
-            for i in 0..MAX_UNIT_ITEMS {
-                if let Some(on_basic_spell_hit) = self.build[i].on_ability_hit {
-                    for _ in 0..n_stacking_instances {
-                        let PartDmg(
-                            on_basic_spell_hit_phys_dmg,
-                            on_basic_spell_hit_magic_dmg,
-                            on_basic_spell_hit_true_dmg,
-                        ) = (on_basic_spell_hit)(self, target_stats, n_targets);
-                        phys_dmg += on_basic_spell_hit_phys_dmg;
-                        magic_dmg += on_basic_spell_hit_magic_dmg;
-                        true_dmg += on_basic_spell_hit_true_dmg;
-                    }
-                }
+            for _ in 0..n_stacking_instances {
+                part_dmg += self.all_on_ability_hit(target_stats, n_targets);
             }
         }
 
         //on ultimate hit
-        if dmg_tags.contains(DmgTag::Ultimate) {
-            for i in 0..MAX_UNIT_ITEMS {
-                if let Some(on_ultimate_spell_hit) = self.build[i].on_ultimate_hit {
-                    for _ in 0..n_stacking_instances {
-                        let PartDmg(
-                            on_ultimate_spell_hit_phys_dmg,
-                            on_ultimate_spell_hit_magic_dmg,
-                            on_ultimate_spell_hit_true_dmg,
-                        ) = (on_ultimate_spell_hit)(self, target_stats, n_targets);
-                        phys_dmg += on_ultimate_spell_hit_phys_dmg;
-                        magic_dmg += on_ultimate_spell_hit_magic_dmg;
-                        true_dmg += on_ultimate_spell_hit_true_dmg;
-                    }
-                }
-            }
+        for _ in 0..n_stacking_instances {
+            part_dmg += self.all_on_ultimate_hit(target_stats, n_targets);
         }
 
         //on basic attack hit
         if dmg_tags.contains(DmgTag::BasicAttack) {
             //runaans increases the number of targets hit by on-basic-attack-hit
-            //exceptionally, use runaans variables here (shouldn't because outside of module, but it didn't find a better way)
+            //exceptionally, use runaans variables here (shouldn't because outside of module, but I didn't find a better way)
             let basic_attack_n_targets: f32 = if self.build.contains(&&items::RUNAANS_HURRICANE) {
                 n_targets * (1. + items::RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS)
             } else {
                 n_targets
             };
             for _ in 0..n_stacking_instances {
-                let PartDmg(
-                    on_basic_attack_hit_phys_dmg,
-                    on_basic_attack_hit_magic_dmg,
-                    on_basic_attack_hit_true_dmg,
-                ) = self.get_on_basic_attack_hit(target_stats, basic_attack_n_targets, false);
-                phys_dmg += on_basic_attack_hit_phys_dmg;
-                magic_dmg += on_basic_attack_hit_magic_dmg;
-                true_dmg += on_basic_attack_hit_true_dmg;
+                part_dmg +=
+                    self.all_on_basic_attack_hit(target_stats, basic_attack_n_targets, false);
             }
         }
 
         //on phys dmg
-        if phys_dmg > 0. {
-            for i in 0..MAX_UNIT_ITEMS {
-                if let Some(on_phys_hit) = self.build[i].on_phys_hit {
-                    for _ in 0..n_dmg_instances {
-                        (on_phys_hit)(self);
-                    }
-                }
+        if part_dmg.0 > 0. {
+            for _ in 0..n_dmg_instances {
+                self.all_on_phys_hit();
             }
         }
 
         //on magic dmg
-        if magic_dmg > 0. {
-            for i in 0..MAX_UNIT_ITEMS {
-                if let Some(on_magic_hit) = self.build[i].on_magic_hit {
-                    for _ in 0..n_dmg_instances {
-                        (on_magic_hit)(self);
-                    }
-                }
+        if part_dmg.1 > 0. {
+            for _ in 0..n_dmg_instances {
+                self.all_on_magic_hit();
             }
         }
 
         //on true dmg
-        if true_dmg > 0. {
-            for i in 0..MAX_UNIT_ITEMS {
-                if let Some(on_true_dmg_hit) = self.build[i].on_true_dmg_hit {
-                    for _ in 0..n_dmg_instances {
-                        (on_true_dmg_hit)(self);
-                    }
-                }
+        if part_dmg.2 > 0. {
+            for _ in 0..n_dmg_instances {
+                self.all_on_true_dmg_hit();
             }
         }
 
         //on any hit
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_any_hit) = self.build[i].on_any_hit {
-                for _ in 0..n_stacking_instances {
-                    let PartDmg(on_any_hit_phys_dmg, on_any_hit_magic_dmg, on_any_hit_true_dmg) =
-                        (on_any_hit)(self, target_stats);
-                    phys_dmg += on_any_hit_phys_dmg;
-                    magic_dmg += on_any_hit_magic_dmg;
-                    true_dmg += on_any_hit_true_dmg;
-                }
-            }
+        for _ in 0..n_stacking_instances {
+            part_dmg += self.all_on_any_hit(target_stats);
         }
 
+        self.time += F32_TOL; //to differentiate different dmg instances
+
         //dmg modifiers
-        phys_dmg *=
-            armor_coef * (1. + self.stats.phys_dmg_modifier) * (1. + self.stats.tot_dmg_modifier);
-        magic_dmg *=
-            mr_coef * (1. + self.stats.magic_dmg_modifier) * (1. + self.stats.tot_dmg_modifier);
-        true_dmg *= (1. + self.stats.true_dmg_modifier) * (1. + self.stats.tot_dmg_modifier);
+        part_dmg.0 *= armor_coef * (1. + self.stats.phys_dmg_modifier);
+        part_dmg.1 *= mr_coef * (1. + self.stats.magic_dmg_modifier);
+        part_dmg.2 *= 1. + self.stats.true_dmg_modifier;
+        part_dmg *= 1. + self.stats.tot_dmg_modifier;
 
         //update simulation logs
-        let tot_dmg: f32 = phys_dmg + magic_dmg + true_dmg;
+        let tot_dmg: f32 = part_dmg.as_sum();
         //omnivamp
         self.sim_logs.periodic_heals_shields += tot_dmg * self.stats.omnivamp;
         //lifesteal
         if dmg_tags.contains(DmgTag::BasicAttack) {
             self.sim_logs.periodic_heals_shields += tot_dmg * self.stats.life_steal;
         }
-        //dmg done
-        self.sim_logs.dmg_done.0 += phys_dmg;
-        self.sim_logs.dmg_done.1 += magic_dmg;
-        self.sim_logs.dmg_done.2 += true_dmg;
 
-        self.time += F32_TOL; //to differentiate different dmg instances
-        PartDmg(phys_dmg, magic_dmg, true_dmg)
+        //dmg done
+        self.sim_logs.dmg_done += part_dmg;
+        part_dmg
     }
 
     /// Triggers every item actives on the unit and returns dmg done.
@@ -1537,16 +1556,7 @@ impl Unit {
             .actions_performed
             .push((self.time, UnitAction::SpecialActives));
 
-        //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-        //this is hacky but the init function should never change self.build
-        let mut dmg: PartDmg = PartDmg(0., 0., 0.);
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(special_active) = self.build[i].special_active {
-                dmg += special_active(self, target_stats);
-                self.wait(F32_TOL);
-            }
-        }
-        dmg
+        self.all_special_active(target_stats)
     }
 
     /// Performs a basic attack and returns dmg done.
@@ -1566,7 +1576,7 @@ impl Unit {
         self.wait(windup_time);
 
         //on basic attack cast effects
-        self.apply_on_basic_attack_cast();
+        self.all_on_basic_attack_cast();
 
         //set cd
         self.basic_attack_cd = f32::max(
@@ -1591,14 +1601,9 @@ impl Unit {
         //wait cast time
         self.wait(self.properties.q.cast_time);
 
-        //on spell cast effects
-        //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-        //this is hacky but the init function should never change self.build
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_ability_cast) = self.build[i].on_ability_cast {
-                (on_ability_cast)(self);
-            }
-        }
+        //on ability cast effects
+        self.all_on_ability_cast();
+
         //set cd
         self.q_cd = haste_formula(self.stats.ability_haste_basic())
             * self.properties.q.base_cooldown_by_ability_lvl[usize::from(self.q_lvl - 1)];
@@ -1617,14 +1622,9 @@ impl Unit {
         //wait cast time
         self.wait(self.properties.w.cast_time);
 
-        //on spell cast effects
-        //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-        //this is hacky but the init function should never change self.build
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_ability_cast) = self.build[i].on_ability_cast {
-                (on_ability_cast)(self);
-            }
-        }
+        //on ability cast effects
+        self.all_on_ability_cast();
+
         //set cd
         self.w_cd = haste_formula(self.stats.ability_haste_basic())
             * self.properties.w.base_cooldown_by_ability_lvl[usize::from(self.w_lvl - 1)];
@@ -1643,14 +1643,9 @@ impl Unit {
         //wait cast time
         self.wait(self.properties.e.cast_time);
 
-        //on spell cast effects
-        //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-        //this is hacky but the init function should never change self.build
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_ability_cast) = self.build[i].on_ability_cast {
-                (on_ability_cast)(self);
-            }
-        }
+        //on ability cast effects
+        self.all_on_ability_cast();
+
         //set cd
         self.e_cd = haste_formula(self.stats.ability_haste_basic())
             * self.properties.e.base_cooldown_by_ability_lvl[usize::from(self.e_lvl - 1)];
@@ -1669,17 +1664,10 @@ impl Unit {
         //wait cast time
         self.wait(self.properties.r.cast_time);
 
-        //on spell cast effects
-        //we iterate over the index because we can't borrow mut self twice (since we pass a mutable reference to the item function)
-        //this is hacky but the init function should never change self.build
-        for i in 0..MAX_UNIT_ITEMS {
-            if let Some(on_ability_cast) = self.build[i].on_ability_cast {
-                (on_ability_cast)(self);
-            }
-            if let Some(on_ultimate_cast) = self.build[i].on_ultimate_cast {
-                (on_ultimate_cast)(self);
-            }
-        }
+        //on ability and ultimate cast effects
+        self.all_on_ability_cast();
+        self.all_on_ultimate_cast();
+
         //set cd
         self.r_cd = haste_formula(self.stats.ability_haste_ultimate())
             * self.properties.r.base_cooldown_by_ability_lvl[usize::from(self.r_lvl - 1)];
@@ -1732,19 +1720,19 @@ impl Unit {
         self.use_all_special_actives(target_stats);
         (self.fight_scenario.0)(self, target_stats, fight_duration);
     }
+}
 
-    /// Default `basic_attack` for an unit.
-    #[inline]
-    pub fn default_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
-        let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
-        champ.dmg_on_target(
-            target_stats,
-            PartDmg(phys_dmg, 0., 0.),
-            (1, 1),
-            enum_set!(DmgTag::BasicAttack),
-            1.,
-        )
-    }
+/// Default `basic_attack` for an unit.
+#[inline]
+fn default_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+    let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
+    champ.dmg_on_target(
+        target_stats,
+        PartDmg(phys_dmg, 0., 0.),
+        (1, 1),
+        enum_set!(DmgTag::BasicAttack),
+        1.,
+    )
 }
 
 /// For performance reasons, we use a `null_basic_attack` function (that should never be called and will panic if so) instead of an Option, for units that do not have one.

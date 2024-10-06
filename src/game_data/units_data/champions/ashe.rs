@@ -1,4 +1,6 @@
-use crate::game_data::{items_data::items::*, units_data::*};
+use crate::game_data::units_data::*;
+
+use items_data::items::*;
 
 use enumset::enum_set;
 
@@ -13,7 +15,7 @@ fn ashe_init_abilities(champ: &mut Unit) {
     champ.effects_values[EffectValueId::AsheRangersFocusBonusAS] = 0.;
 }
 
-pub fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //check if target is frosted
     let special_crit_coef: f32 = if champ.effects_stacks[EffectStackId::AsheFrosted] == 1 {
         1.15 + champ.stats.crit_chance * (0.75 + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)
@@ -234,8 +236,6 @@ impl Unit {
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
-        on_lvl_set: None,
-        init_abilities: Some(ashe_init_abilities),
         basic_attack: ashe_basic_attack,
         q: BasicAbility {
             cast: ashe_q,
@@ -257,9 +257,25 @@ impl Unit {
             cast_time: 0.25,
             base_cooldown_by_ability_lvl: [100., 80., 60.],
         },
+        on_action_fns: OnActionFns {
+            on_lvl_set: None,
+            on_fight_init: Some(ashe_init_abilities),
+            special_active: None,
+            on_ability_cast: None,
+            on_ultimate_cast: None,
+            on_ability_hit: None,
+            on_ultimate_hit: None,
+            on_basic_attack_cast: None,
+            on_basic_attack_hit: None,
+            on_phys_hit: None,
+            on_magic_hit: None,
+            on_true_dmg_hit: None,
+            on_any_hit: None,
+        },
         fight_scenarios: &[(ashe_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {
             runes_pages: RunesPage {
+                keystone: &RunesPage::EMPTY_RUNE_KEYSTONE, //todo: add keystone
                 shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,

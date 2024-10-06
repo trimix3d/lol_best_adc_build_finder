@@ -1,4 +1,6 @@
-use crate::game_data::{items_data::items::*, units_data::*};
+use crate::game_data::units_data::*;
+
+use items_data::items::*;
 
 use enumset::enum_set;
 
@@ -282,7 +284,7 @@ fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         enum_set!(DmgTag::Ability),
         (2. + APHELIOS_Q_CALIBRUM_HIT_PERCENT + APHELIOS_Q_INFERNUM_N_TARGETS) / 5.,
     );
-    champ.apply_on_basic_attack_cast();
+    champ.all_on_basic_attack_cast();
     first_hit
         + champ.dmg_on_target(
             target_stats,
@@ -338,7 +340,7 @@ fn aphelios_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
         APHELIOS_R_N_TARGETS,
     );
-    champ.apply_on_basic_attack_cast();
+    champ.all_on_basic_attack_cast();
     first_hit
         + champ.dmg_on_target(
             target_stats,
@@ -452,8 +454,6 @@ impl Unit {
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
-        on_lvl_set: Some(aphelios_on_lvl_set),
-        init_abilities: None,
         basic_attack: aphelios_basic_attack,
         q: BasicAbility {
             cast: aphelios_q,
@@ -467,9 +467,25 @@ impl Unit {
             cast_time: 0.6,
             base_cooldown_by_ability_lvl: [120., 110., 100.],
         },
+        on_action_fns: OnActionFns {
+            on_lvl_set: Some(aphelios_on_lvl_set),
+            on_fight_init: None,
+            special_active: None,
+            on_ability_cast: None,
+            on_ultimate_cast: None,
+            on_ability_hit: None,
+            on_ultimate_hit: None,
+            on_basic_attack_cast: None,
+            on_basic_attack_hit: None,
+            on_phys_hit: None,
+            on_magic_hit: None,
+            on_true_dmg_hit: None,
+            on_any_hit: None,
+        },
         fight_scenarios: &[(aphelios_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {
             runes_pages: RunesPage {
+                keystone: &RunesPage::EMPTY_RUNE_KEYSTONE, //todo: add keystone
                 shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,

@@ -1,4 +1,6 @@
-use crate::game_data::{items_data::items::*, units_data::*};
+use crate::game_data::units_data::*;
+
+use items_data::items::*;
 
 use enumset::enum_set;
 
@@ -58,7 +60,7 @@ const SIVIR_FLEET_OF_FOOT: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-pub fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&SIVIR_FLEET_OF_FOOT, 0.);
 
     //if buffed by r, basic attacks reduces abilities cooldown
@@ -353,8 +355,6 @@ impl Unit {
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
-        on_lvl_set: None,
-        init_abilities: Some(sivir_init_abilities),
         basic_attack: sivir_basic_attack,
         q: BasicAbility {
             cast: sivir_q,
@@ -376,9 +376,25 @@ impl Unit {
             cast_time: F32_TOL,
             base_cooldown_by_ability_lvl: [120., 100., 80.],
         },
+        on_action_fns: OnActionFns {
+            on_lvl_set: None,
+            on_fight_init: Some(sivir_init_abilities),
+            special_active: None,
+            on_ability_cast: None,
+            on_ultimate_cast: None,
+            on_ability_hit: None,
+            on_ultimate_hit: None,
+            on_basic_attack_cast: None,
+            on_basic_attack_hit: None,
+            on_phys_hit: None,
+            on_magic_hit: None,
+            on_true_dmg_hit: None,
+            on_any_hit: None,
+        },
         fight_scenarios: &[(sivir_fight_scenario, "all out")],
         unit_defaults: UnitDefaults {
             runes_pages: RunesPage {
+                keystone: &RunesPage::EMPTY_RUNE_KEYSTONE, //todo: add keystone
                 shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,

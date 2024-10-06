@@ -1,6 +1,9 @@
 pub mod items;
 
-use super::units_data::{PartDmg, Unit, UnitStats, MAX_UNIT_ITEMS};
+use crate::OnActionFns;
+
+use super::*;
+use units_data::{UnitStats, MAX_UNIT_ITEMS};
 
 use constcat::concat_slices;
 use enumset::{EnumSet, EnumSetType};
@@ -146,43 +149,8 @@ pub struct Item {
     //stats
     pub stats: UnitStats,
 
-    /// Init `Unit`/`Item` effect variables and temporary effects on the `Unit`. These function should ensure that all effect
-    /// variables used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
-    /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
-    /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
-    pub init: Option<fn(&mut Unit)>,
-
-    /// Triggers special actives and returns dmg done.
-    pub special_active: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
-
-    /// Applies effects triggered when an ability is casted (updates effect variables accordingly).
-    pub on_ability_cast: Option<fn(&mut Unit)>,
-    /// Applies effects triggered when ultimate is casted (additionnal to `on_ability_cast`).
-    pub on_ultimate_cast: Option<fn(&mut Unit)>,
-
-    /// Returns on-ability-hit dmg and applies effects (updates effect variables accordingly).
-    /// 3rd argument (f32) is the number of targets hit by the ability (affected by on-ability-hit).
-    pub on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
-    /// Returns on-ultimate-hit dmg (additionnal to `on_ability_cast`) and applies effects (updates effect variables accordingly).
-    /// 3rd argument (f32) is the number of targets hit by the ultimate (affected by on-ultimate-hit).
-    pub on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
-
-    /// Applies effects triggered when a basic attack is casted (updates effect variables accordingly).
-    pub on_basic_attack_cast: Option<fn(&mut Unit)>,
-    /// Returns on-basic_attack-hit dmg and applies effects (updates effect variables accordingly).
-    /// 3rd argument (f32) is the number of targets hit by the basic attack (affected by on-basic-attack-hit).
-    /// 4th argument (bool) indicates if the function is called internally from other on-action-fns.
-    pub on_basic_attack_hit: Option<fn(&mut Unit, &UnitStats, f32, bool) -> PartDmg>,
-
-    /// Applies effects on the unit triggered when phys dmg is done (updates effect variables accordingly).
-    pub on_phys_hit: Option<fn(&mut Unit)>,
-    /// Applies effects on the unit triggered when magic dmg is done (updates effect variables accordingly).
-    pub on_magic_hit: Option<fn(&mut Unit)>,
-    /// Applies effects on the unit triggered when true dmg is done (updates effect variables accordingly).
-    pub on_true_dmg_hit: Option<fn(&mut Unit)>,
-    /// Applies effects on the unit triggered when any dmg is done (updates effect variables accordingly).
-    /// This function is called every hit, in addition to others on_..._hit functions.
-    pub on_any_hit: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
+    //on action fns
+    pub on_action_fns: OnActionFns,
 }
 
 //no impl Default for Item because they are compile time constants and can't use non-constant functions

@@ -1,6 +1,6 @@
-use crate::game_data::{
-    basic_attack_aoe_effect_avg_additionnal_targets, items_data::items::*, units_data::*,
-};
+use crate::game_data::{basic_attack_aoe_effect_avg_additionnal_targets, units_data::*};
+
+use items_data::items::*;
 
 use enumset::enum_set;
 
@@ -170,8 +170,6 @@ impl Unit {
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
-        on_lvl_set: None,
-        init_abilities: None,
         basic_attack: jinx_basic_attack,
         q: BasicAbility {
             cast: jinx_q,
@@ -193,12 +191,28 @@ impl Unit {
             cast_time: 0.6,
             base_cooldown_by_ability_lvl: [85., 65., 45.],
         },
+        on_action_fns: OnActionFns {
+            on_lvl_set: None,
+            on_fight_init: None,
+            special_active: None,
+            on_ability_cast: None,
+            on_ultimate_cast: None,
+            on_ability_hit: None,
+            on_ultimate_hit: None,
+            on_basic_attack_cast: None,
+            on_basic_attack_hit: None,
+            on_phys_hit: None,
+            on_magic_hit: None,
+            on_true_dmg_hit: None,
+            on_any_hit: None,
+        },
         fight_scenarios: &[(
             jinx_fight_scenario,
             "all out (basic attacks with rocket launcher only)",
         )],
         unit_defaults: UnitDefaults {
             runes_pages: RunesPage {
+                keystone: &RunesPage::EMPTY_RUNE_KEYSTONE, //todo: add keystone
                 shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,

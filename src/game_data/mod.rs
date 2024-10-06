@@ -1,9 +1,11 @@
-pub mod effects_data;
-pub mod items_data;
 pub mod units_data;
 
-use items_data::{AVG_BOOTS_COST, AVG_LEGENDARY_ITEM_COST, AVG_SUPPORT_ITEM_COST};
-use units_data::{MAX_UNIT_LVL, MIN_UNIT_LVL};
+use units_data::{
+    items_data::{AVG_BOOTS_COST, AVG_LEGENDARY_ITEM_COST, AVG_SUPPORT_ITEM_COST},
+    {MAX_UNIT_LVL, MIN_UNIT_LVL},
+};
+
+use core::{fmt, ops};
 
 //patch number
 pub const PATCH_NUMBER_MAJOR: &str = env!("CARGO_PKG_VERSION_MAJOR");
@@ -113,7 +115,7 @@ const AOE_BASIC_ATTACK_REFERENCE_RADIUS: f32 = 450.;
 /// (additionnal to the target that was originally hit by the basic attack).
 macro_rules! basic_attack_aoe_effect_avg_additionnal_targets {
     ($radius:expr) => {
-        crate::game_data::items_data::items::RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS
+        crate::game_data::units_data::items_data::items::RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS
             * $radius
             * $radius
             / (crate::game_data::AOE_BASIC_ATTACK_REFERENCE_RADIUS
@@ -154,4 +156,95 @@ pub fn lvl_from_number_of_items(
         lvl += 1;
     }
     lvl
+}
+
+/// Contains a damage value divided in (`phys_dmg`, `magic_dmg`, `true_dmg`).
+#[derive(Debug, Clone, Copy)]
+pub struct PartDmg(pub f32, pub f32, pub f32);
+
+impl fmt::Display for PartDmg {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({} phys, {} magic, {} true)", self.0, self.1, self.2)
+    }
+}
+
+impl ops::Add for PartDmg {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
+    }
+}
+
+impl ops::Sub for PartDmg {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
+    }
+}
+
+impl ops::Mul<f32> for PartDmg {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self(self.0 * rhs, self.1 * rhs, self.2 * rhs)
+    }
+}
+
+impl ops::Mul<PartDmg> for f32 {
+    type Output = PartDmg;
+
+    fn mul(self, rhs: PartDmg) -> Self::Output {
+        PartDmg(self * rhs.0, self * rhs.1, self * rhs.2)
+    }
+}
+
+impl ops::Div<f32> for PartDmg {
+    type Output = Self;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        Self(self.0 / rhs, self.1 / rhs, self.2 / rhs)
+    }
+}
+
+impl ops::AddAssign for PartDmg {
+    fn add_assign(&mut self, rhs: Self) {
+        self.0 += rhs.0;
+        self.1 += rhs.1;
+        self.2 += rhs.2;
+    }
+}
+
+impl ops::SubAssign for PartDmg {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.0 -= rhs.0;
+        self.1 -= rhs.1;
+        self.2 -= rhs.2;
+    }
+}
+
+impl ops::MulAssign<f32> for PartDmg {
+    fn mul_assign(&mut self, rhs: f32) {
+        self.0 *= rhs;
+        self.1 *= rhs;
+        self.2 *= rhs;
+    }
+}
+
+impl ops::DivAssign<f32> for PartDmg {
+    fn div_assign(&mut self, rhs: f32) {
+        self.0 /= rhs;
+        self.1 /= rhs;
+        self.2 /= rhs;
+    }
+}
+
+impl PartDmg {
+    /// Returns the sum of each dmg type (`phys_dmg`, `magic_dmg`, `true_dmg`) contained in the dmg value.
+    #[inline]
+    #[must_use]
+    pub fn as_sum(&self) -> f32 {
+        self.0 + self.1 + self.2
+    }
 }

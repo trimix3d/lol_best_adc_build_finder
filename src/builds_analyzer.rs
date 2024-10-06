@@ -2,7 +2,7 @@ use crate::game_data::STARTING_GOLDS;
 
 use super::{
     build_optimizer::{get_normalized_judgment_weights, BuildContainer},
-    game_data::items_data::{BuildHash, ItemUtils},
+    game_data::units_data::items_data::{BuildHash, ItemUtils},
 };
 
 use enumset::EnumSet;

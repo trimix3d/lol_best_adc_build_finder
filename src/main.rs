@@ -1,11 +1,11 @@
 mod build_optimizer;
 mod builds_analyzer;
 mod cli;
-pub mod game_data;
+mod game_data;
 
-use game_data::items_data::{items::*, *};
 use game_data::units_data::*;
 
+use items_data::{items::*, *};
 use runes_data::RunesPage;
 
 #[allow(dead_code)]
@@ -56,13 +56,26 @@ fn champion_test_ground() {
         },
         //no growth stats so they remain constant (lvl doesn't matter)
         growth_stats: UnitStats::const_default(),
-        on_lvl_set: None,
-        init_abilities: None,
         basic_attack: null_basic_attack,
         q: NULL_BASIC_ABILITY,
         w: NULL_BASIC_ABILITY,
         e: NULL_BASIC_ABILITY,
         r: NULL_ULTIMATE_ABILITY,
+        on_action_fns: OnActionFns {
+            on_lvl_set: None,
+            on_fight_init: None,
+            special_active: None,
+            on_ability_cast: None,
+            on_ultimate_cast: None,
+            on_ability_hit: None,
+            on_ultimate_hit: None,
+            on_basic_attack_cast: None,
+            on_basic_attack_hit: None,
+            on_phys_hit: None,
+            on_magic_hit: None,
+            on_true_dmg_hit: None,
+            on_any_hit: None,
+        },
         fight_scenarios: &[(null_simulate_fight, "null")],
         unit_defaults: UnitDefaults {
             runes_pages: RunesPage::const_default(),
@@ -82,11 +95,11 @@ fn champion_test_ground() {
         &Unit::LUCIAN_PROPERTIES,
         6,
         Build([
-            &GUINSOOS_RAGEBLADE,
-            &WITS_END,
-            &NULL_ITEM,
-            &NULL_ITEM,
-            &NULL_ITEM,
+            &RUNAANS_HURRICANE,
+            &KRAKEN_SLAYER,
+            &INFINITY_EDGE,
+            &PHANTOM_DANCER,
+            &NAVORI_FLICKERBLADE,
             &NULL_ITEM,
         ]),
     )
@@ -94,6 +107,18 @@ fn champion_test_ground() {
 
     //champion actions
     println!("{}", champ);
+    champ.walk(champ.basic_attack_cd);
+    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
+    champ.walk(champ.basic_attack_cd);
+    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
+    champ.walk(champ.basic_attack_cd);
+    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
+    champ.walk(champ.basic_attack_cd);
+    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
+    champ.walk(champ.basic_attack_cd);
+    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
+    champ.walk(champ.basic_attack_cd);
+    println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
     champ.walk(champ.basic_attack_cd);
     println!("{} - t: {}", champ.basic_attack(&dummy.stats), champ.time,);
 }

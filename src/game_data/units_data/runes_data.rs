@@ -1,4 +1,4 @@
-use super::{runes_hp_by_lvl, Unit};
+use super::{runes_hp_by_lvl, OnActionFns, Unit};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
@@ -12,6 +12,7 @@ pub enum RuneShard {
 /// For now, only implements runes shards.
 #[derive(Debug, Clone)]
 pub struct RunesPage {
+    pub keystone: &'static OnActionFns,
     pub shard1: RuneShard,
     pub shard2: RuneShard,
     pub shard3: RuneShard,
@@ -21,19 +22,6 @@ impl Default for RunesPage {
     /// Returns runes pages with only Left `RuneShards`.
     fn default() -> Self {
         Self::const_default()
-    }
-}
-
-impl RunesPage {
-    /// Returns runes pages with only Left `RuneShards`.
-    /// Provides a default valid value for `SkillOrder` usable in compile time constants (unlike `Default::default()` which is not const).
-    #[must_use]
-    pub const fn const_default() -> Self {
-        Self {
-            shard1: RuneShard::Left,
-            shard2: RuneShard::Left,
-            shard3: RuneShard::Left,
-        }
     }
 }
 
@@ -89,4 +77,36 @@ impl Unit {
             RuneShard::Right => self.runes_stats.hp += runes_hp_by_lvl(self.lvl),
         }
     }
+}
+
+impl RunesPage {
+    /// Returns runes pages with only Left `RuneShards`.
+    /// Provides a default valid value for `SkillOrder` usable in compile time constants (unlike `Default::default()` which is not const).
+    #[must_use]
+    pub const fn const_default() -> Self {
+        Self {
+            keystone: &RunesPage::EMPTY_RUNE_KEYSTONE,
+            shard1: RuneShard::Left,
+            shard2: RuneShard::Left,
+            shard3: RuneShard::Left,
+        }
+    }
+
+    pub const EMPTY_RUNE_KEYSTONE: OnActionFns = OnActionFns {
+        on_lvl_set: None,
+        on_fight_init: None,
+        special_active: None,
+        on_ability_cast: None,
+        on_ultimate_cast: None,
+        on_ability_hit: None,
+        on_ultimate_hit: None,
+        on_basic_attack_cast: None,
+        on_basic_attack_hit: None,
+        on_phys_hit: None,
+        on_magic_hit: None,
+        on_true_dmg_hit: None,
+        on_any_hit: None,
+    };
+
+    //todo: add keystones
 }
