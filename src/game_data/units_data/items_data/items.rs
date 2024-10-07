@@ -1,12 +1,13 @@
 use super::{Item, ItemGroups, ItemId, ItemUtils};
 use crate::game_data::*;
 
-use effects_data::{EffectId, EffectStackId, EffectValueId, TemporaryEffect};
 use units_data::*;
+
+use effects_data::{EffectId, EffectStackId, EffectValueId, TemporaryEffect};
 
 use enumset::{enum_set, EnumSet};
 
-// This is the file containing every items stats + effects
+// This is the file containing every items stats + their passive/active effects scripts
 
 //items parameters:
 //for effects that depends on the target hp, we calculate an adapted value based on the assumption that pdf for ennemy hp % is f(x)=x on ]0, 1]
@@ -4271,7 +4272,26 @@ pub const RIFTMAKER: Item = Item {
 
 //Rod of ages, timeless and eternity passives implemented as permanent stats
 //todo: impl rod of ages passives in init fct to give stats based on lvl (get item slot -> get gold gained since roa -> get time spent since roa)
-const ROD_OF_AGES_TIMELESS_COEF: f32 = 0.50; //proportion of the timeless additionnal stats we consider permanent for the item (since timeless passive is not implemented)
+fn rod_of_ages_timeless_init(champ: &mut Unit) {
+    //get time elapsed since bought (assuming items are in purchase order)
+    let mut take_item: bool = false;
+    let mut cost_since_bought: f32 = 0.;
+    for &item in champ.build.iter() {
+        if take_item {
+            cost_since_bought += item.cost;
+        }
+        if *item == ROD_OF_AGES {
+            take_item = true
+        }
+    }
+    let min_since_bought: f32 = f32::min(10., cost_since_bought / TOT_GOLDS_PER_MIN);
+
+    //add timeless stats based on time elapsed
+    champ.stats.hp += min_since_bought * 10.;
+    champ.stats.mana += min_since_bought * 20.;
+    champ.stats.ap_flat += min_since_bought * 3.;
+}
+
 pub const ROD_OF_AGES: Item = Item {
     id: ItemId::RodOfAges,
     full_name: "Rod_of_ages",
@@ -4280,11 +4300,11 @@ pub const ROD_OF_AGES: Item = Item {
     item_groups: enum_set!(ItemGroups::Eternity),
     utils: enum_set!(),
     stats: UnitStats {
-        hp: 400. + ROD_OF_AGES_TIMELESS_COEF * 100.,
-        mana: 400. + ROD_OF_AGES_TIMELESS_COEF * 200.,
+        hp: 400.,
+        mana: 400.,
         base_ad: 0.,
         bonus_ad: 0.,
-        ap_flat: 50. + ROD_OF_AGES_TIMELESS_COEF * 30.,
+        ap_flat: 50.,
         ap_percent: 0.,
         armor: 0.,
         mr: 0.,
@@ -4316,7 +4336,7 @@ pub const ROD_OF_AGES: Item = Item {
     },
     on_action_fns: OnActionFns {
         on_lvl_set: None,
-        on_fight_init: None,
+        on_fight_init: Some(rod_of_ages_timeless_init),
         special_active: None,
         on_ability_cast: None,
         on_ultimate_cast: None,

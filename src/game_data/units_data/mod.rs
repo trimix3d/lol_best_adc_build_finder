@@ -3,7 +3,7 @@ mod effects_data;
 pub mod items_data;
 pub mod runes_data;
 
-use super::{F32_TOL, TIME_BETWEEN_CLICKS, *};
+use super::*;
 use effects_data::*;
 use items_data::{items, items::NULL_ITEM, Build, Item};
 
@@ -24,16 +24,85 @@ pub const MIN_UNIT_LVL: u8 = 6;
 /// Maximum number of items an Unit can hold.
 pub const MAX_UNIT_ITEMS: usize = 6;
 
+/// Amount of cumulative xp required to reach the given lvl.
+const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [
+    280.,   //needed to reach lvl 2
+    660.,   //needed to reach lvl 3
+    1140.,  //needed to reach lvl 4
+    1720.,  //needed to reach lvl 5
+    2400.,  //needed to reach lvl 6
+    3180.,  //needed to reach lvl 7
+    4060.,  //needed to reach lvl 8
+    5040.,  //needed to reach lvl 9
+    6120.,  //needed to reach lvl 10
+    7300.,  //needed to reach lvl 11
+    8580.,  //needed to reach lvl 12
+    9960.,  //needed to reach lvl 13
+    11440., //needed to reach lvl 14
+    13020., //needed to reach lvl 15
+    14700., //needed to reach lvl 16
+    16480., //needed to reach lvl 17
+    18360., //needed to reach lvl 18
+];
+
+/// Travel distance required to fully charge energized attacks (rapid firecanon, statikk shiv, ...).
+const ENERGIZED_ATTACKS_TRAVEL_REQUIRED: f32 = 100. * 24.;
+
+/// Reference area used to compute the average number of targets hit by basic attacks aoe effects.
+/// Should have a value so that an aoe basic attack effect with this range hits on average the same number of targets than runaans bolts.
+const AOE_BASIC_ATTACK_REFERENCE_RADIUS: f32 = 450.;
+
+/// From the radius of the aoe basic attack effect, gives the number of targets hit
+/// (additionnal to the target that was originally hit by the basic attack).
+macro_rules! basic_attack_aoe_effect_avg_additionnal_targets {
+    ($radius:expr) => {
+        crate::game_data::units_data::items_data::items::RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS
+            * $radius
+            * $radius
+            / (crate::game_data::units_data::AOE_BASIC_ATTACK_REFERENCE_RADIUS
+                * crate::game_data::units_data::AOE_BASIC_ATTACK_REFERENCE_RADIUS)
+    };
+}
+use basic_attack_aoe_effect_avg_additionnal_targets; //to make it accessible in submodules
+
+/// From number of items, returns the associated unit lvl.
+#[must_use]
+pub fn lvl_from_number_of_items(
+    item_slot: usize,
+    boots_slot: usize,
+    support_item_slot: usize,
+) -> u8 {
+    let mut cum_xp: f32 = 0.;
+    for i in 1..=item_slot {
+        if i == boots_slot {
+            cum_xp += XP_PER_BOOTS_ITEM;
+        } else if i == support_item_slot {
+            cum_xp += XP_PER_SUPPORT_ITEM;
+        } else {
+            cum_xp += XP_PER_LEGENDARY_ITEM;
+        }
+    }
+
+    let mut lvl: u8 = MIN_UNIT_LVL; //lvl cannot be below MIN_UNIT_LVL, so start at this value
+    while usize::from(lvl - 1) < MAX_UNIT_LVL - 1
+        && cum_xp >= CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL[usize::from(lvl - 1)]
+    {
+        lvl += 1;
+    }
+    lvl
+}
+
 /// From base and growth stat, returns final stat value at the given lvl.
 /// <https://leagueoflegends.fandom.com/wiki/Champion_statistic#Growth_statistic_per_level>
+#[must_use]
 fn growth_stat_formula(lvl: NonZeroU8, base: f32, growth: f32) -> f32 {
     base + growth * (f32::from(lvl.get() - 1)) * (0.7025 + 0.0175 * (f32::from(lvl.get() - 1)))
 }
 
 /// Returns final MS of an unit after soft cap.
 /// <https://leagueoflegends.fandom.com/wiki/Movement_speed>
-#[inline]
 #[must_use]
+#[inline]
 fn capped_ms(raw_ms: f32) -> f32 {
     if raw_ms >= 490. {
         raw_ms * 0.5 + 230.
@@ -54,24 +123,24 @@ fn capped_ms(raw_ms: f32) -> f32 {
 
 /// Returns coefficient multiplying dmg dealt, in the case when resistance stat is positive.
 /// <https://leagueoflegends.fandom.com/wiki/Armor> <https://leagueoflegends.fandom.com/wiki/Magic_resistance>
-#[inline]
 #[must_use]
+#[inline]
 fn resistance_formula_pos(res: f32) -> f32 {
     100. / (100. + res)
 }
 
 /// Returns coefficient multiplying dmg dealt, in the case when resistance stat is negative.
 /// <https://leagueoflegends.fandom.com/wiki/Armor> <https://leagueoflegends.fandom.com/wiki/Magic_resistance>
-#[inline]
 #[must_use]
+#[inline]
 fn resistance_formula_neg(res: f32) -> f32 {
     2. - 100. / (100. - res)
 }
 
 /// Returns coefficient multiplying dmg dealt, automatically choose formula for positive or negative resistance according to the argument.
 /// <https://leagueoflegends.fandom.com/wiki/Armor> <https://leagueoflegends.fandom.com/wiki/Magic_resistance>
-#[inline]
 #[must_use]
+#[inline]
 pub fn resistance_formula(res: f32) -> f32 {
     if res >= 0. {
         resistance_formula_pos(res)
@@ -80,7 +149,16 @@ pub fn resistance_formula(res: f32) -> f32 {
     }
 }
 
+/// Returns coefficient multiplying base cooldown to give the actual cooldown reduced by haste.
+/// <https://leagueoflegends.fandom.com/wiki/Haste>
+#[must_use]
+#[inline]
+fn haste_formula(haste: f32) -> f32 {
+    100. / (100. + haste)
+}
+
 /// Returns the ideal windup time (= basic attack cast time) for the given unit.
+#[must_use]
 #[inline]
 fn windup_formula(
     windup_percent: f32,
@@ -95,6 +173,7 @@ fn windup_formula(
 /// This is to account for player clicks when basic attacking at very high attack speeds, as the player likely waits
 /// a bit longer than the ideal windup time before clicking to move again, to avoid cancelling basic attacks.
 /// The real windup time cannot go below `TIME_BETWEEN_CLICKS`.
+#[must_use]
 #[inline]
 fn real_windup_time(windup_time: f32) -> f32 {
     windup_time + TIME_BETWEEN_CLICKS * TIME_BETWEEN_CLICKS / (TIME_BETWEEN_CLICKS + windup_time)
@@ -102,6 +181,7 @@ fn real_windup_time(windup_time: f32) -> f32 {
 
 /// Returns HP given by runes at the given lvl.
 /// <https://leagueoflegends.fandom.com/wiki/Rune_(League_of_Legends)#Rune_paths>
+#[must_use]
 #[inline]
 fn runes_hp_by_lvl(lvl: NonZeroU8) -> f32 {
     10. * f32::from(lvl.get())
@@ -213,8 +293,8 @@ impl UnitStats {
 
     /// Returns the total attack damage of the unit. It's a getter function instead of being stored like other stats
     /// because it depends on already existing stats and it could cause bugs if we update one but forget the other.
-    #[inline]
     #[must_use]
+    #[inline]
     pub fn ad(&self) -> f32 {
         self.base_ad + self.bonus_ad
     }
@@ -222,16 +302,16 @@ impl UnitStats {
     /// Returns total amount of ap.
     /// It's a getter function instead of being stored like other stats because it depends on
     /// already existing stats and it could cause bugs if we update one but forget the other.
-    #[inline]
     #[must_use]
+    #[inline]
     pub fn ap(&self) -> f32 {
         self.ap_flat * (1. + self.ap_percent)
     }
 
     /// Returns the attack speed of the unit. It's a getter function instead of being stored like other stats
     /// because it depends on already existing stats and it could cause bugs if we update one but forget the other.
-    #[inline]
     #[must_use]
+    #[inline]
     pub fn attack_speed(&self, as_ratio: f32) -> f32 {
         f32::min(
             Unit::DEFAULT_AS_LIMIT,
@@ -241,16 +321,16 @@ impl UnitStats {
 
     /// Returns the basic haste (ability haste for basic abilities only) of the unit. It's a getter function instead of being stored like other stats
     /// because it depends on already existing stats and it could cause bugs if we update one but forget the other.
-    #[inline]
     #[must_use]
+    #[inline]
     pub fn ability_haste_basic(&self) -> f32 {
         self.ability_haste + self.basic_haste
     }
 
     /// Returns the ultimate haste (ability haste for ultimate only) of the unit. It's a getter function instead of being stored like other stats
     /// because it depends on already existing stats and it could cause bugs if we update one but forget the other.
-    #[inline]
     #[must_use]
+    #[inline]
     pub fn ability_haste_ultimate(&self) -> f32 {
         self.ability_haste + self.ultimate_haste
     }
@@ -258,81 +338,72 @@ impl UnitStats {
     /// Returns the true movement speed of the unit. It's a getter function instead of being stored like other stats
     /// because it depends on already existing stats and it could cause bugs if we update one but forget the other.
     /// Current code doesn't handle slows.
-    #[inline]
     #[must_use]
+    #[inline]
     pub fn ms(&self) -> f32 {
         capped_ms(self.ms_flat * (1. + self.ms_percent))
     }
 
     /// Returns the average damage amplification for crit hits. i.e. if a basic attack does 100 dmg without crit,
     /// it will do on average 100 * `self.crit_formula()` when taking crits into account.
-    #[inline]
     #[must_use]
+    #[inline]
     pub fn crit_coef(&self) -> f32 {
         1. + self.crit_chance * (self.crit_dmg - 1.)
     }
 
-    fn add(&mut self, other_ref: &Self) {
-        self.hp += other_ref.hp;
-        self.mana += other_ref.mana;
-        self.base_ad += other_ref.base_ad;
-        self.bonus_ad += other_ref.bonus_ad;
-        self.ap_flat += other_ref.ap_flat;
-        self.ap_percent += other_ref.ap_percent;
-        self.armor += other_ref.armor;
-        self.mr += other_ref.mr;
-        self.base_as += other_ref.base_as;
-        self.bonus_as += other_ref.bonus_as;
-        self.ability_haste += other_ref.ability_haste;
-        self.basic_haste += other_ref.basic_haste;
-        self.ultimate_haste += other_ref.ultimate_haste;
-        self.item_haste += other_ref.item_haste;
+    fn add(&mut self, other: &Self) {
+        self.hp += other.hp;
+        self.mana += other.mana;
+        self.base_ad += other.base_ad;
+        self.bonus_ad += other.bonus_ad;
+        self.ap_flat += other.ap_flat;
+        self.ap_percent += other.ap_percent;
+        self.armor += other.armor;
+        self.mr += other.mr;
+        self.base_as += other.base_as;
+        self.bonus_as += other.bonus_as;
+        self.ability_haste += other.ability_haste;
+        self.basic_haste += other.basic_haste;
+        self.ultimate_haste += other.ultimate_haste;
+        self.item_haste += other.item_haste;
 
-        self.crit_chance += other_ref.crit_chance;
+        self.crit_chance += other.crit_chance;
         self.crit_chance = f32::min(1., self.crit_chance); //crit chance capped at 100%
 
-        self.crit_dmg += other_ref.crit_dmg;
-        self.ms_flat += other_ref.ms_flat;
-        self.ms_percent += other_ref.ms_percent;
-        self.lethality += other_ref.lethality;
+        self.crit_dmg += other.crit_dmg;
+        self.ms_flat += other.ms_flat;
+        self.ms_percent += other.ms_percent;
+        self.lethality += other.lethality;
 
         increase_multiplicatively_scaling_stat(
             &mut self.armor_pen_percent,
-            other_ref.armor_pen_percent,
+            other.armor_pen_percent,
         ); //stacks multiplicatively
-        self.magic_pen_flat += other_ref.magic_pen_flat;
+        self.magic_pen_flat += other.magic_pen_flat;
         increase_multiplicatively_scaling_stat(
             &mut self.magic_pen_percent,
-            other_ref.magic_pen_percent,
+            other.magic_pen_percent,
         ); //stacks multiplicatively
-        self.armor_red_flat += other_ref.armor_red_flat;
+        self.armor_red_flat += other.armor_red_flat;
         increase_multiplicatively_scaling_stat(
             &mut self.armor_red_percent,
-            other_ref.armor_red_percent,
+            other.armor_red_percent,
         ); //stacks multiplicatively
-        self.mr_red_flat += other_ref.mr_red_flat;
-        increase_multiplicatively_scaling_stat(&mut self.mr_red_percent, other_ref.mr_red_percent); //stacks multiplicatively
+        self.mr_red_flat += other.mr_red_flat;
+        increase_multiplicatively_scaling_stat(&mut self.mr_red_percent, other.mr_red_percent); //stacks multiplicatively
 
-        self.life_steal += other_ref.life_steal;
-        self.omnivamp += other_ref.omnivamp;
+        self.life_steal += other.life_steal;
+        self.omnivamp += other.omnivamp;
 
         increase_exponentially_scaling_stat(
             &mut self.ability_dmg_modifier,
-            other_ref.ability_dmg_modifier,
+            other.ability_dmg_modifier,
         ); //stacks exponentially
-        increase_exponentially_scaling_stat(
-            &mut self.phys_dmg_modifier,
-            other_ref.phys_dmg_modifier,
-        ); //stacks exponentially
-        increase_exponentially_scaling_stat(
-            &mut self.magic_dmg_modifier,
-            other_ref.magic_dmg_modifier,
-        ); //stacks exponentially
-        increase_exponentially_scaling_stat(
-            &mut self.true_dmg_modifier,
-            other_ref.true_dmg_modifier,
-        ); //stacks exponentially
-        increase_exponentially_scaling_stat(&mut self.tot_dmg_modifier, other_ref.tot_dmg_modifier);
+        increase_exponentially_scaling_stat(&mut self.phys_dmg_modifier, other.phys_dmg_modifier); //stacks exponentially
+        increase_exponentially_scaling_stat(&mut self.magic_dmg_modifier, other.magic_dmg_modifier); //stacks exponentially
+        increase_exponentially_scaling_stat(&mut self.true_dmg_modifier, other.true_dmg_modifier); //stacks exponentially
+        increase_exponentially_scaling_stat(&mut self.tot_dmg_modifier, other.tot_dmg_modifier);
         //stacks exponentially
     }
 
@@ -823,9 +894,7 @@ pub struct Unit {
     pub properties: &'static UnitProperties,
     runes_page: RunesPage,
     skill_order: SkillOrder,
-    pub build: Build,
-    pub build_cost: f32,
-    pub fight_scenario: FightScenario, //active fight scenario
+    build: Build,
 
     //stats
     /// Stats that only comes from the Unit base stats (only change with lvl)
@@ -833,22 +902,22 @@ pub struct Unit {
     /// Stats that only comes from items
     items_stats: UnitStats,
     runes_stats: UnitStats, //not pub on purpose because must not be used in items calculation
-    pub stats: UnitStats, //actual combat stats (the only stat field that changes dynamically during simulation)
+    stats: UnitStats, //actual combat stats (the only stat field that changes dynamically during simulation)
 
     //lvl and abilities lvl
-    pub lvl: NonZeroU8, //this is intentionally NonZeroU8 and not usize, so when used for indexing it reminds you to substract 1 to access array elements
+    lvl: NonZeroU8, //this is intentionally NonZeroU8 and not usize, so when used for indexing it reminds you to substract 1 to access array elements
     q_lvl: u8,
     w_lvl: u8,
     e_lvl: u8,
     r_lvl: u8,
 
-    //simulation timings
-    pub time: f32,
-    pub basic_attack_cd: f32,
-    pub q_cd: f32,
-    pub w_cd: f32,
-    pub e_cd: f32,
-    pub r_cd: f32,
+    //simulation timings (pub for debug purposes but should not be modified by the user)
+    time: f32,
+    basic_attack_cd: f32,
+    q_cd: f32,
+    w_cd: f32,
+    e_cd: f32,
+    r_cd: f32,
 
     //on action functions
     on_action_fns_holder: OnActionFnsHolder,
@@ -967,7 +1036,7 @@ impl fmt::Display for Unit {
 
 /// Indicates the type of a damage instance.
 #[derive(EnumSetType, Debug)]
-pub enum DmgTag {
+enum DmgTag {
     BasicAttack,
     Ability,
     Ultimate,
@@ -982,7 +1051,7 @@ impl Unit {
     /// Creates a new Unit with the given properties, runes, skill order, lvl and build.
     /// Return an Err with a corresponding error message if the Unit could not be created because of an invalid argument.
     pub fn new(
-        properties_ref: &'static UnitProperties,
+        properties: &'static UnitProperties,
         runes_page: RunesPage,
         skill_order: SkillOrder,
         lvl: u8,
@@ -990,19 +1059,19 @@ impl Unit {
     ) -> Result<Self, String> {
         //perform some checks before creating the Unit
         //we don't want two different abilities happening at the same time so cast time must be >= F32_TOL
-        if properties_ref.q.cast_time < F32_TOL
-            || properties_ref.w.cast_time < F32_TOL
-            || properties_ref.e.cast_time < F32_TOL
-            || properties_ref.r.cast_time < F32_TOL
+        if properties.q.cast_time < F32_TOL
+            || properties.w.cast_time < F32_TOL
+            || properties.e.cast_time < F32_TOL
+            || properties.r.cast_time < F32_TOL
         {
             return Err(format!(
                 "{} abilities cast time should be >= F32_TOL",
-                properties_ref.name
+                properties.name
             ));
         }
 
         //for similar reasons cooldowns must be >= F32_TOL
-        if properties_ref
+        if properties
             .q
             .base_cooldown_by_ability_lvl
             .iter()
@@ -1010,10 +1079,10 @@ impl Unit {
         {
             return Err(format!(
                 "{} abilities cast time should be >= F32_TOL",
-                properties_ref.name
+                properties.name
             ));
         }
-        if properties_ref
+        if properties
             .w
             .base_cooldown_by_ability_lvl
             .iter()
@@ -1021,10 +1090,10 @@ impl Unit {
         {
             return Err(format!(
                 "{} W ability cooldown should be >= F32_TOL",
-                properties_ref.name
+                properties.name
             ));
         }
-        if properties_ref
+        if properties
             .e
             .base_cooldown_by_ability_lvl
             .iter()
@@ -1032,10 +1101,10 @@ impl Unit {
         {
             return Err(format!(
                 "{} E ability cooldown should be >= F32_TOL",
-                properties_ref.name
+                properties.name
             ));
         }
-        if properties_ref
+        if properties
             .r
             .base_cooldown_by_ability_lvl
             .iter()
@@ -1043,26 +1112,24 @@ impl Unit {
         {
             return Err(format!(
                 "{} R ability cooldown should be >= F32_TOL",
-                properties_ref.name
+                properties.name
             ));
         }
 
-        if properties_ref.fight_scenarios.is_empty() {
+        if properties.fight_scenarios.is_empty() {
             return Err(format!(
                 "{} should have at least 1 fight scenario",
-                properties_ref.name
+                properties.name
             ));
         }
 
         //create the unit
         let mut new_unit: Self = Self {
             //properties
-            properties: properties_ref,
+            properties,
             runes_page: RunesPage::default(), //temporary value until initialized by setter function
             skill_order: SkillOrder::default(), //temporary value until initialized by setter function (must still be a valid skill order!)
             build: Build::default(),
-            build_cost: 0.,
-            fight_scenario: properties_ref.fight_scenarios[0],
 
             //stats
             lvl_stats: UnitStats::default(), //temporary value until initialized by setter function
@@ -1116,7 +1183,7 @@ impl Unit {
         new_unit.on_action_fns_holder.clear();
         new_unit
             .on_action_fns_holder
-            .extend(&properties_ref.on_action_fns);
+            .extend(&properties.on_action_fns);
         new_unit.on_action_fns_holder.extend(runes_page.keystone);
 
         //check and set runes
@@ -1139,17 +1206,64 @@ impl Unit {
     /// Creates a new Unit with the given properties, lvl and build.
     /// The default runes and skill order from the given properties are used.
     pub fn from_defaults(
-        properties_ref: &'static UnitProperties,
+        properties: &'static UnitProperties,
         lvl: u8,
         build: Build,
     ) -> Result<Self, String> {
         Self::new(
-            properties_ref,
-            properties_ref.unit_defaults.runes_pages.clone(),
-            properties_ref.unit_defaults.skill_order.clone(),
+            properties,
+            properties.unit_defaults.runes_pages.clone(),
+            properties.unit_defaults.skill_order.clone(),
             lvl,
             build,
         )
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn get_stats(&self) -> &UnitStats {
+        &self.stats
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn get_time(&self) -> f32 {
+        self.time
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_basic_attack_cd(&self) -> f32 {
+        self.basic_attack_cd
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_q_cd(&self) -> f32 {
+        self.q_cd
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_w_cd(&self) -> f32 {
+        self.w_cd
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_e_cd(&self) -> f32 {
+        self.e_cd
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_r_cd(&self) -> f32 {
+        self.r_cd
     }
 
     /// Sets the Unit skill order, returns Ok if success or Err if failure (depending on the validity of the given skill order).
@@ -1162,6 +1276,13 @@ impl Unit {
         self.update_abilities_lvls();
 
         Ok(())
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_skill_order(&self) -> &SkillOrder {
+        &self.skill_order
     }
 
     /// Updates unit spells lvl.
@@ -1261,6 +1382,12 @@ impl Unit {
         Ok(())
     }
 
+    #[must_use]
+    #[inline]
+    pub fn get_lvl(&self) -> NonZeroU8 {
+        self.lvl
+    }
+
     /// Updates the Unit build, returns Ok if success or Err if failure (depending on the validity of the given build).
     /// In case of a failure, the unit is not modified.
     pub fn set_build(&mut self, build: Build) -> Result<(), String> {
@@ -1278,18 +1405,22 @@ impl Unit {
 
         //clear items from unit
         self.items_stats.clear();
-        self.build_cost = 0.;
         self.on_action_fns_holder.clear();
         self.on_action_fns_holder
             .extend(&self.properties.on_action_fns);
         self.on_action_fns_holder.extend(self.runes_page.keystone);
 
         //add items one by one to unit
-        for &item_ref in build.iter().filter(|&&item_ref| *item_ref != NULL_ITEM) {
-            self.items_stats.add(&item_ref.stats);
-            self.build_cost += item_ref.cost;
-            self.on_action_fns_holder.extend(&item_ref.on_action_fns);
+        for &item in build.iter().filter(|&&item| *item != NULL_ITEM) {
+            self.items_stats.add(&item.stats);
+            self.on_action_fns_holder.extend(&item.on_action_fns);
         }
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn get_build(&self) -> &Build {
+        &self.build
     }
 
     pub fn init_fight(&mut self) {
@@ -1733,10 +1864,10 @@ impl Unit {
     /// Simulate a fight for the unit hitting the specified target according to what is defined in the unit properties
     /// and returns (average dps, effective hp, average move speed) obtained from the simulation.
     /// This function will always start by initializing the unit with `self.init_fight` and use all items actives before simulating.
-    pub fn simulate_fight(&mut self, target_stats: &UnitStats, fight_duration: f32) {
+    pub fn simulate_fight(&mut self, target_stats: &UnitStats, index: usize, fight_duration: f32) {
         self.init_fight();
         self.use_all_special_actives(target_stats);
-        (self.fight_scenario.0)(self, target_stats, fight_duration);
+        (self.properties.fight_scenarios[index].0)(self, target_stats, fight_duration);
     }
 }
 

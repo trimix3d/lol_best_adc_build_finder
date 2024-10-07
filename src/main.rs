@@ -92,13 +92,13 @@ fn champion_test_ground() {
 
     //creation of champion
     let mut champ: Unit = Unit::from_defaults(
-        &Unit::ASHE_PROPERTIES,
+        &Unit::EZREAL_PROPERTIES,
         6,
         Build([
-            &TRINITY_FORCE,
-            &MURAMANA,
-            &GUINSOOS_RAGEBLADE,
-            &TERMINUS,
+            &KRAKEN_SLAYER,
+            &ROD_OF_AGES,
+            &UMBRAL_GLAIVE,
+            &NULL_ITEM,
             &NULL_ITEM,
             &NULL_ITEM,
         ]),
@@ -107,11 +107,15 @@ fn champion_test_ground() {
 
     //champion actions
     println!("{}", champ);
-    champ.walk(champ.basic_attack_cd);
-    println!("{} - t: {}", champ.q(&dummy.stats), champ.time,);
+    champ.walk(champ.get_basic_attack_cd());
+    println!(
+        "{} - t: {}",
+        champ.basic_attack(dummy.get_stats()),
+        champ.get_time(),
+    );
 }
 
 fn main() {
-    //champion_test_ground();
-    cli::launch_interface();
+    champion_test_ground();
+    //cli::launch_interface();
 }

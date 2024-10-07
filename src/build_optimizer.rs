@@ -1,8 +1,9 @@
 use super::game_data::*;
 
+use units_data::*;
+
 use items_data::{items::NULL_ITEM, *};
 use runes_data::RunesPage;
-use units_data::*;
 
 use enumset::{enum_set, EnumSet};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -10,7 +11,7 @@ use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use core::iter::zip;
-use core::num::{NonZero, NonZeroU8};
+use core::num::{NonZero, NonZeroU8, NonZeroUsize};
 use core::time::Duration;
 
 /// Meaningless to go above this value (in seconds).
@@ -467,6 +468,7 @@ impl BuildContainer {
 #[derive(Debug)]
 pub struct BuildsGenerationSettings {
     pub target_properties: &'static UnitProperties,
+    pub fight_scenario_number: NonZeroUsize,
     pub fight_duration: f32,
     pub phys_dmg_taken_percent: f32,
     pub judgment_weights: (f32, f32, f32),
@@ -487,6 +489,7 @@ impl Default for BuildsGenerationSettings {
     fn default() -> Self {
         BuildsGenerationSettings {
             target_properties: &SQUISHY_OPTIMIZER_DUMMY_PROPERTIES,
+            fight_scenario_number: NonZeroUsize::new(1).unwrap(),
             fight_duration: DEFAULT_FIGHT_DURATION,
             phys_dmg_taken_percent: 0.60,
             judgment_weights: (1., 0.25, 0.5),
@@ -505,7 +508,7 @@ impl Default for BuildsGenerationSettings {
 }
 
 impl BuildsGenerationSettings {
-    pub fn default_by_champion(properties_ref: &UnitProperties) -> Self {
+    pub fn default_by_champion(properties: &UnitProperties) -> Self {
         /*
         '⠀⣞⢽⢪⢣⢣⢣⢫⡺⡵⣝⡮⣗⢷⢽⢽⢽⣮⡷⡽⣜⣜⢮⢺⣜⢷⢽⢝⡽⣝
          ⠸⡸⠜⠕⠕⠁⢁⢇⢏⢽⢺⣪⡳⡝⣎⣏⢯⢞⡿⣟⣷⣳⢯⡷⣽⢽⢯⣳⣫⠇
@@ -524,57 +527,57 @@ impl BuildsGenerationSettings {
         match doesn't work :,(
         */
         #[allow(clippy::if_same_then_else)]
-        if *properties_ref == Unit::ASHE_PROPERTIES {
+        if *properties == Unit::ASHE_PROPERTIES {
             BuildsGenerationSettings {
                 //boots_slot: 1, //gives questionable results
-                legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties_ref.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties_ref.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
+                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
-        } else if *properties_ref == Unit::DRAVEN_PROPERTIES {
+        } else if *properties == Unit::DRAVEN_PROPERTIES {
             BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties_ref.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties_ref.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
+                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
-        } else if *properties_ref == Unit::KAISA_PROPERTIES {
+        } else if *properties == Unit::KAISA_PROPERTIES {
             BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties_ref.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties_ref.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
+                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
-        } else if *properties_ref == Unit::LUCIAN_PROPERTIES {
+        } else if *properties == Unit::LUCIAN_PROPERTIES {
             BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties_ref.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties_ref.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
+                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
                 ..Default::default()
             }
-        } else if *properties_ref == Unit::VARUS_PROPERTIES {
+        } else if *properties == Unit::VARUS_PROPERTIES {
             BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties_ref.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties_ref.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
+                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
         } else {
             BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties_ref.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties_ref.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties_ref.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
+                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
                 ..Default::default()
             }
         }
     }
 
-    pub fn check_settings(&self) -> Result<(), String> {
+    pub fn check_settings(&self, champ: &Unit) -> Result<(), String> {
         if !TARGET_OPTIONS
             .iter()
             .any(|properties| self.target_properties == *properties)
@@ -582,6 +585,13 @@ impl BuildsGenerationSettings {
             return Err(format!(
                 "'{}' is not a recognized target",
                 self.target_properties.name
+            ));
+        }
+
+        if self.fight_scenario_number.get() > champ.properties.fight_scenarios.len() {
+            return Err(format!(
+                "Fight scenario number must be lower than the number of available fight scenarios for {} which is {} (got {})",
+                champ.properties.name, champ.properties.fight_scenarios.len(), self.fight_scenario_number.get(),
             ));
         }
 
@@ -700,15 +710,12 @@ impl BuildsGenerationSettings {
         if self
             .legendary_items_pool
             .iter()
-            .any(|&item_ref| *item_ref == NULL_ITEM)
-            || self
-                .boots_pool
-                .iter()
-                .any(|&item_ref| *item_ref == NULL_ITEM)
+            .any(|&item| *item == NULL_ITEM)
+            || self.boots_pool.iter().any(|&item| *item == NULL_ITEM)
             || self
                 .support_items_pool
                 .iter()
-                .any(|&item_ref| *item_ref == NULL_ITEM)
+                .any(|&item| *item == NULL_ITEM)
         {
             return Err("Items pools cannot contain NULL_ITEM".to_string());
         }
@@ -839,15 +846,15 @@ fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usiz
 }
 
 fn get_scores_from_sim_results(champ: &Unit, phys_dmg_taken_percent: f32) -> (f32, f32, f32) {
-    let actual_time: f32 = champ.time; //take champ.time instead of fight_duration in scores calculations, since simulation can be slighlty extended
+    let actual_time: f32 = champ.get_time(); //take champ.time instead of fight_duration in scores calculations, since simulation can be slighlty extended
 
     let dps: f32 = champ.sim_logs.dmg_done.as_sum() / actual_time; //average dps of the unit over the fight simulation
 
-    let effective_hp: f32 = (champ.stats.hp
+    let effective_hp: f32 = (champ.get_stats().hp
         + champ.sim_logs.single_use_heals_shields
         + DEFAULT_FIGHT_DURATION * champ.sim_logs.periodic_heals_shields / actual_time)
-        / (phys_dmg_taken_percent * resistance_formula(champ.stats.armor)
-            + (1. - phys_dmg_taken_percent) * resistance_formula(champ.stats.mr));
+        / (phys_dmg_taken_percent * resistance_formula(champ.get_stats().armor)
+            + (1. - phys_dmg_taken_percent) * resistance_formula(champ.get_stats().mr));
 
     let move_speed: f32 = champ.sim_logs.units_travelled / actual_time; //average move speed of the unit over the fight simulation
 
@@ -895,7 +902,11 @@ impl ParetoSpacePoint {
         let std_dev: f32 = 0.15 * settings.fight_duration; //chosen arbitrarily, but it works
 
         //weights for a value at 1.25 std_dev from the mean
-        champ.simulate_fight(target_stats, settings.fight_duration - 1.25 * std_dev);
+        champ.simulate_fight(
+            target_stats,
+            settings.fight_scenario_number.get() - 1,
+            settings.fight_duration - 1.25 * std_dev,
+        );
         let (dps, defense, ms): (f32, f32, f32) =
             get_scores_from_sim_results(champ, settings.phys_dmg_taken_percent);
         avg_dps += 0.25 * dps;
@@ -903,7 +914,11 @@ impl ParetoSpacePoint {
         avg_ms += 0.25 * ms;
 
         //weights for a value at the mean
-        champ.simulate_fight(target_stats, settings.fight_duration);
+        champ.simulate_fight(
+            target_stats,
+            settings.fight_scenario_number.get() - 1,
+            settings.fight_duration,
+        );
         let (dps, defense, ms): (f32, f32, f32) =
             get_scores_from_sim_results(champ, settings.phys_dmg_taken_percent);
         avg_dps += 0.50 * dps;
@@ -911,7 +926,11 @@ impl ParetoSpacePoint {
         avg_ms += 0.50 * ms;
 
         //weights for a value at 1.25 std_dev from the mean
-        champ.simulate_fight(target_stats, settings.fight_duration + 1.25 * std_dev);
+        champ.simulate_fight(
+            target_stats,
+            settings.fight_scenario_number.get() - 1,
+            settings.fight_duration + 1.25 * std_dev,
+        );
         let (dps, defense, ms): (f32, f32, f32) =
             get_scores_from_sim_results(champ, settings.phys_dmg_taken_percent);
         avg_dps += 0.25 * dps;
@@ -920,7 +939,7 @@ impl ParetoSpacePoint {
 
         Self {
             utils: container.cum_utils | container.build[item_idx].utils, //only check current item, as containers should records items utils cumulatively from previous items
-            golds: champ.build_cost,
+            golds: champ.get_build().cost(),
             dps: avg_dps,
             defense: avg_defense,
             ms: avg_ms,
@@ -1029,11 +1048,11 @@ pub fn find_best_builds(
     settings: &BuildsGenerationSettings,
 ) -> Result<Vec<BuildContainer>, String> {
     //check input arguments
-    settings.check_settings()?;
+    settings.check_settings(champ)?;
 
     //backup original champion configuration
-    let original_lvl: NonZeroU8 = champ.lvl;
-    let original_build: Build = champ.build;
+    let original_lvl: NonZeroU8 = champ.get_lvl();
+    let original_build: Build = *champ.get_build();
 
     //get number of available threads
     let n_threads: NonZero<usize> =
@@ -1078,7 +1097,7 @@ pub fn find_best_builds(
         &empty_build,
         0,
         champ,
-        &target.stats,
+        target.get_stats(),
         settings,
     );
     empty_build.dps[0] = empty_build_point.dps;
@@ -1109,10 +1128,10 @@ pub fn find_best_builds(
         target.init_fight();
 
         //set item pool
-        let mut pool_ref: &[&Item] = &[settings.mandatory_items[item_idx]]; //need to assign temporary value outside of if else brackets
+        let mut pool: &[&Item] = &[settings.mandatory_items[item_idx]]; //need to assign temporary value outside of if else brackets
         let pool_without_manaflow: Vec<&Item>;
         if *settings.mandatory_items[item_idx] == NULL_ITEM {
-            pool_ref = if item_slot == settings.boots_slot {
+            pool = if item_slot == settings.boots_slot {
                 &settings.boots_pool
             } else if item_slot == settings.support_item_slot {
                 &settings.support_items_pool
@@ -1121,18 +1140,18 @@ pub fn find_best_builds(
             };
 
             if item_slot == 1 && !settings.allow_manaflow_first_item {
-                pool_without_manaflow = pool_ref
+                pool_without_manaflow = pool
                     .iter()
                     .filter(|item| !item.item_groups.contains(ItemGroups::Manaflow))
                     .copied()
                     .collect();
-                pool_ref = &pool_without_manaflow;
+                pool = &pool_without_manaflow;
             }
         }
 
         //generate next builds layer from pool
         if let Some(new_builds) =
-            generate_build_layer(best_builds, pool_ref, item_idx, normalized_judgment_weights)
+            generate_build_layer(best_builds, pool, item_idx, normalized_judgment_weights)
         {
             best_builds = new_builds;
         } else {
@@ -1155,7 +1174,7 @@ pub fn find_best_builds(
                 simulate_chunk_of_builds(
                     chunk,
                     &mut champ.clone(),
-                    &target.stats,
+                    target.get_stats(),
                     settings,
                     item_idx,
                 )
@@ -1247,21 +1266,13 @@ mod tests {
 
     #[test]
     pub fn test_default_build_generation_settings() {
-        //test for an unknown champion
-        if let Err(error_msg) =
-            BuildsGenerationSettings::default_by_champion(&BRUISER_OPTIMIZER_DUMMY_PROPERTIES)
-                .check_settings()
-        {
-            panic!(
-                "Default build generation settings (for an unspecified champion) are not valid: {}",
-                error_msg
-            )
-        }
-
         //test for every champion
         for properties in Unit::ALL_CHAMPIONS.iter() {
+            let champ: Unit = Unit::from_defaults(*properties, MIN_UNIT_LVL, Build::default())
+                .expect("Failed to create unit");
+
             if let Err(error_msg) =
-                BuildsGenerationSettings::default_by_champion(properties).check_settings()
+                BuildsGenerationSettings::default_by_champion(properties).check_settings(&champ)
             {
                 panic!(
                     "Default build generation settings for '{}' are not valid: {}",

@@ -34,6 +34,13 @@ impl Unit {
         Ok(())
     }
 
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_runes(&self) -> &RunesPage {
+        &self.runes_page
+    }
+
     /// Updates unit runes stats (stats only coming from runes).
     ///
     /// Because of runes hp by lvl and adaptive force, runes stats actually depend on lvl and items as well.

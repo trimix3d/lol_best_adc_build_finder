@@ -1,4 +1,4 @@
-use crate::game_data::{basic_attack_aoe_effect_avg_additionnal_targets, units_data::*};
+use crate::game_data::units_data::*;
 
 use items_data::items::*;
 

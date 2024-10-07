@@ -143,13 +143,12 @@ pub struct Item {
     pub short_name: &'static str,
     pub cost: f32, //f32 because exclusively used in f32 calculations
     pub item_groups: EnumSet<ItemGroups>,
-    //utility
     pub utils: EnumSet<ItemUtils>,
 
     //stats
     pub stats: UnitStats,
 
-    //on action fns
+    //on action fns (passives/actives)
     pub on_action_fns: OnActionFns,
 }
 
@@ -333,9 +332,9 @@ impl fmt::Display for Build {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str("[")?;
         f.write_str(self[0].short_name)?;
-        for item_ref in &self[1..] {
+        for item in &self[1..] {
             f.write_str(", ")?;
-            f.write_str(item_ref.short_name)?;
+            f.write_str(item.short_name)?;
         }
         f.write_str("]")
     }
@@ -345,12 +344,21 @@ pub type BuildHash = [ItemId; MAX_UNIT_ITEMS];
 
 impl Build {
     /// Returns the item count in the build (ignoring `NULL_ITEMs`).
-    /// Assumes all `NULL_ITEMs` are at the end of the build because it looks for its first occurence to return the item count.
     #[must_use]
     pub fn item_count(&self) -> usize {
-        self.iter()
-            .position(|&item_ref| *item_ref == NULL_ITEM)
-            .unwrap_or(MAX_UNIT_ITEMS)
+        let mut item_count: usize = 0;
+        for &item in self.iter() {
+            if *item != NULL_ITEM {
+                item_count += 1;
+            }
+        }
+        item_count
+    }
+
+    /// Returns the build cost
+    #[must_use]
+    pub fn cost(&self) -> f32 {
+        self.iter().fold(0., |acc, &item| acc + item.cost)
     }
 
     /// Returns the build hash. Builds with same items but in different item order will produce the same hash.
@@ -384,11 +392,11 @@ impl Build {
     #[must_use]
     pub fn has_item_groups_overlap(&self) -> bool {
         let mut cum_item_groups: EnumSet<ItemGroups> = self[0].item_groups;
-        for item_ref in self[1..].iter().filter(|&&item_ref| *item_ref != NULL_ITEM) {
-            if !((cum_item_groups & item_ref.item_groups).is_empty()) {
+        for item in self[1..].iter().filter(|&&item| *item != NULL_ITEM) {
+            if !((cum_item_groups & item.item_groups).is_empty()) {
                 return true;
             }
-            cum_item_groups |= item_ref.item_groups;
+            cum_item_groups |= item.item_groups;
         }
         false
     }
@@ -415,7 +423,7 @@ mod tests {
         .concat();
 
         //get ids and sort them
-        let mut items_ids: Vec<ItemId> = all_items.iter().map(|item_ref| item_ref.id).collect();
+        let mut items_ids: Vec<ItemId> = all_items.iter().map(|item| item.id).collect();
         items_ids.sort_unstable();
 
         //compare adjacent elements of sorted vec to find id collisions
@@ -430,7 +438,7 @@ mod tests {
     pub fn test_average_legendary_item_cost() {
         let true_legendary_avg: f32 = ALL_LEGENDARY_ITEMS
             .iter()
-            .map(|item_ref| item_ref.cost)
+            .map(|item| item.cost)
             .sum::<f32>()
             / (ALL_LEGENDARY_ITEMS.len() as f32);
 
@@ -445,7 +453,7 @@ mod tests {
     #[test]
     pub fn test_average_boots_cost() {
         let true_boots_avg: f32 =
-            ALL_BOOTS.iter().map(|item_ref| item_ref.cost).sum::<f32>() / (ALL_BOOTS.len() as f32);
+            ALL_BOOTS.iter().map(|item| item.cost).sum::<f32>() / (ALL_BOOTS.len() as f32);
 
         assert!(((AVG_BOOTS_COST) - true_boots_avg).abs() < 1.,
             "Constant `AVG_BOOTS_COST` of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
@@ -457,11 +465,8 @@ mod tests {
 
     #[test]
     pub fn test_average_support_item_cost() {
-        let true_support_avg: f32 = ALL_SUPPORT_ITEMS
-            .iter()
-            .map(|item_ref| item_ref.cost)
-            .sum::<f32>()
-            / (ALL_BOOTS.len() as f32);
+        let true_support_avg: f32 =
+            ALL_SUPPORT_ITEMS.iter().map(|item| item.cost).sum::<f32>() / (ALL_BOOTS.len() as f32);
 
         assert!(((AVG_SUPPORT_ITEM_COST) - true_support_avg).abs() < 1.,
             "Constant `AVG_SUPPORT_ITEM_COST` of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",

@@ -1,8 +1,9 @@
-use crate::game_data::STARTING_GOLDS;
-
 use super::{
     build_optimizer::{get_normalized_judgment_weights, BuildContainer},
-    game_data::units_data::items_data::{BuildHash, ItemUtils},
+    game_data::{
+        units_data::items_data::{BuildHash, ItemUtils},
+        STARTING_GOLDS,
+    },
 };
 
 use enumset::EnumSet;
@@ -13,14 +14,14 @@ use core::num::NonZeroUsize;
 //todo: tier list and save it in file
 
 /// Sort the provided pareto builds by their average score.
-pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights: (f32, f32, f32)) {
+pub fn sort_builds_by_score(builds: &mut [BuildContainer], judgment_weights: (f32, f32, f32)) {
     //sanity check
-    if builds_ref.is_empty() {
+    if builds.is_empty() {
         return;
     }
 
-    let n_items: usize = builds_ref[0].build.item_count(); //assumes all builds have the same length as the first of the list
-    let max_golds: f32 = builds_ref
+    let n_items: usize = builds[0].build.item_count(); //assumes all builds have the same length as the first of the list
+    let max_golds: f32 = builds
         .iter()
         .map(|build| build.golds[n_items])
         .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
@@ -30,8 +31,8 @@ pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights:
 
     //maybe using a hashmap is overkill to store average scores (but it allows to sanity check duplicates)
     let mut average_scores: FxHashMap<BuildHash, f32> =
-        FxHashMap::with_capacity_and_hasher(builds_ref.len(), FxBuildHasher);
-    for container in builds_ref.iter() {
+        FxHashMap::with_capacity_and_hasher(builds.len(), FxBuildHasher);
+    for container in builds.iter() {
         let old_score_maybe = average_scores.insert(
             container.build.get_hash(),
             container.get_avg_score_with_normalized_weights(
@@ -48,7 +49,7 @@ pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights:
     }
 
     //sort in reverse order
-    builds_ref.sort_unstable_by(|container1, container2| {
+    builds.sort_unstable_by(|container1, container2| {
         (average_scores.get(&container2.build.get_hash()).unwrap())
             .partial_cmp(average_scores.get(&container1.build.get_hash()).unwrap())
             .expect("Failed to compare floats")
@@ -57,12 +58,12 @@ pub fn sort_builds_by_score(builds_ref: &mut [BuildContainer], judgment_weights:
 
 /// Prints the provided pareto builds.
 pub fn print_builds_scores(
-    builds_ref: &[BuildContainer],
+    builds: &[BuildContainer],
     judgment_weights: (f32, f32, f32),
     n_to_print: NonZeroUsize,
     must_have_utils: EnumSet<ItemUtils>,
 ) {
-    let filtered_builds = builds_ref
+    let filtered_builds = builds
         .iter()
         .filter(|container| (must_have_utils & !container.cum_utils).is_empty());
     let filtered_len = filtered_builds.clone().count();
@@ -81,8 +82,8 @@ pub fn print_builds_scores(
         return;
     }
 
-    let n_items: usize = builds_ref[0].build.item_count(); //assumes all builds have the same length as the first of the list
-    let max_golds: f32 = builds_ref
+    let n_items: usize = builds[0].build.item_count(); //assumes all builds have the same length as the first of the list
+    let max_golds: f32 = builds
         .iter()
         .map(|build| build.golds[n_items])
         .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))

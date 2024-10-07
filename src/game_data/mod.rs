@@ -1,9 +1,6 @@
 pub mod units_data;
 
-use units_data::{
-    items_data::{AVG_BOOTS_COST, AVG_LEGENDARY_ITEM_COST, AVG_SUPPORT_ITEM_COST},
-    {MAX_UNIT_LVL, MIN_UNIT_LVL},
-};
+use units_data::items_data::{AVG_BOOTS_COST, AVG_LEGENDARY_ITEM_COST, AVG_SUPPORT_ITEM_COST};
 
 use core::{fmt, ops};
 
@@ -31,7 +28,7 @@ pub const STARTING_GOLDS: f32 = 500.;
 pub const PASSIVE_GOLDS_GEN_PER_MIN: f32 = 122.4;
 /// CS/min of the player of the champion we want to optimize,
 /// a bit inflated (~+20%) to take other sources of golds into account (kills, towers, ...).
-pub const CS_PER_MIN: f32 = 8.0;
+pub const CS_PER_MIN: f32 = 9.;
 const GOLDS_PER_MELEE_CS: f32 = 21.;
 const GOLDS_PER_CASTER_CS: f32 = 14.;
 /// Average gold per siege minion over a 30min game.
@@ -75,29 +72,6 @@ const XP_PER_BOOTS_ITEM: f32 = AVG_XP_PER_CS * CS_PER_MIN * AVG_BOOTS_COST / TOT
 const XP_PER_SUPPORT_ITEM: f32 =
     AVG_XP_PER_CS * CS_PER_MIN * AVG_SUPPORT_ITEM_COST / TOT_GOLDS_PER_MIN;
 
-/// Amount of cumulative xp required to reach the given lvl.
-const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [
-    280.,   //needed to reach lvl 2
-    660.,   //needed to reach lvl 3
-    1140.,  //needed to reach lvl 4
-    1720.,  //needed to reach lvl 5
-    2400.,  //needed to reach lvl 6
-    3180.,  //needed to reach lvl 7
-    4060.,  //needed to reach lvl 8
-    5040.,  //needed to reach lvl 9
-    6120.,  //needed to reach lvl 10
-    7300.,  //needed to reach lvl 11
-    8580.,  //needed to reach lvl 12
-    9960.,  //needed to reach lvl 13
-    11440., //needed to reach lvl 14
-    13020., //needed to reach lvl 15
-    14700., //needed to reach lvl 16
-    16480., //needed to reach lvl 17
-    18360., //needed to reach lvl 18
-];
-/// Travel distance required to fully charge energized attacks (rapid firecanon, statikk shiv, ...).
-const ENERGIZED_ATTACKS_TRAVEL_REQUIRED: f32 = 100. * 24.;
-
 //fights simulation parameters:
 /// Average time in seconds we consider between fights (used to weight items actives with different cooldowns).
 const TIME_BETWEEN_FIGHTS: f32 = 180.;
@@ -106,56 +80,6 @@ const TIME_BETWEEN_FIGHTS: f32 = 180.;
 /// The function receives the real cooldown of the effect, already reduced by haste.
 fn effect_availability_formula(real_cooldown: f32) -> f32 {
     TIME_BETWEEN_FIGHTS / (TIME_BETWEEN_FIGHTS + real_cooldown)
-}
-/// Reference area used to compute the average number of targets hit by basic attacks aoe effects.
-/// Should have a value so that an aoe basic attack effect with this range hits on average the same number of targets than runaans bolts.
-const AOE_BASIC_ATTACK_REFERENCE_RADIUS: f32 = 450.;
-
-/// From the radius of the aoe basic attack effect, gives the number of targets hit
-/// (additionnal to the target that was originally hit by the basic attack).
-macro_rules! basic_attack_aoe_effect_avg_additionnal_targets {
-    ($radius:expr) => {
-        crate::game_data::units_data::items_data::items::RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS
-            * $radius
-            * $radius
-            / (crate::game_data::AOE_BASIC_ATTACK_REFERENCE_RADIUS
-                * crate::game_data::AOE_BASIC_ATTACK_REFERENCE_RADIUS)
-    };
-}
-use basic_attack_aoe_effect_avg_additionnal_targets; //to make it accessible in submodules
-
-//game mechanics related functions:
-/// Returns coefficient multiplying base cooldown to give the actual cooldown reduced by haste.
-/// <https://leagueoflegends.fandom.com/wiki/Haste>
-fn haste_formula(haste: f32) -> f32 {
-    100. / (100. + haste)
-}
-
-/// From number of items, returns the associated unit lvl.
-#[must_use]
-pub fn lvl_from_number_of_items(
-    item_slot: usize,
-    boots_slot: usize,
-    support_item_slot: usize,
-) -> u8 {
-    let mut cum_xp: f32 = 0.;
-    for i in 1..=item_slot {
-        if i == boots_slot {
-            cum_xp += XP_PER_BOOTS_ITEM;
-        } else if i == support_item_slot {
-            cum_xp += XP_PER_SUPPORT_ITEM;
-        } else {
-            cum_xp += XP_PER_LEGENDARY_ITEM;
-        }
-    }
-
-    let mut lvl: u8 = MIN_UNIT_LVL; //lvl cannot be below MIN_UNIT_LVL, so start at this value
-    while usize::from(lvl - 1) < MAX_UNIT_LVL - 1
-        && cum_xp >= CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL[usize::from(lvl - 1)]
-    {
-        lvl += 1;
-    }
-    lvl
 }
 
 /// Contains a damage value divided in (`phys_dmg`, `magic_dmg`, `true_dmg`).

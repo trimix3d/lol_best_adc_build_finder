@@ -476,17 +476,20 @@ const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
 
 /// Show the build generation settings, prompt the user for any change and returns the settings when done.
 fn confirm_builds_generation_settings(
-    settings_ref: &mut BuildsGenerationSettings,
+    settings: &mut BuildsGenerationSettings,
     champ: &mut Unit,
 ) -> Result<(), UserCommand> {
     loop {
         let choices_strings: [String; 13] = [
-            format!("target: {}", settings_ref.target_properties.name),
-            format!("fight scenario: {}", champ.fight_scenario.1),
+            format!("target: {}", settings.target_properties.name),
+            format!(
+                "fight scenario: {}",
+                champ.properties.fight_scenarios[settings.fight_scenario_number.get() - 1].1
+            ),
             format!(
                 "fight duration: {}s{}",
-                settings_ref.fight_duration,
-                if settings_ref.fight_duration < LOW_FIGHT_DURATION_VALUE_WARNING {
+                settings.fight_duration,
+                if settings.fight_duration < LOW_FIGHT_DURATION_VALUE_WARNING {
                     format!(
                         " (/!\\ set to a low value (<{}s), this can lead to inaccurate results)",
                         LOW_FIGHT_DURATION_VALUE_WARNING
@@ -497,49 +500,49 @@ fn confirm_builds_generation_settings(
             ),
             format!(
                 "percentage of physical damage taken: {:.0}%",
-                100. * settings_ref.phys_dmg_taken_percent,
+                100. * settings.phys_dmg_taken_percent,
             ),
             format!(
                 "judgment weights: DPS {}, defense {}, mobility {}",
-                settings_ref.judgment_weights.0,
-                settings_ref.judgment_weights.1,
-                settings_ref.judgment_weights.2
+                settings.judgment_weights.0,
+                settings.judgment_weights.1,
+                settings.judgment_weights.2
             ),
-            format!("number of items per build: {}", settings_ref.n_items),
+            format!("number of items per build: {}", settings.n_items),
             format!(
                 "boots slot: {}",
-                if settings_ref.boots_slot == 0 {
+                if settings.boots_slot == 0 {
                     "not specified".to_string()
                 } else {
-                    settings_ref.boots_slot.to_string()
+                    settings.boots_slot.to_string()
                 }
             ),
             format!(
                 "allow boots if slot is not specified: {}",
-                settings_ref.allow_boots_if_no_slot
+                settings.allow_boots_if_no_slot
             ),
             format!(
                 "support item slot: {}",
-                if settings_ref.support_item_slot == 0 {
+                if settings.support_item_slot == 0 {
                     "none".to_string()
                 } else {
-                    settings_ref.support_item_slot.to_string()
+                    settings.support_item_slot.to_string()
                 }
             ),
             format!(
                 "allow manaflow items in first slot: {}",
-                settings_ref.allow_manaflow_first_item
+                settings.allow_manaflow_first_item
             ),
-            format!("mandatory items: {}", settings_ref.mandatory_items),
+            format!("mandatory items: {}", settings.mandatory_items),
             format!(
                 "search threshold: {:.0}%{}",
-                100. * settings_ref.search_threshold,
-                if settings_ref.search_threshold < LOW_SEARCH_THRESHOLD_VALUE_WARNING {
+                100. * settings.search_threshold,
+                if settings.search_threshold < LOW_SEARCH_THRESHOLD_VALUE_WARNING {
                     format!(
                         " (/!\\ set to a low value (<{:.0}%), this can lead to inaccurate results)",
                         100. * LOW_SEARCH_THRESHOLD_VALUE_WARNING
                     )
-                } else if settings_ref.search_threshold > HIGH_SEARCH_THRESHOLD_VALUE_WARNING {
+                } else if settings.search_threshold > HIGH_SEARCH_THRESHOLD_VALUE_WARNING {
                     format!(
                         " (/!\\ set to a high value (>{:.0}%), this can result in long computation time)",
                         100. * HIGH_SEARCH_THRESHOLD_VALUE_WARNING
@@ -569,54 +572,54 @@ fn confirm_builds_generation_settings(
         match choice {
             1 => {
                 //target
-                change_target(settings_ref)?;
+                change_target(settings, champ)?;
             }
             2 => {
                 //fight_scenario
-                change_fight_scenario(champ)?;
+                change_fight_scenario_number(settings, champ)?;
             }
             3 => {
                 //fight_duration
-                change_fight_duration(settings_ref)?;
+                change_fight_duration(settings, champ)?;
             }
             4 => {
                 //phys_dmg_taken_percent
-                change_phys_dmg_taken_percent(settings_ref)?;
+                change_phys_dmg_taken_percent(settings, champ)?;
             }
             5 => {
                 //judgment_weights
-                change_judgment_weights(settings_ref)?;
+                change_judgment_weights(settings, champ)?;
             }
             6 => {
                 //n_items
-                change_n_items(settings_ref)?;
+                change_n_items(settings, champ)?;
             }
             7 => {
                 //boots_slot
-                change_boots_slot(settings_ref)?;
+                change_boots_slot(settings, champ)?;
             }
             8 => {
-                settings_ref.allow_boots_if_no_slot = !settings_ref.allow_boots_if_no_slot;
+                settings.allow_boots_if_no_slot = !settings.allow_boots_if_no_slot;
             }
             9 => {
                 //support_item_slot
-                change_support_item_slot(settings_ref)?;
+                change_support_item_slot(settings, champ)?;
             }
             //todo: change_items_pools feature, incorporate allow_manaflow_first_item & allow_boots_if_no_slot inside
             10 => {
-                settings_ref.allow_manaflow_first_item = !settings_ref.allow_manaflow_first_item;
+                settings.allow_manaflow_first_item = !settings.allow_manaflow_first_item;
             }
             11 => {
                 //mandatory_items
-                change_mandatory_items(settings_ref)?;
+                change_mandatory_items(settings, champ)?;
             }
             12 => {
                 //search_threshold
-                change_search_threshold(settings_ref)?;
+                change_search_threshold(settings, champ)?;
             }
             13 => {
                 //reset to default settings
-                *settings_ref = BuildsGenerationSettings::default_by_champion(champ.properties);
+                *settings = BuildsGenerationSettings::default_by_champion(champ.properties);
             }
             _ => unreachable!("Unhandled user input"),
         }
@@ -626,7 +629,7 @@ fn confirm_builds_generation_settings(
 const TARGET_HELP_MSG: &str = "The selected target will be used to compute the champion's DPS.";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_target(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
+fn change_target(settings: &mut BuildsGenerationSettings, champ: &Unit) -> Result<(), UserCommand> {
     loop {
         let choice: usize = match get_user_choice(
             "Available targets:",
@@ -644,7 +647,7 @@ fn change_target(settings: &mut BuildsGenerationSettings) -> Result<(), UserComm
         let old_target: &UnitProperties = settings.target_properties; //backup before checking validity
         settings.target_properties = TARGET_OPTIONS[choice - 1];
 
-        if let Err(error_msg) = settings.check_settings() {
+        if let Err(error_msg) = settings.check_settings(champ) {
             println!("Failed to set target: {error_msg}");
             settings.target_properties = old_target; //restore valid value
         } else {
@@ -657,28 +660,41 @@ const FIGHT_SCENARIO_HELP_MSG: &str = "Each generated build will go through a fi
         Hence, the builds found will perform best for the selected scenario.";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_fight_scenario(champ: &mut Unit) -> Result<(), UserCommand> {
-    match get_user_choice(
-        &format!(
-            "Available fight scenarios for {} are:",
-            champ.properties.name
-        ),
-        &format!("Select a fight scenario for {}", champ.properties.name),
-        FIGHT_SCENARIO_HELP_MSG,
-        champ
-            .properties
-            .fight_scenarios
-            .iter()
-            .map(|scenario| scenario.1),
-        false,
-    ) {
-        Ok(Some(choice)) => {
-            champ.fight_scenario = champ.properties.fight_scenarios[choice - 1];
-            Ok(())
+fn change_fight_scenario_number(
+    settings: &mut BuildsGenerationSettings,
+    champ: &mut Unit,
+) -> Result<(), UserCommand> {
+    loop {
+        let number: usize = match get_user_choice(
+            &format!(
+                "Available fight scenarios for {} are:",
+                champ.properties.name
+            ),
+            &format!("Select a fight scenario for {}", champ.properties.name),
+            FIGHT_SCENARIO_HELP_MSG,
+            champ
+                .properties
+                .fight_scenarios
+                .iter()
+                .map(|scenario| scenario.1),
+            false,
+        ) {
+            Ok(Some(choice)) => choice,
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but just in case
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
+
+        let old_fight_scenario_number: NonZeroUsize = settings.fight_scenario_number; //backup before checking validity
+        settings.fight_scenario_number =
+            NonZeroUsize::new(number).expect("Fight scenario number must be non-zero");
+
+        if let Err(error_msg) = settings.check_settings(champ) {
+            println!("Failed to set fight scenario: {error_msg}");
+            settings.fight_scenario_number = old_fight_scenario_number; //restore valid value
+        } else {
+            return Ok(());
         }
-        Ok(None) => Ok(()), //should never get here because `allow_no_input` is false but just in case
-        Err(UserCommand::Back) => Ok(()),
-        Err(command) => Err(command),
     }
 }
 
@@ -686,7 +702,10 @@ const FIGHT_DURATION_HELP_MSG: &str =
     "Every build will be evaluated based on a fight simulation of the selected duration (in seconds).";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_fight_duration(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
+fn change_fight_duration(
+    settings: &mut BuildsGenerationSettings,
+    champ: &Unit,
+) -> Result<(), UserCommand> {
     loop {
         let number: f32 =
             match get_user_f32("", "Enter a fight duration", FIGHT_DURATION_HELP_MSG, false) {
@@ -699,7 +718,7 @@ fn change_fight_duration(settings: &mut BuildsGenerationSettings) -> Result<(), 
         let old_fight_duration: f32 = settings.fight_duration; //backup before checking validity
         settings.fight_duration = number;
 
-        if let Err(error_msg) = settings.check_settings() {
+        if let Err(error_msg) = settings.check_settings(champ) {
             println!("Failed to set fight duration: {error_msg}");
             settings.fight_duration = old_fight_duration; //restore valid value
         } else {
@@ -715,6 +734,7 @@ const PHYS_DMG_TAKEN_PERCENT_HELP_MSG: &str =
 /// This function never returns `Err(UserCommand::back)`.
 fn change_phys_dmg_taken_percent(
     settings: &mut BuildsGenerationSettings,
+    champ: &Unit,
 ) -> Result<(), UserCommand> {
     loop {
         let number: f32 = match get_user_f32(
@@ -732,7 +752,7 @@ fn change_phys_dmg_taken_percent(
         let old_phys_dmg_taken_percent: f32 = settings.phys_dmg_taken_percent; //backup before checking validity
         settings.phys_dmg_taken_percent = number / 100.;
 
-        if let Err(error_msg) = settings.check_settings() {
+        if let Err(error_msg) = settings.check_settings(champ) {
             println!("Failed to set percentage of physical dmg taken: {error_msg}");
             settings.phys_dmg_taken_percent = old_phys_dmg_taken_percent; //restore valid value
         } else {
@@ -768,7 +788,10 @@ fn get_user_judgment_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>)
 }
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_judgment_weights(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
+fn change_judgment_weights(
+    settings: &mut BuildsGenerationSettings,
+    champ: &Unit,
+) -> Result<(), UserCommand> {
     loop {
         let input_weights: (Option<f32>, Option<f32>, Option<f32>) =
             match get_user_judgment_weights() {
@@ -788,7 +811,7 @@ fn change_judgment_weights(settings: &mut BuildsGenerationSettings) -> Result<()
             settings.judgment_weights.2 = ms_weight;
         }
 
-        if let Err(error_msg) = settings.check_settings() {
+        if let Err(error_msg) = settings.check_settings(champ) {
             println!("Failed to set judgment weights: {error_msg}");
             settings.judgment_weights = old_judgment_weights; //restore valid value
         } else {
@@ -800,7 +823,10 @@ fn change_judgment_weights(settings: &mut BuildsGenerationSettings) -> Result<()
 const N_ITEMS_HELP_MSG: &str = "Generated builds will have the selected number of items.";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_n_items(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
+fn change_n_items(
+    settings: &mut BuildsGenerationSettings,
+    champ: &Unit,
+) -> Result<(), UserCommand> {
     loop {
         let n_items: usize = match get_user_usize(
             "",
@@ -818,7 +844,7 @@ fn change_n_items(settings: &mut BuildsGenerationSettings) -> Result<(), UserCom
         let old_n_items: usize = settings.n_items; //backup before checking validity
         settings.n_items = n_items;
 
-        if let Err(error_msg) = settings.check_settings() {
+        if let Err(error_msg) = settings.check_settings(champ) {
             println!("Failed to set number of items per build: {error_msg}");
             settings.n_items = old_n_items; //restore valid value
         } else {
@@ -831,7 +857,10 @@ const BOOTS_SLOT_HELP_MSG: &str = "Every generated build will have boots at the 
 If set to 0, the slot is not specified and boots are considered like any other regular item (thus not guaranteed to be in the generated builds depending on your settings).";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_boots_slot(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
+fn change_boots_slot(
+    settings: &mut BuildsGenerationSettings,
+    champ: &Unit,
+) -> Result<(), UserCommand> {
     loop {
         let boots_slot: usize = match get_user_usize(
             "",
@@ -849,7 +878,7 @@ fn change_boots_slot(settings: &mut BuildsGenerationSettings) -> Result<(), User
         let old_boots_slot: usize = settings.boots_slot; //backup before checking validity
         settings.boots_slot = boots_slot;
 
-        if let Err(error_msg) = settings.check_settings() {
+        if let Err(error_msg) = settings.check_settings(champ) {
             println!("Failed to set boots slot: {error_msg}");
             settings.boots_slot = old_boots_slot; //restore valid value
         } else {
@@ -862,7 +891,10 @@ const SUPPORT_ITEM_SLOT_HELP_MSG: &str =
     "Every generated build will have a support item at the selected slot (or no support item if 0).";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_support_item_slot(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
+fn change_support_item_slot(
+    settings: &mut BuildsGenerationSettings,
+    champ: &Unit,
+) -> Result<(), UserCommand> {
     loop {
         let support_item_slot: usize = match get_user_usize(
             "",
@@ -880,7 +912,7 @@ fn change_support_item_slot(settings: &mut BuildsGenerationSettings) -> Result<(
         let old_support_item_slot: usize = settings.support_item_slot; //backup before checking validity
         settings.support_item_slot = support_item_slot;
 
-        if let Err(error_msg) = settings.check_settings() {
+        if let Err(error_msg) = settings.check_settings(champ) {
             println!("Failed to set support item slot: {error_msg}");
             settings.support_item_slot = old_support_item_slot; //restore valid value
         } else {
@@ -899,7 +931,10 @@ const MANDATORY_ITEMS_HELP_MSG: &str =
     "Every generated build will have the selected items at the specified slots.";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_mandatory_items(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
+fn change_mandatory_items(
+    settings: &mut BuildsGenerationSettings,
+    champ: &Unit,
+) -> Result<(), UserCommand> {
     //get item index first
     loop {
         let greeting_msg: String =
@@ -932,7 +967,7 @@ fn change_mandatory_items(settings: &mut BuildsGenerationSettings) -> Result<(),
             let old_item: &Item = settings.mandatory_items[item_idx]; //backup before checking validity
             settings.mandatory_items[item_idx] = item;
 
-            if let Err(error_msg) = settings.check_settings() {
+            if let Err(error_msg) = settings.check_settings(champ) {
                 println!("Failed to set mandatory items: {error_msg}");
                 settings.mandatory_items[item_idx] = old_item; //restore valid value
             } else {
@@ -949,7 +984,10 @@ const SEARCH_THRESHOLD_HELP_MSG: &str =
      A search treshold percentage between 15-25% is generally sufficient to find most of the relevant builds.";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_search_threshold(settings: &mut BuildsGenerationSettings) -> Result<(), UserCommand> {
+fn change_search_threshold(
+    settings: &mut BuildsGenerationSettings,
+    champ: &Unit,
+) -> Result<(), UserCommand> {
     loop {
         let number: f32 = match get_user_f32(
             "",
@@ -966,7 +1004,7 @@ fn change_search_threshold(settings: &mut BuildsGenerationSettings) -> Result<()
         let old_search_threshold: f32 = settings.search_threshold; //backup before checking validity
         settings.search_threshold = number / 100.;
 
-        if let Err(error_msg) = settings.check_settings() {
+        if let Err(error_msg) = settings.check_settings(champ) {
             println!("Failed to set search threshold: {error_msg}");
             settings.search_threshold = old_search_threshold; //restore valid value
         } else {
