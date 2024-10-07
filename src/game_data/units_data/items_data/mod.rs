@@ -283,6 +283,7 @@ pub const ALL_BOOTS: [&Item; 6] = [
 /// Lists support items.
 pub const ALL_SUPPORT_ITEMS: [&Item; 0] = [];
 
+#[allow(dead_code)] //actually used in test but lint doesn't detect this
 pub const ALL_ITEMS: &[&Item] = concat_slices!(
     [&'static Item]:
     &ALL_LEGENDARY_ITEMS,

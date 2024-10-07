@@ -1,5 +1,6 @@
 use super::{
     build_optimizer::{get_normalized_judgment_weights, BuildContainer},
+    cli::{CHECK_MARK_CHAR, UNCHECKED_MARK_CHAR},
     game_data::{
         units_data::items_data::{BuildHash, ItemUtils},
         STARTING_GOLDS,
@@ -90,8 +91,6 @@ pub fn print_builds_scores(
         .unwrap_or(STARTING_GOLDS);
     let normalized_judgement_weights: (f32, f32, f32) =
         get_normalized_judgment_weights(judgment_weights);
-    const UTIL_CHECK_MARK_CHAR: char = '●';
-    const UTIL_CROSS_MARK_CHAR: char = ' ';
     for container in filtered_builds.take(n_to_print) {
         print!(
             "{:5.0} | {:^4} | {:^4} | {:^4} | ",
@@ -101,19 +100,19 @@ pub fn print_builds_scores(
                 normalized_judgement_weights
             ),
             if container.cum_utils.contains(ItemUtils::AntiHealShield) {
-                UTIL_CHECK_MARK_CHAR
+                CHECK_MARK_CHAR
             } else {
-                UTIL_CROSS_MARK_CHAR
+                UNCHECKED_MARK_CHAR
             },
             if container.cum_utils.contains(ItemUtils::Survivability) {
-                UTIL_CHECK_MARK_CHAR
+                CHECK_MARK_CHAR
             } else {
-                UTIL_CROSS_MARK_CHAR
+                UNCHECKED_MARK_CHAR
             },
             if container.cum_utils.contains(ItemUtils::Special) {
-                UTIL_CHECK_MARK_CHAR
+                CHECK_MARK_CHAR
             } else {
-                UTIL_CROSS_MARK_CHAR
+                UNCHECKED_MARK_CHAR
             },
         );
         for item_idx in 0..(n_items - 1) {

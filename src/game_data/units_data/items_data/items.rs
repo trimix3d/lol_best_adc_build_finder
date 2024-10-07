@@ -4281,7 +4281,7 @@ fn rod_of_ages_timeless_init(champ: &mut Unit) {
             cost_since_bought += item.cost;
         }
         if *item == ROD_OF_AGES {
-            take_item = true
+            take_item = true;
         }
     }
     let min_since_bought: f32 = f32::min(10., cost_since_bought / TOT_GOLDS_PER_MIN);

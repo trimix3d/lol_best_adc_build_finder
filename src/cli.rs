@@ -6,7 +6,7 @@ use items_data::{items::*, *};
 use units_data::*;
 
 use constcat::concat;
-use enumset::{enum_set, EnumSet};
+use enumset::{enum_set, EnumSet, EnumSetType};
 
 use core::fmt::Debug;
 use core::iter::Iterator;
@@ -16,6 +16,10 @@ use std::io;
 
 use io::Write;
 
+///Character that represents a check mark.
+pub const CHECK_MARK_CHAR: char = '●';
+///Character that represents an unchecked mark.
+pub const UNCHECKED_MARK_CHAR: char = ' ';
 /// Number of builds to be printed by default when displaying results.
 const DEFAULT_N_PRINTED_BUILDS: usize = 18;
 
@@ -299,48 +303,101 @@ fn sanitize_item_name(name: &str) -> String {
         .to_lowercase()
 }
 
+#[derive(EnumSetType, Debug)]
+enum ItemPoolType {
+    Legendary,
+    Boots,
+    Support,
+}
+
 /// Prompts the user to enter an item name and returns the corresponding item.
-fn get_user_item(input_line: &str) -> Result<&'static Item, UserCommand> {
-    //ensure to match lowercase inputs with lowercase strings
-    let item_names: Vec<(String, String)> = ALL_ITEMS
-        .iter()
-        .map(|item| {
+fn get_user_item(
+    greetings_msg: &str,
+    input_line: &str,
+    item_pool_types: EnumSet<ItemPoolType>,
+) -> Result<&'static Item, UserCommand> {
+    assert!(
+        !item_pool_types.is_empty(),
+        "Cannot choose an item from an empty pool"
+    );
+
+    let mut available_items: Vec<(&Item, String, String)> = Vec::new();
+    if item_pool_types.contains(ItemPoolType::Legendary) {
+        //ensure to match lowercase inputs with lowercase strings
+        available_items.extend(items_data::ALL_LEGENDARY_ITEMS.iter().map(|&item| {
             (
+                item,
                 sanitize_item_name(item.full_name),
                 sanitize_item_name(item.short_name),
             )
-        })
-        .collect();
+        }));
+    }
+    if item_pool_types.contains(ItemPoolType::Boots) {
+        //ensure to match lowercase inputs with lowercase strings
+        available_items.extend(items_data::ALL_BOOTS.iter().map(|&item| {
+            (
+                item,
+                sanitize_item_name(item.full_name),
+                sanitize_item_name(item.short_name),
+            )
+        }));
+    }
+    if item_pool_types.contains(ItemPoolType::Support) {
+        //ensure to match lowercase inputs with lowercase strings
+        available_items.extend(items_data::ALL_SUPPORT_ITEMS.iter().map(|&item| {
+            (
+                item,
+                sanitize_item_name(item.full_name),
+                sanitize_item_name(item.short_name),
+            )
+        }));
+    }
+
+    if !(greetings_msg.is_empty()) {
+        println!("\n{greetings_msg}");
+    }
 
     loop {
         let input: String = get_user_input(
             input_line,
-            "Enter an item name (type 'list' to show available items in database)",
+            "Enter an item name (type 'list' to show available items)",
         )?;
         let sanitized_input: String = sanitize_item_name(&input);
 
         if sanitized_input.is_empty() {
             return Ok(&NULL_ITEM);
-        } else if let Some(index) = item_names.iter().position(|(full_name, short_name)| {
-            *full_name == sanitized_input || *short_name == sanitized_input
-        }) {
-            return Ok(ALL_ITEMS[index]);
+        } else if let Some(item) =
+            available_items
+                .iter()
+                .find(|(_item_ref, full_name, short_name)| {
+                    *full_name == sanitized_input || *short_name == sanitized_input
+                })
+        {
+            return Ok(item.0);
         } else if sanitized_input == "list" {
             //print list of items
-            println!("\nLegendary items in database:");
-            for item in ALL_LEGENDARY_ITEMS {
-                println!("- {item:#}");
+            if item_pool_types.contains(ItemPoolType::Legendary) {
+                println!("\nLegendary items in database:");
+                for item in items_data::ALL_LEGENDARY_ITEMS {
+                    println!("- {item:#}");
+                }
             }
-            println!("\nBoots in database:");
-            for item in ALL_BOOTS {
-                println!("- {item:#}");
+
+            if item_pool_types.contains(ItemPoolType::Boots) {
+                println!("\nBoots in database:");
+                for item in items_data::ALL_BOOTS {
+                    println!("- {item:#}");
+                }
             }
-            println!("\nSupport items in database:");
-            for item in ALL_SUPPORT_ITEMS {
-                println!("- {item:#}");
+
+            if item_pool_types.contains(ItemPoolType::Support) {
+                println!("\nSupport items in database:");
+                for item in items_data::ALL_SUPPORT_ITEMS {
+                    println!("- {item:#}");
+                }
             }
         } else {
-            println!("'{input}' is not a recognized item (type 'list' to show available items in database)");
+            println!("'{input}' is not a recognized item (type 'list' to show available items)");
         }
     }
 }
@@ -460,17 +517,10 @@ const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
     i.e. if the DPS weight has 2x the value of the defense weight, increasing the DPS will be 2x more important than increasing the defense in the eyes of the optimizer",
     "\n\n6) number of items per build: ",
     N_ITEMS_HELP_MSG,
-    "\n\n7) boots slot: ",
-    BOOTS_SLOT_HELP_MSG,
-    "\n\n8) allow boots if slot is not specified: ",
-    ALLOW_BOOTS_IF_NO_SLOT_HELP_MSG,
-    "\n\n9) support item slot: ",
-    SUPPORT_ITEM_SLOT_HELP_MSG,
-    "\n\n10) allow manaflow items in first slot: ",
-    ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG,
-    "\n\n11) mandatory items: ",
+    "\n\n7) go to items pools settings: manage items pools rules such as at which slot must boots be purchased, which items are allowed, etc.",
+    "\n\n8) mandatory items: ",
     MANDATORY_ITEMS_HELP_MSG,
-    "\n\n12) search threshold: ",
+    "\n\n9) search threshold: ",
     SEARCH_THRESHOLD_HELP_MSG
 );
 
@@ -480,7 +530,7 @@ fn confirm_builds_generation_settings(
     champ: &mut Unit,
 ) -> Result<(), UserCommand> {
     loop {
-        let choices_strings: [String; 13] = [
+        let choices_strings: [String; 10] = [
             format!("target: {}", settings.target_properties.name),
             format!(
                 "fight scenario: {}",
@@ -509,30 +559,7 @@ fn confirm_builds_generation_settings(
                 settings.judgment_weights.2
             ),
             format!("number of items per build: {}", settings.n_items),
-            format!(
-                "boots slot: {}",
-                if settings.boots_slot == 0 {
-                    "not specified".to_string()
-                } else {
-                    settings.boots_slot.to_string()
-                }
-            ),
-            format!(
-                "allow boots if slot is not specified: {}",
-                settings.allow_boots_if_no_slot
-            ),
-            format!(
-                "support item slot: {}",
-                if settings.support_item_slot == 0 {
-                    "none".to_string()
-                } else {
-                    settings.support_item_slot.to_string()
-                }
-            ),
-            format!(
-                "allow manaflow items in first slot: {}",
-                settings.allow_manaflow_first_item
-            ),
+            "go to items pools settings ->".to_string(),
             format!("mandatory items: {}", settings.mandatory_items),
             format!(
                 "search threshold: {:.0}%{}",
@@ -595,29 +622,18 @@ fn confirm_builds_generation_settings(
                 change_n_items(settings, champ)?;
             }
             7 => {
-                //boots_slot
-                change_boots_slot(settings, champ)?;
+                //
+                handle_items_pools_settings(settings, champ)?;
             }
             8 => {
-                settings.allow_boots_if_no_slot = !settings.allow_boots_if_no_slot;
-            }
-            9 => {
-                //support_item_slot
-                change_support_item_slot(settings, champ)?;
-            }
-            //todo: change_items_pools feature, incorporate allow_manaflow_first_item & allow_boots_if_no_slot inside
-            10 => {
-                settings.allow_manaflow_first_item = !settings.allow_manaflow_first_item;
-            }
-            11 => {
                 //mandatory_items
                 change_mandatory_items(settings, champ)?;
             }
-            12 => {
+            9 => {
                 //search_threshold
                 change_search_threshold(settings, champ)?;
             }
-            13 => {
+            10 => {
                 //reset to default settings
                 *settings = BuildsGenerationSettings::default_by_champion(champ.properties);
             }
@@ -853,8 +869,162 @@ fn change_n_items(
     }
 }
 
-const BOOTS_SLOT_HELP_MSG: &str = "Every generated build will have boots at the selected slot.\n\
-If set to 0, the slot is not specified and boots are considered like any other regular item (thus not guaranteed to be in the generated builds depending on your settings).";
+const ITEMS_POOLS_SETTINGS_HELP_MSG: &str = concat!(
+    "Meaning of these settings:\n\
+    \n\n1) boots slot: ",
+    BOOTS_SLOT_HELP_MSG,
+    "\n\n2) allow boots if slot is not specified: ",
+    ALLOW_BOOTS_IF_NO_SLOT_HELP_MSG,
+    "\n\n3) support item slot: ",
+    SUPPORT_ITEM_SLOT_HELP_MSG,
+    "\n\n4) change allowed legendary items",
+    "\n\n5) change allowed boots",
+    "\n\n6) change allowed support items",
+    "\n\n7) allow manaflow items in first slot: ",
+    ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG,
+);
+
+fn handle_items_pools_settings(
+    settings: &mut BuildsGenerationSettings,
+    champ: &Unit,
+) -> Result<(), UserCommand> {
+    loop {
+        let choice: usize = match get_user_choice(
+            "Item pools settings:",
+            "Select a setting to change (press enter to confirm current settings)",
+            ITEMS_POOLS_SETTINGS_HELP_MSG,
+            [
+                format!(
+                    "boots slot: {}",
+                    if settings.boots_slot == 0 {
+                        "not specified".to_string()
+                    } else {
+                        settings.boots_slot.to_string()
+                    }
+                )
+                .as_str(),
+                format!(
+                    "allow boots if slot is not specified: {}",
+                    settings.allow_boots_if_no_slot
+                )
+                .as_str(),
+                format!(
+                    "support item slot: {}",
+                    if settings.support_item_slot == 0 {
+                        "none".to_string()
+                    } else {
+                        settings.support_item_slot.to_string()
+                    }
+                )
+                .as_str(),
+                "change allowed legendary items ->",
+                "change allowed boots ->",
+                "change allowed support items ->",
+                format!(
+                    "allow manaflow items in first slot: {}",
+                    settings.allow_manaflow_first_item
+                )
+                .as_str(),
+            ],
+            true,
+        ) {
+            Ok(Some(choice)) => choice,
+            Ok(None) => return Ok(()),
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
+
+        match choice {
+            1 => {
+                //boots_slot
+                change_boots_slot(settings, champ)?;
+            }
+            2 => {
+                settings.allow_boots_if_no_slot = !settings.allow_boots_if_no_slot;
+            }
+            3 => {
+                //support_item_slot
+                change_support_item_slot(settings, champ)?;
+            }
+            4 => {
+                //change legendary items pool
+                change_items_pool(ItemPoolType::Legendary, &mut settings.legendary_items_pool)?;
+            }
+            5 => {
+                //change boots pool
+                change_items_pool(ItemPoolType::Boots, &mut settings.boots_pool)?;
+            }
+            6 => {
+                //change support items pool
+                change_items_pool(ItemPoolType::Support, &mut settings.support_items_pool)?;
+            }
+            7 => {
+                settings.allow_manaflow_first_item = !settings.allow_manaflow_first_item;
+            }
+            _ => unreachable!("Unhandled user input"),
+        }
+    }
+}
+
+fn change_items_pool(
+    item_pool_types: ItemPoolType,
+    pool: &mut Vec<&Item>,
+) -> Result<(), UserCommand> {
+    let reference_pool: &[&Item] = match item_pool_types {
+        ItemPoolType::Legendary => &items_data::ALL_LEGENDARY_ITEMS,
+        ItemPoolType::Boots => &items_data::ALL_BOOTS,
+        ItemPoolType::Support => &items_data::ALL_SUPPORT_ITEMS,
+    };
+
+    loop {
+        //print list of items with allowed/disallowed checkbox
+        match item_pool_types {
+            ItemPoolType::Legendary => {
+                println!("\nLegendary items in database:");
+            }
+            ItemPoolType::Boots => {
+                println!("\nBoots in database:");
+            }
+            ItemPoolType::Support => {
+                println!("\nSupport items in database:");
+            }
+        }
+        for item in reference_pool {
+            println!(
+                "[{}] {item:#}",
+                if pool.contains(item) {
+                    CHECK_MARK_CHAR
+                } else {
+                    UNCHECKED_MARK_CHAR
+                }
+            );
+        }
+
+        //get item
+        let item: &Item = match get_user_item(
+            "",
+            "Enter an item to switch its allowance status (press enter to confirm current settings)",
+            enum_set!(item_pool_types)
+        ) {
+            Ok(item) => item,
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
+        if *item == NULL_ITEM {
+            return Ok(());
+        }
+
+        //switch allowance status
+        if let Some(index) = pool.iter().position(|&x| *x == *item) {
+            pool.swap_remove(index);
+        } else {
+            pool.push(item);
+        }
+    }
+}
+
+const BOOTS_SLOT_HELP_MSG: &str = "Every generated build will have boots at the selected slot. If set to 0, the slot is not specified\n\
+and boots are considered like any other regular item (thus not guaranteed to be in the generated builds depending on your settings).";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_boots_slot(
@@ -956,9 +1126,11 @@ fn change_mandatory_items(
 
         //get item and put it in mandatory items if valid
         loop {
-            let item: &Item = match get_user_item(&format!(
-                "Enter an item to impose at slot {item_slot} (press enter for none)"
-            )) {
+            let item: &Item = match get_user_item(
+                "",
+                &format!("Enter an item to impose at slot {item_slot} (press enter for none)"),
+                EnumSet::all(),
+            ) {
                 Ok(item) => item,
                 Err(UserCommand::Back) => break,
                 Err(command) => return Err(command),

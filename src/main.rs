@@ -95,12 +95,7 @@ fn champion_test_ground() {
         &Unit::EZREAL_PROPERTIES,
         6,
         Build([
-            &KRAKEN_SLAYER,
-            &ROD_OF_AGES,
-            &UMBRAL_GLAIVE,
-            &NULL_ITEM,
-            &NULL_ITEM,
-            &NULL_ITEM,
+            &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM, &NULL_ITEM,
         ]),
     )
     .expect("Failed to create unit");
@@ -116,6 +111,6 @@ fn champion_test_ground() {
 }
 
 fn main() {
-    champion_test_ground();
-    //cli::launch_interface();
+    //champion_test_ground();
+    cli::launch_interface();
 }
