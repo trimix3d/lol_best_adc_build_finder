@@ -102,7 +102,6 @@ fn growth_stat_formula(lvl: NonZeroU8, base: f32, growth: f32) -> f32 {
 /// Returns final MS of an unit after soft cap.
 /// <https://leagueoflegends.fandom.com/wiki/Movement_speed>
 #[must_use]
-#[inline]
 fn capped_ms(raw_ms: f32) -> f32 {
     if raw_ms >= 490. {
         raw_ms * 0.5 + 230.
@@ -140,7 +139,6 @@ fn resistance_formula_neg(res: f32) -> f32 {
 /// Returns coefficient multiplying dmg dealt, automatically choose formula for positive or negative resistance according to the argument.
 /// <https://leagueoflegends.fandom.com/wiki/Armor> <https://leagueoflegends.fandom.com/wiki/Magic_resistance>
 #[must_use]
-#[inline]
 pub fn resistance_formula(res: f32) -> f32 {
     if res >= 0. {
         resistance_formula_pos(res)
@@ -452,7 +450,7 @@ pub struct UnitProperties {
     pub growth_stats: UnitStats,
     pub basic_attack: fn(&mut Unit, &UnitStats) -> PartDmg, //returns basic attack dmg and triggers effects
     //no field for passive (implemented directly in the Unit abilities)
-    pub q: BasicAbility, //todo: maybe put this in Unit for better cache locality
+    pub q: BasicAbility,
     pub w: BasicAbility,
     pub e: BasicAbility,
     pub r: UltimateAbility,
@@ -891,18 +889,20 @@ impl UnitSimulationLogs {
 #[derive(Debug, Clone)]
 pub struct Unit {
     //properties
-    pub properties: &'static UnitProperties, //todo: cache vars
+    pub properties: &'static UnitProperties,
     runes_page: RunesPage,
     skill_order: SkillOrder,
     build: Build,
 
     //stats
-    /// Stats that only comes from the Unit base stats (only change with lvl)
+    /// Stats that only comes from the Unit base stats (only change with lvl).
     lvl_stats: UnitStats,
-    /// Stats that only comes from items
+    /// Stats that only comes from items (only items stats, stats from effects are updated dynamically in the `stats` field).
     items_stats: UnitStats,
+    /// Stats that only comes from runes.
     runes_stats: UnitStats, //not pub on purpose because must not be used in items calculation
-    stats: UnitStats, //actual combat stats (the only stat field that changes dynamically during simulation)
+    /// Combat stats that gets updated dynamically during combat.
+    stats: UnitStats,
 
     //lvl and abilities lvl
     lvl: NonZeroU8, //this is intentionally NonZeroU8 and not usize, so when used for indexing it reminds you to substract 1 to access array elements
@@ -1179,12 +1179,8 @@ impl Unit {
             sim_logs: UnitSimulationLogs::default(),
         };
 
-        //set on-action-fns
-        new_unit.on_action_fns_holder.clear();
-        new_unit
-            .on_action_fns_holder
-            .extend(&properties.on_action_fns);
-        new_unit.on_action_fns_holder.extend(runes_page.keystone);
+        //set on-action-fns (done implicitely in `new_unit.set_build` but we do it here as well just in case)
+        new_unit.reload_on_action_fns();
 
         //check and set runes
         new_unit.set_runes(runes_page)?;
@@ -1388,6 +1384,26 @@ impl Unit {
         self.lvl
     }
 
+    /// Clears the items on-action-fns from the unit, leaving only on-action-fns from the unit properties and runes.
+    fn clear_items_on_action_fns(&mut self) {
+        self.on_action_fns_holder.clear();
+
+        //add base on-action-fns (from unit properties) and runes on-action-fns only
+        self.on_action_fns_holder
+            .extend(&self.properties.on_action_fns);
+        self.on_action_fns_holder.extend(self.runes_page.keystone);
+    }
+
+    /// Clears every on-action-fns from the unit and re-add them.
+    fn reload_on_action_fns(&mut self) {
+        self.clear_items_on_action_fns();
+
+        //add items on-action-fns
+        for &item in self.build.iter().filter(|&&item| *item != NULL_ITEM) {
+            self.on_action_fns_holder.extend(&item.on_action_fns);
+        }
+    }
+
     /// Updates the Unit build, returns Ok if success or Err if failure (depending on the validity of the given build).
     /// In case of a failure, the unit is not modified.
     pub fn set_build(&mut self, build: Build) -> Result<(), String> {
@@ -1405,10 +1421,7 @@ impl Unit {
 
         //clear items from unit
         self.items_stats.clear();
-        self.on_action_fns_holder.clear();
-        self.on_action_fns_holder
-            .extend(&self.properties.on_action_fns);
-        self.on_action_fns_holder.extend(self.runes_page.keystone);
+        self.clear_items_on_action_fns();
 
         //add items one by one to unit
         for &item in build.iter().filter(|&&item| *item != NULL_ITEM) {
@@ -1717,10 +1730,10 @@ impl Unit {
 
         //wait cast (windup) time
         let windup_time: f32 = real_windup_time(windup_formula(
-            self.properties.windup_percent,  //todo: put to cache
-            self.properties.windup_modifier, //todo: put to cache
+            self.properties.windup_percent,
+            self.properties.windup_modifier,
             self.stats.base_as,
-            self.stats.attack_speed(self.properties.as_ratio), //todo: put to cache
+            self.stats.attack_speed(self.properties.as_ratio),
         ));
         self.wait(windup_time);
 
@@ -1731,13 +1744,13 @@ impl Unit {
         self.basic_attack_cd = f32::max(
             0.,
             1. / f32::min(
-                self.properties.as_limit,                          //todo: put to cache
-                self.stats.attack_speed(self.properties.as_ratio), //todo: put to cache
+                self.properties.as_limit,
+                self.stats.attack_speed(self.properties.as_ratio),
             ) - windup_time,
         ); //limit as cd to the unit as limit
 
         //return dmg
-        (self.properties.basic_attack)(self, target_stats) //todo: put to cache
+        (self.properties.basic_attack)(self, target_stats)
     }
 
     /// cast q and returns dmg done.
@@ -1748,7 +1761,7 @@ impl Unit {
             .push((self.time, UnitAction::Q));
 
         //wait cast time
-        self.wait(self.properties.q.cast_time); //todo: put to cache
+        self.wait(self.properties.q.cast_time);
 
         //on ability cast effects
         self.all_on_ability_cast();
@@ -1872,7 +1885,6 @@ impl Unit {
 }
 
 /// Default `basic_attack` for an unit.
-#[inline]
 fn default_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
     champ.dmg_on_target(

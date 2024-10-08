@@ -1,6 +1,7 @@
-use crate::game_data::units_data::*;
+use crate::game_data::*;
 
 use items_data::items::*;
+use units_data::*;
 
 use enumset::enum_set;
 
@@ -70,16 +71,8 @@ fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         champ.e_cd = f32::max(0., champ.e_cd - SIVIR_R_ABILITIES_CD_REFUND_TIME);
     }
 
-    let basic_attack_phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
-
-    //basic attack dmg, instance of dmg must be done before w ricochets
-    let mut tot_dmg: PartDmg = champ.dmg_on_target(
-        target_stats,
-        PartDmg(basic_attack_phys_dmg, 0., 0.),
-        (1, 1),
-        enum_set!(DmgTag::BasicAttack),
-        1.,
-    );
+    //basic attack dmg
+    let mut tot_dmg: PartDmg = units_data::default_basic_attack(champ, target_stats);
 
     //w ricochets dmg, instance of dmg must be done after basic attack
     if champ.effects_values[EffectValueId::SivirRicochetBonusAS] != 0. {
@@ -105,6 +98,8 @@ const SIVIR_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [15., 30., 45., 60., 75.];
 const SIVIR_Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.80, 0.85, 0.90, 0.95, 1.0];
 
 fn sivir_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+    champ.add_temporary_effect(&SIVIR_FLEET_OF_FOOT, 0.);
+
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 = SIVIR_Q_N_TARGETS

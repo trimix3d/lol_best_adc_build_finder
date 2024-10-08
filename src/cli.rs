@@ -596,6 +596,7 @@ fn confirm_builds_generation_settings(
             None => return Ok(()),
         };
 
+        //todo: change runes (keystone + shards?) feature
         match choice {
             1 => {
                 //target

@@ -5,7 +5,6 @@ use crate::OnActionFns;
 use super::*;
 use units_data::{UnitStats, MAX_UNIT_ITEMS};
 
-use constcat::concat_slices;
 use enumset::{EnumSet, EnumSetType};
 #[allow(unused_imports)]
 use strum::EnumCount; //this import is necessary for strum_macros::EnumCount to work but it triggers the lint for some reason
@@ -283,14 +282,6 @@ pub const ALL_BOOTS: [&Item; 6] = [
 /// Lists support items.
 pub const ALL_SUPPORT_ITEMS: [&Item; 0] = [];
 
-#[allow(dead_code)] //actually used in test but lint doesn't detect this
-pub const ALL_ITEMS: &[&Item] = concat_slices!(
-    [&'static Item]:
-    &ALL_LEGENDARY_ITEMS,
-    &ALL_BOOTS,
-    &ALL_SUPPORT_ITEMS
-);
-
 pub const AVG_LEGENDARY_ITEM_COST: f32 = 2994.;
 pub const AVG_BOOTS_COST: f32 = 1100.;
 pub const AVG_SUPPORT_ITEM_COST: f32 = 0.;
@@ -393,7 +384,7 @@ impl Build {
     #[must_use]
     pub fn has_item_groups_overlap(&self) -> bool {
         let mut cum_item_groups: EnumSet<ItemGroups> = self[0].item_groups;
-        for item in self[1..].iter().filter(|&&item| *item != NULL_ITEM) {
+        for item in self[1..].iter() {
             if !((cum_item_groups & item.item_groups).is_empty()) {
                 return true;
             }
@@ -409,22 +400,26 @@ mod tests {
     use super::*;
     use items::NULL_ITEM;
 
+    use constcat::concat_slices;
+
+    const ALL_ITEMS_PLUS_NULL_ITEM: &[&Item] = concat_slices!(
+        [&'static Item]:
+        &ALL_LEGENDARY_ITEMS,
+        &ALL_BOOTS,
+        &ALL_SUPPORT_ITEMS,
+        &[&NULL_ITEM],
+    );
+
     /// Check that there isn't any id collisions in any items of the crate.
     /// Panics if a collision is encountered.
     /// The program won't run correctly if there are collisions between item ids.
     #[test]
     pub fn test_items_ids_collisions() {
-        //create Vec of all items (don't forget NULL_ITEM)
-        let all_items: Vec<&'static Item> = [
-            &ALL_LEGENDARY_ITEMS[..],
-            &ALL_BOOTS[..],
-            &ALL_SUPPORT_ITEMS[..],
-            &[&NULL_ITEM][..],
-        ]
-        .concat();
-
         //get ids and sort them
-        let mut items_ids: Vec<ItemId> = all_items.iter().map(|item| item.id).collect();
+        let mut items_ids: Vec<ItemId> = ALL_ITEMS_PLUS_NULL_ITEM
+            .iter()
+            .map(|item| item.id)
+            .collect();
         items_ids.sort_unstable();
 
         //compare adjacent elements of sorted vec to find id collisions
@@ -480,9 +475,9 @@ mod tests {
     #[test]
     pub fn test_all_items_are_correctly_listed() {
         assert!(
-            ALL_ITEMS.len() + 1 == ItemId::COUNT, //+1 to account for `NULL_ITEM`
-            "Number of items in `ALL_ITEMS` ({} + 1 for `NULL_ITEM`) is different that the number of variants in `ItemId` enum ({})",
-            ALL_ITEMS.len(),
+            ALL_ITEMS_PLUS_NULL_ITEM.len() == ItemId::COUNT,
+            "Number of items in `ALL_ITEMS` ({}) is different that the number of variants in `ItemId` enum ({})",
+            ALL_ITEMS_PLUS_NULL_ITEM.len(),
             ItemId::COUNT
         );
     }

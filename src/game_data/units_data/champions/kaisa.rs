@@ -1,17 +1,20 @@
-use crate::game_data::units_data::*;
+use crate::game_data::*;
 
 use items_data::items::*;
+use units_data::*;
 
 use enumset::enum_set;
 
 //champion parameters (constants):
 /// Percentage of target missing hp when second skin 5 stacks procs.
-/// The missing hp taken for the calculation is the value AFTER the phys dmg from the basic attack hits,
-const KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT: f32 = 0.55;
+/// The missing hp taken for the calculation is the value AFTER base dmg from the basic attack/w hits,
+const KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT: f32 = 0.5;
 const KAISA_W_HIT_PERCENT: f32 = 0.85;
 
 fn kaisa_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] = 0;
+    champ.effects_values[EffectValueId::KaisaSecondSkinLastStackTime] =
+        -(KAISA_SECOND_SKIN_DELAY + F32_TOL); //to allow for effect at time == 0
     champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] = 0.;
 
     //Q evolve, items ad/bonus_ad? + base_ad from lvls must be >= 100
@@ -87,45 +90,57 @@ const KAISA_SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
 const KAISA_SECOND_SKIN_AP_COEF_BY_STACK: [f32; KAISA_SECOND_SKIN_MAX_STACKS as usize] =
     [0.15, 0.175, 0.20, 0.225, 0.25];
 
-/// Assumes stacks application have less than 4s interval (patch 14.08) (doesn't take into account stack duration on the ennemy).
-fn kaisa_second_skin_magic_dmg(champ: &mut Unit, target_stats: &UnitStats) -> f32 {
+const KAISA_SECOND_SKIN_DELAY: f32 = 4.; //stack duration
+fn kaisa_second_skin(
+    champ: &mut Unit,
+    target_stats: &UnitStats,
+    n_targets: f32,
+    _from_other_effects: bool,
+) -> PartDmg {
+    //if last hit from too long ago, reset stacks
+    if champ.time - champ.effects_values[EffectValueId::KaisaSecondSkinLastStackTime]
+        >= KAISA_SECOND_SKIN_DELAY
+    {
+        champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] = 0;
+    }
+
     let lvl_idx: usize = usize::from(champ.lvl.get() - 1);
 
-    //calculate dmg before stacks application
-    let mut magic_dmg: f32 = KAISA_SECOND_SKIN_BASE_MAGIC_DMG_BY_LVL[lvl_idx]
-        + f32::from(champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks])
-            * KAISA_SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL[lvl_idx]
-        + champ.stats.ap()
-            * KAISA_SECOND_SKIN_AP_COEF_BY_STACK
-                [usize::from(champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks])];
+    //calculate dmg (before increasing stacks count)
+    let mut magic_dmg: f32 = n_targets
+        * (KAISA_SECOND_SKIN_BASE_MAGIC_DMG_BY_LVL[lvl_idx]
+            + f32::from(champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks])
+                * KAISA_SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL[lvl_idx]
+            + champ.stats.ap()
+                * KAISA_SECOND_SKIN_AP_COEF_BY_STACK
+                    [usize::from(champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks])]);
 
     //update stack count
-    if champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks]
-        == KAISA_SECOND_SKIN_MAX_STACKS - 1
+    if champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] < KAISA_SECOND_SKIN_MAX_STACKS - 1
     {
+        champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] += 1;
+        champ.effects_values[EffectValueId::KaisaSecondSkinLastStackTime] = champ.time;
+    } else {
+        champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] = 0;
+
+        //Second skin missing hp dmg not affected by n_targets because runaans bolts don't apply guinsoos bonus phantom hit,
+        //so they shouldn't benefit from phantom hit bonus stack.
+        //This is effectively a "nerf" to runaans compared to in game behavior because bolts actually apply the missing hp passive
+        //(but without guinsoos phantom hit extra stack generation), whereas here it's considered as if they didn't at all.
+        //(the idea is that no item should be artificially "buffed", but they can be "nerfed" so when it's picked by the optimiser, it's guaranteed to be good).
+        //With the current dmg system I basically have to choose which between guinsoos and runaans work with the second skin passive.
+        //I chose guinsoos because its interaction with the second skin passive seems more important than runaan's.
         magic_dmg += KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT
             * target_stats.hp
             * (0.15 + 0.06 / 100. * champ.stats.ap());
-        champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] = 0;
-    } else {
-        champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] += 1;
     }
-    magic_dmg
+
+    PartDmg(0., magic_dmg, 0.)
 }
 
-fn kaisa_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+fn kaisa_on_basic_attack_cast(champ: &mut Unit) {
     //basic attack reduce e cd by 0.5 sec
     champ.e_cd = f32::max(0., champ.e_cd - 0.5);
-
-    let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
-    let p_magic_dmg: f32 = kaisa_second_skin_magic_dmg(champ, target_stats);
-    champ.dmg_on_target(
-        target_stats,
-        PartDmg(phys_dmg, p_magic_dmg, 0.),
-        (1, 1),
-        enum_set!(DmgTag::BasicAttack),
-        1.,
-    )
 }
 
 /// Assumes single target dmg.
@@ -173,20 +188,20 @@ const KAISA_W_MAGIC_DMG_BY_W_LVL: [f32; 5] = [30., 55., 80., 105., 130.];
 fn kaisa_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
-    let mut magic_dmg: f32 =
+    let magic_dmg: f32 =
         KAISA_W_MAGIC_DMG_BY_W_LVL[w_lvl_idx] + 1.3 * champ.stats.ad() + 0.45 * champ.stats.ap();
-    magic_dmg += kaisa_second_skin_magic_dmg(champ, target_stats)
-        + kaisa_second_skin_magic_dmg(champ, target_stats); //applies proc one by one
+    let mut second_skin_dmg: PartDmg = kaisa_second_skin(champ, target_stats, 1., false)
+        + kaisa_second_skin(champ, target_stats, 1., false); //applies proc one by one
 
     if champ.effects_stacks[EffectStackId::KaisaWEvolved] == 1 {
         //if evolved
         champ.w_cd -= KAISA_W_HIT_PERCENT * 0.75 * f32::max(0., champ.w_cd - KAISA_W_TRAVEL_TIME); //account for w travel time (otherwise cd is instantly refunded after casting and that can be op)
-        magic_dmg += kaisa_second_skin_magic_dmg(champ, target_stats);
+        second_skin_dmg += kaisa_second_skin(champ, target_stats, 1., false);
     }
 
     champ.dmg_on_target(
         target_stats,
-        PartDmg(0., KAISA_W_HIT_PERCENT * magic_dmg, 0.),
+        KAISA_W_HIT_PERCENT * (PartDmg(0., magic_dmg, 0.) + second_skin_dmg),
         (1, 1),
         enum_set!(DmgTag::Ability),
         1.,
@@ -356,7 +371,7 @@ impl Unit {
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
-        basic_attack: kaisa_basic_attack,
+        basic_attack: units_data::default_basic_attack,
         q: BasicAbility {
             cast: kaisa_q,
             cast_time: F32_TOL,
@@ -385,8 +400,8 @@ impl Unit {
             on_ultimate_cast: None,
             on_ability_hit: None,
             on_ultimate_hit: None,
-            on_basic_attack_cast: None,
-            on_basic_attack_hit: None,
+            on_basic_attack_cast: Some(kaisa_on_basic_attack_cast),
+            on_basic_attack_hit: Some(kaisa_second_skin),
             on_phys_hit: None,
             on_magic_hit: None,
             on_true_dmg_hit: None,

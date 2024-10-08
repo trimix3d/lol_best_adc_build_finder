@@ -78,6 +78,7 @@ const TIME_BETWEEN_FIGHTS: f32 = 180.;
 /// Returns the availability coef of a passive/active effect according to its cooldown.
 /// It should be used on effects that have cooldowns way longer than the fight simulation.
 /// The function receives the real cooldown of the effect, already reduced by haste.
+#[inline]
 fn effect_availability_formula(real_cooldown: f32) -> f32 {
     TIME_BETWEEN_FIGHTS / (TIME_BETWEEN_FIGHTS + real_cooldown)
 }
@@ -95,6 +96,8 @@ impl fmt::Display for PartDmg {
 impl ops::Add for PartDmg {
     type Output = Self;
 
+    #[must_use]
+    #[inline]
     fn add(self, rhs: Self) -> Self::Output {
         Self(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
     }
@@ -103,6 +106,8 @@ impl ops::Add for PartDmg {
 impl ops::Sub for PartDmg {
     type Output = Self;
 
+    #[must_use]
+    #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
         Self(self.0 - rhs.0, self.1 - rhs.1, self.2 - rhs.2)
     }
@@ -111,6 +116,8 @@ impl ops::Sub for PartDmg {
 impl ops::Mul<f32> for PartDmg {
     type Output = Self;
 
+    #[must_use]
+    #[inline]
     fn mul(self, rhs: f32) -> Self::Output {
         Self(self.0 * rhs, self.1 * rhs, self.2 * rhs)
     }
@@ -119,6 +126,8 @@ impl ops::Mul<f32> for PartDmg {
 impl ops::Mul<PartDmg> for f32 {
     type Output = PartDmg;
 
+    #[must_use]
+    #[inline]
     fn mul(self, rhs: PartDmg) -> Self::Output {
         PartDmg(self * rhs.0, self * rhs.1, self * rhs.2)
     }
@@ -127,12 +136,15 @@ impl ops::Mul<PartDmg> for f32 {
 impl ops::Div<f32> for PartDmg {
     type Output = Self;
 
+    #[must_use]
+    #[inline]
     fn div(self, rhs: f32) -> Self::Output {
         Self(self.0 / rhs, self.1 / rhs, self.2 / rhs)
     }
 }
 
 impl ops::AddAssign for PartDmg {
+    #[inline]
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
         self.1 += rhs.1;
@@ -141,6 +153,7 @@ impl ops::AddAssign for PartDmg {
 }
 
 impl ops::SubAssign for PartDmg {
+    #[inline]
     fn sub_assign(&mut self, rhs: Self) {
         self.0 -= rhs.0;
         self.1 -= rhs.1;
@@ -149,6 +162,7 @@ impl ops::SubAssign for PartDmg {
 }
 
 impl ops::MulAssign<f32> for PartDmg {
+    #[inline]
     fn mul_assign(&mut self, rhs: f32) {
         self.0 *= rhs;
         self.1 *= rhs;
@@ -157,6 +171,7 @@ impl ops::MulAssign<f32> for PartDmg {
 }
 
 impl ops::DivAssign<f32> for PartDmg {
+    #[inline]
     fn div_assign(&mut self, rhs: f32) {
         self.0 /= rhs;
         self.1 /= rhs;
@@ -166,8 +181,8 @@ impl ops::DivAssign<f32> for PartDmg {
 
 impl PartDmg {
     /// Returns the sum of each dmg type (`phys_dmg`, `magic_dmg`, `true_dmg`) contained in the dmg value.
-    #[inline]
     #[must_use]
+    #[inline]
     pub fn as_sum(&self) -> f32 {
         self.0 + self.1 + self.2
     }

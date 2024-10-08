@@ -1,6 +1,7 @@
-use crate::game_data::units_data::*;
+use crate::game_data::*;
 
 use items_data::items::*;
+use units_data::*;
 
 use enumset::enum_set;
 

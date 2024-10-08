@@ -46,7 +46,7 @@ const SERAPHS_EMBRACE_LIFELINE_MANA_PERCENT: f32 = 0.5;
 //spellblade (generic functions for spellblade items)
 //some lich bane spellblade functions are separate (because it modifies attack speed)
 const SPELLBLADE_COOLDOWN: f32 = 1.5;
-const SPELLBLADE_DELAY: f32 = 10.; //stack duration
+const SPELLBLADE_DELAY: f32 = 10.; //effect duration
 fn spellblade_init(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
     champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime] = -(SPELLBLADE_DELAY + F32_TOL); //to allow for effect at time = 0.
@@ -56,12 +56,8 @@ fn spellblade_init(champ: &mut Unit) {
 }
 
 fn spellblade_on_spell_cast(champ: &mut Unit) {
-    //if already empowered, update timer
-    if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] == 1 {
-        champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime] = champ.time;
-    }
-    //if not empowered (previous condition), empower next basic attack if not on cooldown
-    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastConsumeTime]
+    //empower next basic attack only if not on cooldown
+    if champ.time - champ.effects_values[EffectValueId::SpellbladeLastConsumeTime]
         > SPELLBLADE_COOLDOWN * haste_formula(champ.stats.item_haste)
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 1;
@@ -76,7 +72,7 @@ fn template_item_spellblade_on_basic_attack_hit(champ: &mut Unit, _target_stats:
         return (0., 0., 0.);
     }
     //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
-    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
+    if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
@@ -1215,7 +1211,7 @@ pub const DEATHS_DANCE: Item = Item {
 
 //Eclipse
 const ECLIPSE_EVER_RISING_MOON_COOLDOWN: f32 = 6.;
-const ECLIPSE_EVER_RISING_MOON_DELAY: f32 = 2.; //stack duration
+const ECLIPSE_EVER_RISING_MOON_DELAY: f32 = 2.; //stacks duration
 const ECLIPSE_EVER_RISING_MOON_MAX_STACKS: u8 = 2;
 
 fn eclipse_init(champ: &mut Unit) {
@@ -1234,7 +1230,7 @@ fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> PartD
         return PartDmg(0., 0., 0.);
     }
     //if last hit from too long ago, reset stacks and add 1
-    else if champ.time - champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime]
+    if champ.time - champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime]
         >= ECLIPSE_EVER_RISING_MOON_DELAY
     {
         champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] = 1;
@@ -1242,14 +1238,13 @@ fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> PartD
         return PartDmg(0., 0., 0.);
     }
     //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack (useless since max 2 stacks)
-    else if champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks]
+    if champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks]
         < ECLIPSE_EVER_RISING_MOON_MAX_STACKS - 1
     {
         champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] += 1;
         champ.effects_values[EffectValueId::EclipseEverRisingMoonLastStackTime] = champ.time;
         return PartDmg(0., 0., 0.);
     }
-
     //if last hit is recent enough and fully stacked (previous condition), reset stacks and trigger ever rising moon
     champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] = 0;
     champ.effects_values[EffectValueId::EclipseEverRisingMoonLastTriggerTime] = champ.time;
@@ -1714,14 +1709,14 @@ fn guinsoos_rageblade_on_basic_attack_hit(
         return PartDmg(0., wrath_ap_dmg, 0.);
     }
     //if seething strike is fully stacked (previous condition) but phantom stacks are not fully stacked, add 1 phantom stack
-    else if champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] < 2 {
+    if champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] < 2 {
         champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] += 1;
         return PartDmg(0., wrath_ap_dmg, 0.);
     }
     //if seething strike is fully stacked and phantom stacks are fully stacked (previous conditions), reset and return phantom hit dmg
     champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] = 0;
     let PartDmg(phantom_hit_ad_dmg, phantom_hit_ap_dmg, phantom_hit_true_dmg) =
-        champ.all_on_basic_attack_hit(target_stats, n_targets, true);
+        champ.all_on_basic_attack_hit(target_stats, 1., true); //phantom him only applies on 1 target
     PartDmg(
         phantom_hit_ad_dmg,
         phantom_hit_ap_dmg + wrath_ap_dmg,
@@ -1987,7 +1982,7 @@ pub const HUBRIS: Item = Item {
 };
 
 //Hullbreaker, doesn't take into account skipper bonus dmg on structures
-const HULLBREAKER_SKIPPER_DELAY: f32 = 10.; //stack duration
+const HULLBREAKER_SKIPPER_DELAY: f32 = 10.; //stacks duration
 fn hullbreaker_init(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] = 0;
     champ.effects_values[EffectValueId::HullbreakerSkipperLastStackTime] =
@@ -2009,7 +2004,7 @@ fn hullbreaker_skipper(
         return PartDmg(0., 0., 0.);
     }
     //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
-    else if champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] < 4 {
+    if champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] < 4 {
         champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] += 1;
         champ.effects_values[EffectValueId::HullbreakerSkipperLastStackTime] = champ.time;
         return PartDmg(0., 0., 0.);
@@ -2095,7 +2090,7 @@ fn iceborn_gauntlet_spellblade_on_basic_attack_hit(
         return PartDmg(0., 0., 0.);
     }
     //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
-    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
+    if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
@@ -2446,7 +2441,7 @@ pub const KAENIC_ROOKERN: Item = Item {
 //Knight's vow (useles?)
 
 //Kraken slayer
-const KRAKEN_SLAYER_BRING_IT_DOWN_DELAY: f32 = 3.; //stack duration
+const KRAKEN_SLAYER_BRING_IT_DOWN_DELAY: f32 = 3.; //stacks duration
 fn kraken_slayer_init(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] = 0;
     champ.effects_values[EffectValueId::KrakenSlayerBringItDownLastStackTime] =
@@ -2488,7 +2483,7 @@ fn kraken_slayer_bring_it_down(
         return PartDmg(0., 0., 0.);
     }
     //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
-    else if champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] < 2 {
+    if champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] < 2 {
         champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] += 1;
         champ.effects_values[EffectValueId::KrakenSlayerBringItDownLastStackTime] = champ.time;
         return PartDmg(0., 0., 0.);
@@ -2698,17 +2693,13 @@ pub const LIANDRYS_TORMENT: Item = Item {
 //Lich bane
 const LICH_BANE_SPELLBLADE_BONUS_AS: f32 = 0.5;
 fn lich_bane_spellblade_on_spell_cast(champ: &mut Unit) {
-    //if already empowered, update timer
-    if champ.effects_stacks[EffectStackId::SpellbladeEmpowered] == 1 {
-        champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime] = champ.time;
-    }
-    //if not empowered (previous condition), empower next basic attack if not on cooldown
-    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastConsumeTime]
+    //empower next basic attack only if not on cooldown
+    if champ.time - champ.effects_values[EffectValueId::SpellbladeLastConsumeTime]
         > SPELLBLADE_COOLDOWN * haste_formula(champ.stats.item_haste)
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 1;
-        champ.stats.bonus_as += LICH_BANE_SPELLBLADE_BONUS_AS;
         champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime] = champ.time;
+        champ.stats.bonus_as += LICH_BANE_SPELLBLADE_BONUS_AS;
     }
 }
 
@@ -2727,7 +2718,7 @@ fn lich_bane_spellblade_on_basic_attack_hit(
         return PartDmg(0., 0., 0.);
     }
     //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
-    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
+    if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;
@@ -5747,7 +5738,7 @@ fn trinity_force_spellblade_on_basic_attack_hit(
         return PartDmg(0., 0., 0.);
     }
     //if empowered (previous condition) but last ability cast from too long ago, reset spellblade
-    else if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
+    if champ.time - champ.effects_values[EffectValueId::SpellbladeLastEmpowerTime]
         >= SPELLBLADE_DELAY
     {
         champ.effects_stacks[EffectStackId::SpellbladeEmpowered] = 0;

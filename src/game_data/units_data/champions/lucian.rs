@@ -1,6 +1,7 @@
-use crate::game_data::units_data::{default_basic_attack, *};
+use crate::game_data::*;
 
 use items_data::items::*;
+use units_data::*;
 
 use enumset::enum_set;
 
@@ -75,7 +76,7 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
                 1.,
             )
     } else {
-        default_basic_attack(champ, target_stats)
+        units_data::default_basic_attack(champ, target_stats)
     }
 }
 

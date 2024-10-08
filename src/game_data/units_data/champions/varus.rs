@@ -1,6 +1,7 @@
-use crate::game_data::units_data::*;
+use crate::game_data::*;
 
 use items_data::items::*;
+use units_data::*;
 
 use enumset::enum_set;
 
@@ -19,28 +20,35 @@ const VARUS_E_N_TARGETS: f32 = 1.0;
 
 fn varus_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::VarusBlightStacks] = 0;
+    champ.effects_values[EffectValueId::VarusBlightLastStackTime] =
+        -(VARUS_BLIGH_STACK_DELAY + F32_TOL); //to allow for effect at time == 0
     champ.effects_stacks[EffectStackId::VarusBlightedQuiverEmpowered] = 0;
 }
 
 //passive effect on kill not implemented (too situationnal)
 
-fn varus_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
-    let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
-    let magic_dmg: f32 = VARUS_BLIGHT_ON_HIT_MAGIC_DMG_BY_W_LVL[usize::from(champ.w_lvl - 1)]
-        + 0.35 * champ.stats.ap();
-
-    //assumes blight stacks are applied with less than 6s interval (doesn't check if it expires)
-    if champ.effects_stacks[EffectStackId::VarusBlightStacks] < VARUS_MAX_BLIGHT_STACKS {
+const VARUS_BLIGH_STACK_DELAY: f32 = 6.; //stacks duration
+fn varus_blighted_quiver_on_basic_attack_hit(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    n_targets: f32,
+    _from_other_effects: bool,
+) -> PartDmg {
+    //if last hit from too long ago, reset stacks and add 1
+    if champ.time - champ.effects_values[EffectValueId::VarusBlightLastStackTime]
+        >= VARUS_BLIGH_STACK_DELAY
+    {
+        champ.effects_values[EffectValueId::VarusBlightLastStackTime] = champ.time;
+        champ.effects_stacks[EffectStackId::VarusBlightStacks] = 1;
+    } else if champ.effects_stacks[EffectStackId::VarusBlightStacks] < VARUS_MAX_BLIGHT_STACKS {
+        //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
         champ.effects_stacks[EffectStackId::VarusBlightStacks] += 1;
+        champ.effects_values[EffectValueId::VarusBlightLastStackTime] = champ.time;
     }
 
-    champ.dmg_on_target(
-        target_stats,
-        PartDmg(phys_dmg, magic_dmg, 0.),
-        (1, 1),
-        enum_set!(DmgTag::BasicAttack),
-        1.,
-    )
+    let magic_dmg: f32 = VARUS_BLIGHT_ON_HIT_MAGIC_DMG_BY_W_LVL[usize::from(champ.w_lvl - 1)]
+        + 0.35 * champ.stats.ap();
+    PartDmg(0., n_targets * magic_dmg, 0.)
 }
 
 const VARUS_Q_CHARGE_SLOW_PERCENT: f32 = 0.20;
@@ -382,7 +390,7 @@ impl Unit {
             true_dmg_modifier: 0.,
             tot_dmg_modifier: 0.,
         },
-        basic_attack: varus_basic_attack,
+        basic_attack: units_data::default_basic_attack,
         q: BasicAbility {
             cast: varus_q,
             cast_time: F32_TOL, //cast time done inside ability function
@@ -412,7 +420,7 @@ impl Unit {
             on_ability_hit: None,
             on_ultimate_hit: None,
             on_basic_attack_cast: None,
-            on_basic_attack_hit: None,
+            on_basic_attack_hit: Some(varus_blighted_quiver_on_basic_attack_hit),
             on_phys_hit: None,
             on_magic_hit: None,
             on_true_dmg_hit: None,

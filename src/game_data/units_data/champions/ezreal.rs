@@ -1,6 +1,7 @@
-use crate::game_data::units_data::*;
+use crate::game_data::*;
 
 use items_data::items::*;
+use units_data::*;
 
 use enumset::enum_set;
 
@@ -20,18 +21,9 @@ fn ezreal_init_abilities(champ: &mut Unit) {
 }
 
 fn ezreal_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
-    let w_mark_dmg: PartDmg = ezreal_detonate_w_mark_if_any(champ, target_stats);
-
-    let phys_dmg: f32 = champ.stats.ad() * champ.stats.crit_coef();
-
-    w_mark_dmg
-        + champ.dmg_on_target(
-            target_stats,
-            PartDmg(phys_dmg, 0., 0.),
-            (1, 1),
-            enum_set!(DmgTag::BasicAttack),
-            1.,
-        )
+    //w mark + basic attack
+    ezreal_detonate_w_mark_if_any(champ, target_stats)
+        + units_data::default_basic_attack(champ, target_stats)
 }
 
 const EZREAL_RISING_SPELL_FORCE_BONUS_AS_PER_STACK: f32 = 0.10;
