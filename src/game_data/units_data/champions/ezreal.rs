@@ -85,7 +85,7 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
             PartDmg(EZREAL_Q_HIT_PERCENT * phys_dmg, 0., 0.),
             (1, 1),
             enum_set!(DmgTag::Ability | DmgTag::BasicAttack),
-            EZREAL_Q_HIT_PERCENT,
+            1.,
         )
 }
 
@@ -118,7 +118,7 @@ fn ezreal_detonate_w_mark_if_any(champ: &mut Unit, target_stats: &UnitStats) -> 
             PartDmg(0., EZREAL_W_HIT_PERCENT * magic_dmg, 0.),
             (1, 1),
             enum_set!(DmgTag::Ability),
-            EZREAL_Q_HIT_PERCENT,
+            1.,
         )
     }
 }
@@ -178,7 +178,7 @@ fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
             PartDmg(0., EZREAL_R_HIT_PERCENT * magic_dmg, 0.),
             (1, 1),
             enum_set!(DmgTag::Ability | DmgTag::Ultimate),
-            EZREAL_R_N_TARGETS * EZREAL_R_HIT_PERCENT,
+            EZREAL_R_N_TARGETS,
         )
 }
 

@@ -8,7 +8,7 @@ use enumset::enum_set;
 const JINX_W_HIT_PERCENT: f32 = 0.8;
 const JINX_R_TARGET_MISSING_HP_PERCENT: f32 = 2. / 3.;
 const JINX_R_AVG_TARGETS: f32 = 1.2;
-const JINX_R_HIT_PERCENT: f32 = 0.9;
+const JINX_R_HIT_PERCENT: f32 = 0.85;
 
 const JINX_ROCKET_LAUNCHER_AOE_RADIUS: f32 = 250.;
 const JINX_ROCKET_LAUNCHER_AOE_AVG_TARGETS: f32 =
@@ -48,7 +48,7 @@ fn jinx_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         PartDmg(JINX_W_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        JINX_W_HIT_PERCENT,
+        1.,
     )
 }
 
@@ -75,7 +75,7 @@ fn jinx_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         PartDmg(JINX_R_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
-        JINX_R_AVG_TARGETS * JINX_R_HIT_PERCENT,
+        JINX_R_AVG_TARGETS,
     )
 }
 

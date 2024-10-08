@@ -189,7 +189,7 @@ fn kaisa_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         PartDmg(0., KAISA_W_HIT_PERCENT * magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        KAISA_W_HIT_PERCENT,
+        1.,
     )
 }
 

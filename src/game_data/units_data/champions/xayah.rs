@@ -9,7 +9,7 @@ use enumset::enum_set;
 /// Must be less or equal to 8 (max number of feathers on the ground on 1 combo, more is unrealistic except with r).
 const XAYAH_N_FEATHERS_BEFORE_RECALL: u8 = 6;
 /// Average number of targets hit by feathers recall (e).
-const XAYAH_FEATHERS_N_TARGETS: f32 = 1.10;
+const XAYAH_FEATHERS_N_TARGETS: f32 = 1.1;
 const XAYAH_Q_HIT_PERCENT: f32 = 0.9;
 
 fn xayah_init_abilities(champ: &mut Unit) {
@@ -67,7 +67,7 @@ fn xayah_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         PartDmg(XAYAH_Q_HIT_PERCENT * phys_dmg, 0., 0.),
         (2, 1),
         enum_set!(DmgTag::Ability),
-        XAYAH_Q_HIT_PERCENT,
+        1.,
     )
 }
 

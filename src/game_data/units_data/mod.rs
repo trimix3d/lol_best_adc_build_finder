@@ -891,7 +891,7 @@ impl UnitSimulationLogs {
 #[derive(Debug, Clone)]
 pub struct Unit {
     //properties
-    pub properties: &'static UnitProperties,
+    pub properties: &'static UnitProperties, //todo: cache vars
     runes_page: RunesPage,
     skill_order: SkillOrder,
     build: Build,
@@ -1717,10 +1717,10 @@ impl Unit {
 
         //wait cast (windup) time
         let windup_time: f32 = real_windup_time(windup_formula(
-            self.properties.windup_percent,
-            self.properties.windup_modifier,
+            self.properties.windup_percent,  //todo: put to cache
+            self.properties.windup_modifier, //todo: put to cache
             self.stats.base_as,
-            self.stats.attack_speed(self.properties.as_ratio),
+            self.stats.attack_speed(self.properties.as_ratio), //todo: put to cache
         ));
         self.wait(windup_time);
 
@@ -1731,13 +1731,13 @@ impl Unit {
         self.basic_attack_cd = f32::max(
             0.,
             1. / f32::min(
-                self.properties.as_limit,
-                self.stats.attack_speed(self.properties.as_ratio),
+                self.properties.as_limit,                          //todo: put to cache
+                self.stats.attack_speed(self.properties.as_ratio), //todo: put to cache
             ) - windup_time,
         ); //limit as cd to the unit as limit
 
         //return dmg
-        (self.properties.basic_attack)(self, target_stats)
+        (self.properties.basic_attack)(self, target_stats) //todo: put to cache
     }
 
     /// cast q and returns dmg done.
@@ -1748,7 +1748,7 @@ impl Unit {
             .push((self.time, UnitAction::Q));
 
         //wait cast time
-        self.wait(self.properties.q.cast_time);
+        self.wait(self.properties.q.cast_time); //todo: put to cache
 
         //on ability cast effects
         self.all_on_ability_cast();

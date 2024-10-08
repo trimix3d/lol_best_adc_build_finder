@@ -980,13 +980,13 @@ fn change_items_pool(
         //print list of items with allowed/disallowed checkbox
         match item_pool_types {
             ItemPoolType::Legendary => {
-                println!("\nLegendary items in database:");
+                println!("\nAllowed legendary items:");
             }
             ItemPoolType::Boots => {
-                println!("\nBoots in database:");
+                println!("\nAllowed boots:");
             }
             ItemPoolType::Support => {
-                println!("\nSupport items in database:");
+                println!("\nAllowed support items:");
             }
         }
         for item in reference_pool {

@@ -95,7 +95,7 @@ fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         ),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        VARUS_ABILITIES_HIT_PERCENT * VARUS_Q_N_TARGETS,
+        VARUS_Q_N_TARGETS,
     )
 }
 
@@ -168,7 +168,7 @@ fn varus_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         ),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        VARUS_ABILITIES_HIT_PERCENT * VARUS_E_N_TARGETS,
+        VARUS_E_N_TARGETS,
     )
 }
 
@@ -228,7 +228,7 @@ fn varus_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         PartDmg(0., VARUS_ABILITIES_HIT_PERCENT * magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
-        VARUS_ABILITIES_HIT_PERCENT,
+        1.,
     )
 }
 

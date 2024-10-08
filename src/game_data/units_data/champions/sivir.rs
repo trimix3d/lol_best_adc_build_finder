@@ -235,7 +235,7 @@ fn sivir_r(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
             champ.stats.ability_haste_ultimate(),
         ),
         _ => unreachable!(
-            "{}'s R lvl is outside of range (using sivir R)",
+            "{} R lvl is outside of range (using sivir R)",
             champ.properties.name
         ),
     };

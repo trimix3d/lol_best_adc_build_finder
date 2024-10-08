@@ -282,7 +282,7 @@ fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         PartDmg(phys_dmg, magic_dmg, 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        (2. + APHELIOS_Q_CALIBRUM_HIT_PERCENT + APHELIOS_Q_INFERNUM_N_TARGETS) / 5.,
+        (3. + APHELIOS_Q_INFERNUM_N_TARGETS) / 5.,
     );
     champ.all_on_basic_attack_cast();
     first_hit
@@ -291,7 +291,7 @@ fn aphelios_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
             PartDmg(basic_attack_phys_dmg, 0., 0.),
             (1, 1),
             enum_set!(DmgTag::BasicAttack),
-            (1. + APHELIOS_Q_CALIBRUM_HIT_PERCENT + APHELIOS_Q_INFERNUM_N_TARGETS) / 5.,
+            (2. + APHELIOS_Q_INFERNUM_N_TARGETS) / 5.,
         )
 }
 

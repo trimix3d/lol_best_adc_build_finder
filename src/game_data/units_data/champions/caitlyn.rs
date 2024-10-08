@@ -77,7 +77,7 @@ fn caitlyn_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         PartDmg(CAITLYN_Q_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        CAITLYN_Q_N_TARGETS * CAITLYN_Q_HIT_PERCENT,
+        CAITLYN_Q_N_TARGETS,
     )
 }
 

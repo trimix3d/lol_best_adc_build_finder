@@ -4270,8 +4270,7 @@ pub const RIFTMAKER: Item = Item {
     },
 };
 
-//Rod of ages, timeless and eternity passives implemented as permanent stats
-//todo: impl rod of ages passives in init fct to give stats based on lvl (get item slot -> get gold gained since roa -> get time spent since roa)
+//Rod of ages
 fn rod_of_ages_timeless_init(champ: &mut Unit) {
     //get time elapsed since bought (assuming items are in purchase order)
     let mut take_item: bool = false;
