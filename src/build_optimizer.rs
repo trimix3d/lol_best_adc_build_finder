@@ -2,7 +2,7 @@ use super::game_data::*;
 
 use units_data::*;
 
-use items_data::{items::NULL_ITEM, *};
+use items_data::*;
 use runes_data::RunesPage;
 
 use enumset::{enum_set, EnumSet};
@@ -15,13 +15,13 @@ use core::num::{NonZero, NonZeroU8, NonZeroUsize};
 use core::time::Duration;
 
 /// Meaningless to go above this value (in seconds).
-pub const MAX_FIGHT_DURATION: f32 = 60.;
+pub(crate) const MAX_FIGHT_DURATION: f32 = 60.;
 /// Value (in seconds) under which results may become inaccurate and that is not recommended to use.
-pub const LOW_FIGHT_DURATION_VALUE_WARNING: f32 = 2.;
+pub(crate) const LOW_FIGHT_DURATION_VALUE_WARNING: f32 = 2.;
 /// Value under which results may become inaccurate and that is not recommended to use.
-pub const LOW_SEARCH_THRESHOLD_VALUE_WARNING: f32 = 0.15;
+pub(crate) const LOW_SEARCH_THRESHOLD_VALUE_WARNING: f32 = 0.15;
 /// Value above which computation times may become very long and that is not recommended to use.
-pub const HIGH_SEARCH_THRESHOLD_VALUE_WARNING: f32 = 0.25;
+pub(crate) const HIGH_SEARCH_THRESHOLD_VALUE_WARNING: f32 = 0.25;
 
 //optimizer dummy, used as a shared, read only target to compute dmg from during the optimisation process
 //here we want every stats to be close to those of a real champion (unlike in game dummy)
@@ -33,7 +33,7 @@ const OPTIMIZER_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //d
 const MAX_UNIT_LVL_F32: f32 = MAX_UNIT_LVL as f32; //`MAX_UNIT_LVL` is well whithin f32's range to avoid precision loss
 
 /// Using Ahri stats for squishy dummy.
-const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
+pub const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
     name: "squishy (e.g. Ahri)",
     as_limit: Unit::DEFAULT_AS_LIMIT,
     as_ratio: 0.625,
@@ -130,7 +130,7 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         on_any_hit: None,
     },
     fight_scenarios: &[(null_simulate_fight, "null")],
-    unit_defaults: UnitDefaults {
+    defaults: UnitDefaults {
         runes_pages: OPTIMIZER_DUMMY_RUNES_PAGE,
         skill_order: OPTIMIZER_DUMMY_SKILL_ORDER,
         legendary_items_pool: &ALL_LEGENDARY_ITEMS,
@@ -140,7 +140,7 @@ const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
 };
 
 /// Using Riven stats for bruiser dummy with additionnal stats from bruiser items.
-const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
+pub const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
     name: "bruiser (e.g. Riven)",
     as_limit: Unit::DEFAULT_AS_LIMIT,
     as_ratio: 0.625,
@@ -241,7 +241,7 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         on_any_hit: None,
     },
     fight_scenarios: &[(null_simulate_fight, "null")],
-    unit_defaults: UnitDefaults {
+    defaults: UnitDefaults {
         runes_pages: OPTIMIZER_DUMMY_RUNES_PAGE,
         skill_order: OPTIMIZER_DUMMY_SKILL_ORDER,
         legendary_items_pool: &ALL_LEGENDARY_ITEMS,
@@ -251,7 +251,7 @@ const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
 };
 
 /// Using Ornn stats for bruiser dummy with additionnal stats from bruiser items.
-const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
+pub const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
     name: "tank (e.g. Ornn)",
     as_limit: Unit::DEFAULT_AS_LIMIT,
     as_ratio: 0.625,
@@ -355,7 +355,7 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         on_any_hit: None,
     },
     fight_scenarios: &[(null_simulate_fight, "null")],
-    unit_defaults: UnitDefaults {
+    defaults: UnitDefaults {
         runes_pages: OPTIMIZER_DUMMY_RUNES_PAGE,
         skill_order: OPTIMIZER_DUMMY_SKILL_ORDER,
         legendary_items_pool: &ALL_LEGENDARY_ITEMS,
@@ -364,7 +364,7 @@ const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
     },
 };
 
-pub const TARGET_OPTIONS: [&UnitProperties; 3] = [
+pub(crate) const TARGET_OPTIONS: [&UnitProperties; 3] = [
     &SQUISHY_OPTIMIZER_DUMMY_PROPERTIES,
     &BRUISER_OPTIMIZER_DUMMY_PROPERTIES,
     &TANKY_OPTIMIZER_DUMMY_PROPERTIES,
@@ -530,48 +530,48 @@ impl BuildsGenerationSettings {
         if *properties == Unit::ASHE_PROPERTIES {
             BuildsGenerationSettings {
                 //boots_slot: 1, //gives questionable results
-                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.defaults.boots_pool),
+                support_items_pool: Vec::from(properties.defaults.support_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
         } else if *properties == Unit::DRAVEN_PROPERTIES {
             BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.defaults.boots_pool),
+                support_items_pool: Vec::from(properties.defaults.support_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
         } else if *properties == Unit::KAISA_PROPERTIES {
             BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.defaults.boots_pool),
+                support_items_pool: Vec::from(properties.defaults.support_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
         } else if *properties == Unit::LUCIAN_PROPERTIES {
             BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.defaults.boots_pool),
+                support_items_pool: Vec::from(properties.defaults.support_items_pool),
                 ..Default::default()
             }
         } else if *properties == Unit::VARUS_PROPERTIES {
             BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.defaults.boots_pool),
+                support_items_pool: Vec::from(properties.defaults.support_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
         } else {
             BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties.unit_defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.unit_defaults.boots_pool),
-                support_items_pool: Vec::from(properties.unit_defaults.support_items_pool),
+                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
+                boots_pool: Vec::from(properties.defaults.boots_pool),
+                support_items_pool: Vec::from(properties.defaults.support_items_pool),
                 ..Default::default()
             }
         }
@@ -664,7 +664,7 @@ impl BuildsGenerationSettings {
             if self.boots_pool.is_empty() {
                 return Err("Boots pool is empty".to_string());
             }
-            if *self.mandatory_items[self.boots_slot - 1] != NULL_ITEM {
+            if *self.mandatory_items[self.boots_slot - 1] != Item::NULL_ITEM {
                 return Err(format!(
                     "Cannot have a mandatory item at the boots slot (slot {})",
                     self.boots_slot
@@ -682,7 +682,7 @@ impl BuildsGenerationSettings {
             if self.support_items_pool.is_empty() {
                 return Err("Support items pool is empty".to_string());
             }
-            if *self.mandatory_items[self.support_item_slot - 1] != NULL_ITEM {
+            if *self.mandatory_items[self.support_item_slot - 1] != Item::NULL_ITEM {
                 return Err(format!(
                     "Cannot have a mandatory item at the support item slot (slot {})",
                     self.support_item_slot
@@ -710,12 +710,12 @@ impl BuildsGenerationSettings {
         if self
             .legendary_items_pool
             .iter()
-            .any(|&item| *item == NULL_ITEM)
-            || self.boots_pool.iter().any(|&item| *item == NULL_ITEM)
+            .any(|&item| *item == Item::NULL_ITEM)
+            || self.boots_pool.iter().any(|&item| *item == Item::NULL_ITEM)
             || self
                 .support_items_pool
                 .iter()
-                .any(|&item| *item == NULL_ITEM)
+                .any(|&item| *item == Item::NULL_ITEM)
         {
             return Err("Items pools cannot contain NULL_ITEM".to_string());
         }
@@ -763,7 +763,7 @@ pub fn get_normalized_judgment_weights(
 /// `Judgment_weights` must be >= 0 and normalized (their sum must be 3.0) for the formula to be correct
 /// (these requirements are not checked when calling this function for performance reasons).
 #[inline]
-pub fn score_formula_with_normalized_weights(
+fn score_formula_with_normalized_weights(
     golds: f32,
     dps: f32,
     defense: f32,
@@ -1130,7 +1130,7 @@ pub fn find_best_builds(
         //set item pool
         let mut pool: &[&Item] = &[settings.mandatory_items[item_idx]]; //need to assign temporary value outside of if else brackets
         let pool_without_manaflow: Vec<&Item>;
-        if *settings.mandatory_items[item_idx] == NULL_ITEM {
+        if *settings.mandatory_items[item_idx] == Item::NULL_ITEM {
             pool = if item_slot == settings.boots_slot {
                 &settings.boots_pool
             } else if item_slot == settings.support_item_slot {
@@ -1268,8 +1268,9 @@ mod tests {
     pub fn test_default_build_generation_settings() {
         //test for every champion
         for properties in Unit::ALL_CHAMPIONS.iter() {
-            let champ: Unit = Unit::from_defaults(*properties, MIN_UNIT_LVL, Build::default())
-                .expect("Failed to create unit");
+            let champ: Unit =
+                Unit::from_properties_defaults(*properties, MIN_UNIT_LVL, Build::default())
+                    .expect("Failed to create unit");
 
             if let Err(error_msg) =
                 BuildsGenerationSettings::default_by_champion(properties).check_settings(&champ)

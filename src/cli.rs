@@ -2,7 +2,7 @@ use super::build_optimizer::*;
 use super::builds_analyzer::*;
 use super::game_data::*;
 
-use items_data::{items::*, *};
+use items_data::*;
 use units_data::*;
 
 use constcat::concat;
@@ -17,9 +17,9 @@ use std::io;
 use io::Write;
 
 ///Character that represents a check mark.
-pub const CHECK_MARK_CHAR: char = '●';
+pub(crate) const CHECK_MARK_CHAR: char = '●';
 ///Character that represents an unchecked mark.
-pub const UNCHECKED_MARK_CHAR: char = ' ';
+pub(crate) const UNCHECKED_MARK_CHAR: char = ' ';
 /// Number of builds to be printed by default when displaying results.
 const DEFAULT_N_PRINTED_BUILDS: usize = 18;
 
@@ -256,7 +256,7 @@ fn get_user_usize(
                     return Ok(Some(number));
                 } else {
                     println!(
-                        "{} is outside of range: ({:?}; {:?})",
+                        "{} is outside of range: {:?} to {:?}",
                         number,
                         range.start_bound(),
                         range.end_bound()
@@ -365,7 +365,7 @@ fn get_user_item(
         let sanitized_input: String = sanitize_item_name(&input);
 
         if sanitized_input.is_empty() {
-            return Ok(&NULL_ITEM);
+            return Ok(&Item::NULL_ITEM);
         } else if let Some(item) =
             available_items
                 .iter()
@@ -406,8 +406,8 @@ fn get_user_item(
 /// This function never returns `Err(UserCommand::back)` because cannot go further back.
 fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result<(), UserCommand> {
     //create champion
-    let mut champ: Unit =
-        Unit::from_defaults(champ_properties, 6, Build::default()).expect("Failed to create unit");
+    let mut champ: Unit = Unit::from_properties_defaults(champ_properties, 6, Build::default())
+        .expect("Failed to create unit");
 
     //create build generation settings
     let mut settings: BuildsGenerationSettings =
@@ -461,8 +461,8 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
                     &format!("only show builds with anti heal/shield utility: {}", must_have_utils.contains(ItemUtils::AntiHealShield)),
                     &format!("only show builds with survivability utility: {}", must_have_utils.contains(ItemUtils::Survivability)),
                     &format!("only show builds with special utility: {}", must_have_utils.contains(ItemUtils::Special)),
-                    "choose number of builds to show",
-                    "restart generation with different settings",
+                    "choose the number of builds to show",
+                    "restart build generation with different settings",
                 ],
                 true,
             ) {
@@ -1011,7 +1011,7 @@ fn change_items_pool(
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
-        if *item == NULL_ITEM {
+        if *item == Item::NULL_ITEM {
             return Ok(());
         }
 

@@ -5,7 +5,7 @@ use enum_map::Enum;
 use core::hash::{Hash, Hasher};
 
 #[derive(Enum, Debug, PartialEq, Eq, Hash)]
-pub enum EffectId {
+pub(crate) enum EffectId {
     //the convention to name variants is to write, in CamelCase (with no extra space between them), the following in order :
     // - the name of the source of the passive/active effect (either an item or a champion ability)
     // - the name of the passive/active effect
@@ -47,13 +47,12 @@ pub enum EffectId {
 
 //If you have the choice, prefer using EffectfStackId over EffectValueId, as working with integers is more reliable than floats
 #[derive(Enum, Debug)]
-pub enum EffectStackId {
+pub(crate) enum EffectStackId {
     //the convention to name variants is to write, in CamelCase (with no extra space between them), the following in order :
     // - the name of the source of the passive/active effect (either an item or a champion ability)
     // - the name of the passive/active effect
     // - "Stacks" at the end (+optionally, additionnal relevant information)
     //exemple: KrakenSlayerBringItDownStacks
-    AsheFrosted,
     AsheFocusStacks,
     BlackCleaverCarveStacks,
     CaitlynBonusHeadshot,
@@ -63,7 +62,6 @@ pub enum EffectStackId {
     EclipseEverRisingMoonStacks,
     EzrealRisingSpellForceStacks,
     EzrealEssenceFluxMark,
-    SpellbladeEmpowered,
     GuinsoosRagebladeSeethingStrikeStacks,
     GuinsoosRagebladePhantomStacks,
     HullbreakerSkipperStacks,
@@ -75,7 +73,9 @@ pub enum EffectStackId {
     LucianLightslingerEmpowered,
     LucianVigilanceProcsRemaning,
     PhantomDancerSpectralWalkzStacks,
+    PressTheAttackStacks,
     SpearOfShojinFocusedWillStacks,
+    SpellbladeEmpowered,
     StormsurgeStormraiderTriggered,
     TerminusJuxtapositionMode,
     TerminusJuxtapositionLightStacks,
@@ -88,31 +88,28 @@ pub enum EffectStackId {
 }
 
 #[derive(Enum, Debug)]
-pub enum EffectValueId {
+pub(crate) enum EffectValueId {
     //the convention to name variants is to write, in CamelCase (with no extra space between them), the following in order :
     // - the name of the source of the passive/active effect (either an item or a champion spell)
     // - the name of the passive/active effect
     // - the name of the affected stat (+optionally, additionnal relevant information)
     //exemple : YoumuusGhostbladeWraithStepMsPercent
+    AsheLastFrostTime,
     AsheRangersFocusBonusAS,
     BlackCleaverCarveArmorRedPercent,
     BlackCleaverFervorMsFlat,
     BlackfireTorchBalefulBlazeLastApplicationTime,
     CosmicDriveSpellDanceMsFlat,
+    DeadMansPlateShipwreckerLastHitdistance,
     DravenBloodRushBonusAS,
     DravenBloodRushBonusMsPercent,
     EclipseEverRisingMoonLastStackTime,
     EclipseEverRisingMoonLastTriggerTime,
     EzrealEssenceFluxHitTime,
     EzrealRisingSpellForceBonusAS,
-    SpellbladeLastEmpowerTime,
-    SpellbladeLastConsumeTime,
     ExperimentalHexplateOverdriveBonusAS,
     ExperimentalHexplateOverdriveMsPercent,
     HullbreakerSkipperLastStackTime,
-    OpportunityPreparationLethality,
-    YoumuusGhostbladeWraithStepMsPercent,
-    DeadMansPlateShipwreckerLastHitdistance,
     KaisaSecondSkinLastStackTime,
     KaisaSuperchargeBonusAS,
     KrakenSlayerBringItDownLastStackTime,
@@ -123,10 +120,14 @@ pub enum EffectValueId {
     LudensCompanionFireLastConsumeTime,
     MalignanceHatefogCurseMrRedFlat,
     MuramanaShockLastSpellHitTime,
+    OpportunityPreparationLethality,
+    PressTheAttackLastStackTime,
     RiftmakerVoidCorruptionTotDmgModifier,
     RiftmakerVoidCorruptionCombatStartTime,
     RiftmakerVoidCorruptionOmnivamp,
     RapidFirecannonSharpshooterLastTriggerDistance,
+    SpellbladeLastEmpowerTime,
+    SpellbladeLastConsumeTime,
     SivirFleetOfFootMsFlat,
     SivirOnTheHuntMsPercent,
     SivirRicochetBonusAS,
@@ -143,21 +144,22 @@ pub enum EffectValueId {
     XayahDeadlyPlumageBonusAS,
     XayahDeadlyPlumageMsPercent,
     XayahWBasicAttackCoef,
+    YoumuusGhostbladeWraithStepMsPercent,
 }
 
 #[derive(Debug)]
-pub struct TemporaryEffect {
-    pub id: EffectId,
+pub(crate) struct TemporaryEffect {
+    pub(crate) id: EffectId,
     /// Adds effect stats AND records the added value on the unit (in `Unit.effect_values` or `Unit.effects_stacks`).
     ///
     /// First argument is the Unit to add a stack to.
     /// The second argument (`availability_coef`) should multiply every effect stat that is added to the Unit beforehand,
     /// it exists to weight effects with different cooldowns (an effect with a longer cooldown should weight less than the same effect with a smaller cooldown).
-    pub add_stack: fn(&mut Unit, f32),
+    pub(crate) add_stack: fn(&mut Unit, f32),
     /// Removes effect stats AND resets to zero the associated values on the unit (in `Unit.effects_values` or `Unit.effects_stacks`).
-    pub remove_every_stack: fn(&mut Unit),
-    pub duration: f32,
-    pub cooldown: f32,
+    pub(crate) remove_every_stack: fn(&mut Unit),
+    pub(crate) duration: f32,
+    pub(crate) cooldown: f32,
 }
 
 impl PartialEq for TemporaryEffect {

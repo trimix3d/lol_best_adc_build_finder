@@ -14,11 +14,9 @@ use core::cmp::Ordering;
 use core::fmt;
 use core::ops::{Deref, DerefMut};
 
-use items::*;
-
 /// Holds every item id (or name).
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, EnumCountMacro)]
-pub enum ItemId {
+pub(crate) enum ItemId {
     NullItem,
     AbyssalMask,
     AxiomArc,
@@ -137,7 +135,7 @@ pub enum ItemUtils {
 #[derive(Debug)]
 pub struct Item {
     //attributes
-    pub id: ItemId,
+    id: ItemId,
     pub full_name: &'static str,
     pub short_name: &'static str,
     pub cost: f32, //f32 because exclusively used in f32 calculations
@@ -148,7 +146,7 @@ pub struct Item {
     pub stats: UnitStats,
 
     //on action fns (passives/actives)
-    pub on_action_fns: OnActionFns,
+    pub(crate) on_action_fns: OnActionFns,
 }
 
 //no impl Default for Item because they are compile time constants and can't use non-constant functions
@@ -193,95 +191,96 @@ impl Ord for Item {
 
 /// Lists all (non-support and non-boots) items.
 pub const ALL_LEGENDARY_ITEMS: [&Item; 74] = [
-    &ABYSSAL_MASK,
-    &AXIOM_ARC,
-    &BANSHEES_VEIL,
-    &BLACK_CLEAVER,
-    &BLACKFIRE_TORCH,
-    &BLADE_OF_THE_RUINED_KING,
-    &BLOODTHIRSTER,
-    &CHEMPUNK_CHAINSWORD,
-    &COSMIC_DRIVE,
-    &CRYPTBLOOM,
-    &DEAD_MANS_PLATE,
-    &DEATHS_DANCE,
-    &ECLIPSE,
-    &EDGE_OF_NIGHT,
-    &ESSENCE_REAVER,
-    &EXPERIMENTAL_HEXPLATE,
-    &FROZEN_HEART,
-    &GUARDIAN_ANGEL,
-    &GUINSOOS_RAGEBLADE,
-    &HEXTECH_ROCKETBELT,
-    &HORIZON_FOCUS,
-    &HUBRIS,
-    &HULLBREAKER,
-    &ICEBORN_GAUNTLET,
-    &IMMORTAL_SHIELDBOW,
-    &INFINITY_EDGE,
-    &JAKSHO,
-    &KAENIC_ROOKERN,
-    &KRAKEN_SLAYER,
-    &LIANDRYS_TORMENT,
-    &LICH_BANE,
-    &LORD_DOMINIKS_REGARDS,
-    &LUDENS_COMPANION,
-    &MALIGNANCE,
-    &MAW_OF_MALMORTIUS,
-    &MERCURIAL_SCIMITAR,
-    &MORELLONOMICON,
-    &MORTAL_REMINDER,
-    &MURAMANA,
-    &NASHORS_TOOTH,
-    &NAVORI_FLICKERBLADE,
-    &OPPORTUNITY,
-    &OVERLORDS_BLOODMAIL,
-    &PHANTOM_DANCER,
-    &PROFANE_HYDRA,
-    &RABADONS_DEATHCAP,
-    &RANDUINS_OMEN,
-    &RAPID_FIRECANNON,
-    &RAVENOUS_HYDRA,
-    &RIFTMAKER,
-    &ROD_OF_AGES,
-    &RUNAANS_HURRICANE,
-    &RYLAIS_CRYSTAL_SCEPTER,
-    &SERAPHS_EMBRACE,
-    &SERPENTS_FANG,
-    &SERYLDAS_GRUDGE,
-    &SHADOWFLAME,
-    &SPEAR_OF_SHOJIN,
-    &STATIKK_SHIV,
-    &STERAKS_GAGE,
-    &STORMSURGE,
-    &STRIDEBREAKER,
-    &SUNDERED_SKY,
-    &TERMINUS,
-    &THE_COLLECTOR,
-    &TITANIC_HYDRA,
-    &TRINITY_FORCE,
-    &UMBRAL_GLAIVE,
-    &VOID_STAFF,
-    &VOLTAIC_CYCLOSWORD,
-    &WITS_END,
-    &YOUMUUS_GHOSTBLADE,
-    &YUN_TAL_WILDARROWS,
-    &ZHONYAS_HOURGLASS,
+    &Item::ABYSSAL_MASK,
+    &Item::AXIOM_ARC,
+    &Item::BANSHEES_VEIL,
+    &Item::BLACK_CLEAVER,
+    &Item::BLACKFIRE_TORCH,
+    &Item::BLADE_OF_THE_RUINED_KING,
+    &Item::BLOODTHIRSTER,
+    &Item::CHEMPUNK_CHAINSWORD,
+    &Item::COSMIC_DRIVE,
+    &Item::CRYPTBLOOM,
+    &Item::DEAD_MANS_PLATE,
+    &Item::DEATHS_DANCE,
+    &Item::ECLIPSE,
+    &Item::EDGE_OF_NIGHT,
+    &Item::ESSENCE_REAVER,
+    &Item::EXPERIMENTAL_HEXPLATE,
+    &Item::FROZEN_HEART,
+    &Item::GUARDIAN_ANGEL,
+    &Item::GUINSOOS_RAGEBLADE,
+    &Item::HEXTECH_ROCKETBELT,
+    &Item::HORIZON_FOCUS,
+    &Item::HUBRIS,
+    &Item::HULLBREAKER,
+    &Item::ICEBORN_GAUNTLET,
+    &Item::IMMORTAL_SHIELDBOW,
+    &Item::INFINITY_EDGE,
+    &Item::JAKSHO,
+    &Item::KAENIC_ROOKERN,
+    &Item::KRAKEN_SLAYER,
+    &Item::LIANDRYS_TORMENT,
+    &Item::LICH_BANE,
+    &Item::LORD_DOMINIKS_REGARDS,
+    &Item::LUDENS_COMPANION,
+    &Item::MALIGNANCE,
+    &Item::MAW_OF_MALMORTIUS,
+    &Item::MERCURIAL_SCIMITAR,
+    &Item::MORELLONOMICON,
+    &Item::MORTAL_REMINDER,
+    &Item::MURAMANA,
+    &Item::NASHORS_TOOTH,
+    &Item::NAVORI_FLICKERBLADE,
+    &Item::OPPORTUNITY,
+    &Item::OVERLORDS_BLOODMAIL,
+    &Item::PHANTOM_DANCER,
+    &Item::PROFANE_HYDRA,
+    &Item::RABADONS_DEATHCAP,
+    &Item::RANDUINS_OMEN,
+    &Item::RAPID_FIRECANNON,
+    &Item::RAVENOUS_HYDRA,
+    &Item::RIFTMAKER,
+    &Item::ROD_OF_AGES,
+    &Item::RUNAANS_HURRICANE,
+    &Item::RYLAIS_CRYSTAL_SCEPTER,
+    &Item::SERAPHS_EMBRACE,
+    &Item::SERPENTS_FANG,
+    &Item::SERYLDAS_GRUDGE,
+    &Item::SHADOWFLAME,
+    &Item::SPEAR_OF_SHOJIN,
+    &Item::STATIKK_SHIV,
+    &Item::STERAKS_GAGE,
+    &Item::STORMSURGE,
+    &Item::STRIDEBREAKER,
+    &Item::SUNDERED_SKY,
+    &Item::TERMINUS,
+    &Item::THE_COLLECTOR,
+    &Item::TITANIC_HYDRA,
+    &Item::TRINITY_FORCE,
+    &Item::UMBRAL_GLAIVE,
+    &Item::VOID_STAFF,
+    &Item::VOLTAIC_CYCLOSWORD,
+    &Item::WITS_END,
+    &Item::YOUMUUS_GHOSTBLADE,
+    &Item::YUN_TAL_WILDARROWS,
+    &Item::ZHONYAS_HOURGLASS,
 ];
 
 /// Lists all boots.
 pub const ALL_BOOTS: [&Item; 6] = [
-    &BERSERKERS_GREAVES,
-    &BOOTS_OF_SWIFTNESS,
-    &IONIAN_BOOTS_OF_LUCIDITY,
-    &MERCURYS_TREADS,
-    &PLATED_STEELCAPS,
-    &SORCERERS_SHOES,
+    &Item::BERSERKERS_GREAVES,
+    &Item::BOOTS_OF_SWIFTNESS,
+    &Item::IONIAN_BOOTS_OF_LUCIDITY,
+    &Item::MERCURYS_TREADS,
+    &Item::PLATED_STEELCAPS,
+    &Item::SORCERERS_SHOES,
 ];
 
 /// Lists support items.
 pub const ALL_SUPPORT_ITEMS: [&Item; 0] = [];
 
+//set manually because f32 calcs are forbidden in constants :)))
 pub const AVG_LEGENDARY_ITEM_COST: f32 = 2994.;
 pub const AVG_BOOTS_COST: f32 = 1100.;
 pub const AVG_SUPPORT_ITEM_COST: f32 = 0.;
@@ -293,9 +292,9 @@ const MAX_UNIT_ITEMS_F32: f32 = MAX_UNIT_ITEMS as f32; //`MAX_UNIT_ITEMS` is wel
 pub const AVG_ITEM_COST_WITH_BOOTS: f32 =
     ((MAX_UNIT_ITEMS_F32 - 1.) * AVG_LEGENDARY_ITEM_COST + AVG_BOOTS_COST) / MAX_UNIT_ITEMS_F32;
 /// Assumes 1 build slot for support item, 1 for boots and the remaining slots for legendary items.
-pub const AVG_ITEM_COST_WITH_BOOTS_AND_SUPP_ITEM: f32 =
-    ((MAX_UNIT_ITEMS_F32 - 2.) * AVG_LEGENDARY_ITEM_COST + AVG_BOOTS_COST + AVG_SUPPORT_ITEM_COST)
-        / MAX_UNIT_ITEMS_F32;
+//pub const AVG_ITEM_COST_WITH_BOOTS_AND_SUPP_ITEM: f32 =
+//    ((MAX_UNIT_ITEMS_F32 - 2.) * AVG_LEGENDARY_ITEM_COST + AVG_BOOTS_COST + AVG_SUPPORT_ITEM_COST)
+//        / MAX_UNIT_ITEMS_F32;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Build(pub [&'static Item; MAX_UNIT_ITEMS]);
@@ -316,7 +315,7 @@ impl DerefMut for Build {
 impl Default for Build {
     /// Returns an empty build (filled with `NULL_ITEM`).
     fn default() -> Self {
-        Build([&NULL_ITEM; MAX_UNIT_ITEMS])
+        Build([&Item::NULL_ITEM; MAX_UNIT_ITEMS])
     }
 }
 
@@ -332,7 +331,7 @@ impl fmt::Display for Build {
     }
 }
 
-pub type BuildHash = [ItemId; MAX_UNIT_ITEMS];
+pub(crate) type BuildHash = [ItemId; MAX_UNIT_ITEMS];
 
 impl Build {
     /// Returns the item count in the build (ignoring `NULL_ITEMs`).
@@ -340,7 +339,7 @@ impl Build {
     pub fn item_count(&self) -> usize {
         let mut item_count: usize = 0;
         for &item in self.iter() {
-            if *item != NULL_ITEM {
+            if *item != Item::NULL_ITEM {
                 item_count += 1;
             }
         }
@@ -357,7 +356,7 @@ impl Build {
     /// If there is no id collision between items, this function doesn't produces collisions either
     /// (except for the case above which is intended).
     #[must_use]
-    pub fn get_hash(&self) -> BuildHash {
+    pub(crate) fn get_hash(&self) -> BuildHash {
         let mut ids: [ItemId; MAX_UNIT_ITEMS] = [
             self[0].id, self[1].id, self[2].id, self[3].id, self[4].id, self[5].id,
         ];
@@ -371,7 +370,7 @@ impl Build {
         ];
         ids.sort_unstable();
         for window in ids.windows(2) {
-            if window[0] == window[1] && window[0] != NULL_ITEM.id {
+            if window[0] == window[1] && window[0] != Item::NULL_ITEM.id {
                 return Err(format!("Duplicates in build: {:?}", window[0]));
             }
         }
@@ -398,7 +397,6 @@ impl Build {
 mod tests {
     #[cfg(test)]
     use super::*;
-    use items::NULL_ITEM;
 
     use constcat::concat_slices;
 
@@ -407,7 +405,7 @@ mod tests {
         &ALL_LEGENDARY_ITEMS,
         &ALL_BOOTS,
         &ALL_SUPPORT_ITEMS,
-        &[&NULL_ITEM],
+        &[&Item::NULL_ITEM],
     );
 
     /// Check that there isn't any id collisions in any items of the crate.

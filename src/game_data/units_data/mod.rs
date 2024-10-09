@@ -5,12 +5,12 @@ pub mod runes_data;
 
 use super::*;
 use effects_data::*;
-use items_data::{items, items::NULL_ITEM, Build, Item};
+use items_data::{items::RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS, Build, Item};
+use runes_data::RunesPage;
 
 use enum_map::EnumMap;
 use enumset::{enum_set, EnumSet, EnumSetType};
 use indexmap::IndexMap;
-use runes_data::{RuneShard, RunesPage};
 use rustc_hash::FxBuildHasher;
 
 use core::fmt;
@@ -22,7 +22,7 @@ pub const MAX_UNIT_LVL: usize = 18;
 /// Minimum lvl value of a Unit in the program (can't be below lvl 6 because we want all abilities to be available).
 pub const MIN_UNIT_LVL: u8 = 6;
 /// Maximum number of items an Unit can hold.
-pub const MAX_UNIT_ITEMS: usize = 6;
+pub(crate) const MAX_UNIT_ITEMS: usize = 6;
 
 /// Amount of cumulative xp required to reach the given lvl.
 const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [
@@ -64,6 +64,82 @@ macro_rules! basic_attack_aoe_effect_avg_additionnal_targets {
     };
 }
 use basic_attack_aoe_effect_avg_additionnal_targets; //to make it accessible in submodules
+
+//default target dummy properties & stats
+const TARGET_DUMMY_BASE_AS: f32 = 0.658;
+pub const DUMMY_PROPERTIES: UnitProperties = UnitProperties {
+    name: "Dummy",
+    as_limit: Unit::DEFAULT_AS_LIMIT,
+    as_ratio: TARGET_DUMMY_BASE_AS,
+    windup_percent: 0.5,
+    windup_modifier: 1.,
+    base_stats: UnitStats {
+        //in game default values
+        hp: 1000.,
+        mana: 0.,
+        base_ad: 0.,
+        bonus_ad: 0.,
+        ap_flat: 0.,
+        ap_percent: 0.,
+        armor: 0.,
+        mr: 0.,
+        base_as: TARGET_DUMMY_BASE_AS,
+        bonus_as: 0.,
+        ability_haste: 0.,
+        basic_haste: 0.,
+        ultimate_haste: 0.,
+        item_haste: 0.,
+        crit_chance: 0.,
+        crit_dmg: Unit::BASE_CRIT_DMG,
+        ms_flat: 370.,
+        ms_percent: 0.,
+        lethality: 0.,
+        armor_pen_percent: 0.,
+        magic_pen_flat: 0.,
+        magic_pen_percent: 0.,
+        armor_red_flat: 0.,
+        armor_red_percent: 0.,
+        mr_red_flat: 0.,
+        mr_red_percent: 0.,
+        life_steal: 0.,
+        omnivamp: 0.,
+        ability_dmg_modifier: 0.,
+        phys_dmg_modifier: 0.,
+        magic_dmg_modifier: 0.,
+        true_dmg_modifier: 0.,
+        tot_dmg_modifier: 0.,
+    },
+    //no growth stats so they remain constant (lvl doesn't matter)
+    growth_stats: UnitStats::const_default(),
+    basic_attack: null_basic_attack,
+    q: NULL_BASIC_ABILITY,
+    w: NULL_BASIC_ABILITY,
+    e: NULL_BASIC_ABILITY,
+    r: NULL_ULTIMATE_ABILITY,
+    on_action_fns: OnActionFns {
+        on_lvl_set: None,
+        on_fight_init: None,
+        special_active: None,
+        on_ability_cast: None,
+        on_ultimate_cast: None,
+        on_ability_hit: None,
+        on_ultimate_hit: None,
+        on_basic_attack_cast: None,
+        on_basic_attack_hit: None,
+        on_phys_hit: None,
+        on_magic_hit: None,
+        on_true_dmg_hit: None,
+        on_any_hit: None,
+    },
+    fight_scenarios: &[(null_simulate_fight, "null")],
+    defaults: UnitDefaults {
+        runes_pages: RunesPage::const_default(),
+        skill_order: SkillOrder::const_default(), //does nothing since dummy has no ability
+        legendary_items_pool: &items_data::ALL_LEGENDARY_ITEMS,
+        boots_pool: &items_data::ALL_BOOTS,
+        support_items_pool: &items_data::ALL_SUPPORT_ITEMS,
+    },
+};
 
 /// From number of items, returns the associated unit lvl.
 #[must_use]
@@ -411,7 +487,7 @@ impl UnitStats {
 }
 
 #[derive(Debug)]
-pub struct BasicAbility {
+pub(crate) struct BasicAbility {
     /// Returns ability dmg and triggers effects.
     cast: fn(&mut Unit, &UnitStats) -> PartDmg,
     cast_time: f32,
@@ -419,7 +495,7 @@ pub struct BasicAbility {
 }
 
 #[derive(Debug)]
-pub struct UltimateAbility {
+pub(crate) struct UltimateAbility {
     /// Returns ability dmg and triggers effects.
     /// Should call `Unit.dmg_on_target()` only for the return value at the end of the function !
     cast: fn(&mut Unit, &UnitStats) -> PartDmg,
@@ -427,7 +503,7 @@ pub struct UltimateAbility {
     base_cooldown_by_ability_lvl: [f32; 3], //ultimate has 3 lvls
 }
 
-pub type FightScenario = (fn(&mut Unit, &UnitStats, f32), &'static str);
+pub(crate) type FightScenario = (fn(&mut Unit, &UnitStats, f32), &'static str);
 
 #[derive(Debug)]
 pub struct UnitDefaults {
@@ -448,15 +524,15 @@ pub struct UnitProperties {
     pub windup_modifier: f32, //get it from <https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks>
     pub base_stats: UnitStats,
     pub growth_stats: UnitStats,
-    pub basic_attack: fn(&mut Unit, &UnitStats) -> PartDmg, //returns basic attack dmg and triggers effects
+    pub(crate) basic_attack: fn(&mut Unit, &UnitStats) -> PartDmg, //returns basic attack dmg and triggers effects
     //no field for passive (implemented directly in the Unit abilities)
     pub q: BasicAbility,
     pub w: BasicAbility,
     pub e: BasicAbility,
     pub r: UltimateAbility,
-    pub on_action_fns: OnActionFns,
-    pub fight_scenarios: &'static [FightScenario],
-    pub unit_defaults: UnitDefaults,
+    pub(crate) on_action_fns: OnActionFns,
+    pub(crate) fight_scenarios: &'static [FightScenario],
+    pub defaults: UnitDefaults,
 }
 
 impl PartialEq for UnitProperties {
@@ -500,7 +576,7 @@ impl SkillOrder {
     /// Returns Ok if the given `skill_order` is valid, Err with an error message otherwise.
     /// A valid `skill_order` is one with 1 lvl-up per Unit lvl and in total 5 lvl-ups per ability (3 for ultimate).
     /// Aphelios special case is also treated when the `is_aphelios` arg is set to true.
-    pub fn check_skill_order_validity(&self, is_aphelios: bool) -> Result<(), String> {
+    fn check_skill_order_validity(&self, is_aphelios: bool) -> Result<(), String> {
         //u8 will never overflow since we enforce values in skill order to be only 0s or 1s (=> max sum we can encounter is `MAX_UNIT_LVL`)
         let mut q_sum: u8 = 0;
         let mut w_sum: u8 = 0;
@@ -550,47 +626,47 @@ impl SkillOrder {
 /// For program correctness, these function should NEVER modify the `Unit` outside of temporary effects and effect variables.
 #[derive(Debug)]
 #[allow(clippy::type_complexity)]
-pub struct OnActionFns {
+pub(crate) struct OnActionFns {
     /// Perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to `lvl_stats`).
-    pub on_lvl_set: Option<fn(&mut Unit)>,
+    pub(crate) on_lvl_set: Option<fn(&mut Unit)>,
 
     /// Init `Unit`/`Item` effect variables and temporary effects on the `Unit`. These function should ensure that all effect
     /// variables used later during the fight are properly initialized (in `Unit.effect_values` or `Unit.effects_stacks`).
     /// NEVER use `Unit.stats` as source of stat for effects in these function as it can be modified by previous other init functions
     /// (instead, sum `Unit.lvl_stats` and `Unit.items_stats`).
-    pub on_fight_init: Option<fn(&mut Unit)>,
+    pub(crate) on_fight_init: Option<fn(&mut Unit)>,
 
     /// Triggers special actives and returns dmg done.
-    pub special_active: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
+    pub(crate) special_active: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
 
     /// Applies effects triggered when an ability is casted (updates effect variables accordingly).
-    pub on_ability_cast: Option<fn(&mut Unit)>,
+    pub(crate) on_ability_cast: Option<fn(&mut Unit)>,
     /// Applies effects triggered when ultimate is casted (additionnal to `on_ability_cast`).
-    pub on_ultimate_cast: Option<fn(&mut Unit)>,
+    pub(crate) on_ultimate_cast: Option<fn(&mut Unit)>,
 
     /// Returns on-ability-hit dmg and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the ability (affected by on-ability-hit).
-    pub on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
+    pub(crate) on_ability_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
     /// Returns on-ultimate-hit dmg (additionnal to `on_ability_cast`) and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the ultimate (affected by on-ultimate-hit).
-    pub on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
+    pub(crate) on_ultimate_hit: Option<fn(&mut Unit, &UnitStats, f32) -> PartDmg>,
 
     /// Applies effects triggered when a basic attack is casted (updates effect variables accordingly).
-    pub on_basic_attack_cast: Option<fn(&mut Unit)>,
+    pub(crate) on_basic_attack_cast: Option<fn(&mut Unit)>,
     /// Returns on-basic_attack-hit dmg and applies effects (updates effect variables accordingly).
     /// 3rd argument (f32) is the number of targets hit by the basic attack (affected by on-basic-attack-hit).
     /// 4th argument (bool) indicates if the function is called internally from other on-action-fns.
-    pub on_basic_attack_hit: Option<fn(&mut Unit, &UnitStats, f32, bool) -> PartDmg>,
+    pub(crate) on_basic_attack_hit: Option<fn(&mut Unit, &UnitStats, f32, bool) -> PartDmg>,
 
     /// Applies effects on the unit triggered when phys dmg is done (updates effect variables accordingly).
-    pub on_phys_hit: Option<fn(&mut Unit)>,
+    pub(crate) on_phys_hit: Option<fn(&mut Unit)>,
     /// Applies effects on the unit triggered when magic dmg is done (updates effect variables accordingly).
-    pub on_magic_hit: Option<fn(&mut Unit)>,
+    pub(crate) on_magic_hit: Option<fn(&mut Unit)>,
     /// Applies effects on the unit triggered when true dmg is done (updates effect variables accordingly).
-    pub on_true_dmg_hit: Option<fn(&mut Unit)>,
+    pub(crate) on_true_dmg_hit: Option<fn(&mut Unit)>,
     /// Applies effects on the unit triggered when any dmg is done (updates effect variables accordingly).
     /// This function is called every hit, in addition to others on_..._hit functions.
-    pub on_any_hit: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
+    pub(crate) on_any_hit: Option<fn(&mut Unit, &UnitStats) -> PartDmg>,
 }
 
 /// This is a struct used as container for holding multiple `OnActionFns`.
@@ -900,7 +976,7 @@ pub struct Unit {
     /// Stats that only comes from items (only items stats, stats from effects are updated dynamically in the `stats` field).
     items_stats: UnitStats,
     /// Stats that only comes from runes.
-    runes_stats: UnitStats, //not pub on purpose because must not be used in items calculation
+    runes_stats: UnitStats,
     /// Combat stats that gets updated dynamically during combat.
     stats: UnitStats,
 
@@ -911,7 +987,7 @@ pub struct Unit {
     e_lvl: u8,
     r_lvl: u8,
 
-    //simulation timings (pub for debug purposes but should not be modified by the user)
+    //simulation timings
     time: f32,
     basic_attack_cd: f32,
     q_cd: f32,
@@ -1044,9 +1120,9 @@ enum DmgTag {
 
 impl Unit {
     /// base crit damage value for an Unit.
-    pub const BASE_CRIT_DMG: f32 = 1.75;
+    pub(crate) const BASE_CRIT_DMG: f32 = 1.75;
     /// Default maximum attack speed limit for an Unit.
-    pub const DEFAULT_AS_LIMIT: f32 = 2.5;
+    pub(crate) const DEFAULT_AS_LIMIT: f32 = 2.5;
 
     /// Creates a new Unit with the given properties, runes, skill order, lvl and build.
     /// Return an Err with a corresponding error message if the Unit could not be created because of an invalid argument.
@@ -1201,18 +1277,22 @@ impl Unit {
 
     /// Creates a new Unit with the given properties, lvl and build.
     /// The default runes and skill order from the given properties are used.
-    pub fn from_defaults(
+    pub fn from_properties_defaults(
         properties: &'static UnitProperties,
         lvl: u8,
         build: Build,
     ) -> Result<Self, String> {
         Self::new(
             properties,
-            properties.unit_defaults.runes_pages.clone(),
-            properties.unit_defaults.skill_order.clone(),
+            properties.defaults.runes_pages.clone(),
+            properties.defaults.skill_order.clone(),
             lvl,
             build,
         )
+    }
+
+    pub fn new_dummy() -> Result<Self, String> {
+        Self::from_properties_defaults(&DUMMY_PROPERTIES, MIN_UNIT_LVL, Build::default())
     }
 
     #[must_use]
@@ -1260,6 +1340,12 @@ impl Unit {
     #[inline]
     pub fn get_r_cd(&self) -> f32 {
         self.r_cd
+    }
+
+    #[must_use]
+    #[inline]
+    fn adaptive_is_phys(&self) -> bool {
+        self.items_stats.bonus_ad >= self.items_stats.ap()
     }
 
     /// Sets the Unit skill order, returns Ok if success or Err if failure (depending on the validity of the given skill order).
@@ -1391,7 +1477,8 @@ impl Unit {
         //add base on-action-fns (from unit properties) and runes on-action-fns only
         self.on_action_fns_holder
             .extend(&self.properties.on_action_fns);
-        self.on_action_fns_holder.extend(self.runes_page.keystone);
+        self.on_action_fns_holder
+            .extend(&self.runes_page.keystone.on_action_fns);
     }
 
     /// Clears every on-action-fns from the unit and re-add them.
@@ -1399,7 +1486,7 @@ impl Unit {
         self.clear_items_on_action_fns();
 
         //add items on-action-fns
-        for &item in self.build.iter().filter(|&&item| *item != NULL_ITEM) {
+        for &item in self.build.iter().filter(|&&item| *item != Item::NULL_ITEM) {
             self.on_action_fns_holder.extend(&item.on_action_fns);
         }
     }
@@ -1415,7 +1502,7 @@ impl Unit {
 
     /// Updates the Unit build regardless of its validity (saving some running time by discarding checks).
     /// You must ensure that the given build is valid. Otherwise, this will lead to wrong results when simulating fights with the unit.
-    pub fn set_build_unchecked(&mut self, build: Build) {
+    pub(crate) fn set_build_unchecked(&mut self, build: Build) {
         //no build validity check
         self.build = build;
 
@@ -1424,7 +1511,7 @@ impl Unit {
         self.clear_items_on_action_fns();
 
         //add items one by one to unit
-        for &item in build.iter().filter(|&&item| *item != NULL_ITEM) {
+        for &item in build.iter().filter(|&&item| *item != Item::NULL_ITEM) {
             self.items_stats.add(&item.stats);
             self.on_action_fns_holder.extend(&item.on_action_fns);
         }
@@ -1631,11 +1718,19 @@ impl Unit {
             mr_coef = resistance_formula_neg(virtual_mr);
         }
 
+        //use stats values before they get modified by effects
+        let life_steal: f32 = self.stats.life_steal;
+        let omnivamp: f32 = self.stats.omnivamp;
+        let ability_dmg_modifier: f32 = self.stats.ability_dmg_modifier;
+        let phys_dmg_modifier: f32 = self.stats.phys_dmg_modifier;
+        let magic_dmg_modifier: f32 = self.stats.magic_dmg_modifier;
+        let true_dmg_modifier: f32 = self.stats.true_dmg_modifier;
+        let tot_dmg_modifier: f32 = self.stats.tot_dmg_modifier;
+
         //on ability hit and ability coef, must be done before on-basic-attack-hit (because of muramana shock that applies ability part first)
         if dmg_tags.contains(DmgTag::Ability) {
             //ability dmg modifier (as of patch 14.19, it doesn't affect on_ability_hit and on_ultimate_hit dmg anymore)
-            //ability dmg modifier must be applied before others effects modify it
-            part_dmg *= 1. + self.stats.ability_dmg_modifier;
+            part_dmg *= 1. + ability_dmg_modifier;
 
             //on ability hit
             for _ in 0..n_stacking_instances {
@@ -1648,12 +1743,12 @@ impl Unit {
             part_dmg += self.all_on_ultimate_hit(target_stats, n_targets);
         }
 
-        //on basic attack hit
+        //on basic attack hit, must be done after on-basic-attack-hit (because of muramana shock that applies ability part first)
         if dmg_tags.contains(DmgTag::BasicAttack) {
             //runaans increases the number of targets hit by on-basic-attack-hit
             //exceptionally, use runaans variables here (shouldn't because outside of module, but I didn't find a better way)
-            let basic_attack_n_targets: f32 = if self.build.contains(&&items::RUNAANS_HURRICANE) {
-                n_targets * (1. + items::RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS)
+            let basic_attack_n_targets: f32 = if self.build.contains(&&Item::RUNAANS_HURRICANE) {
+                n_targets * (1. + RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS)
             } else {
                 n_targets
             };
@@ -1692,18 +1787,18 @@ impl Unit {
         self.time += F32_TOL; //to differentiate different dmg instances
 
         //dmg modifiers
-        part_dmg.0 *= armor_coef * (1. + self.stats.phys_dmg_modifier);
-        part_dmg.1 *= mr_coef * (1. + self.stats.magic_dmg_modifier);
-        part_dmg.2 *= 1. + self.stats.true_dmg_modifier;
-        part_dmg *= 1. + self.stats.tot_dmg_modifier;
+        part_dmg.0 *= armor_coef * (1. + phys_dmg_modifier);
+        part_dmg.1 *= mr_coef * (1. + magic_dmg_modifier);
+        part_dmg.2 *= 1. + true_dmg_modifier;
+        part_dmg *= 1. + tot_dmg_modifier;
 
         //update simulation logs
         let tot_dmg: f32 = part_dmg.as_sum();
         //omnivamp
-        self.sim_logs.periodic_heals_shields += tot_dmg * self.stats.omnivamp;
+        self.sim_logs.periodic_heals_shields += tot_dmg * omnivamp;
         //lifesteal
         if dmg_tags.contains(DmgTag::BasicAttack) {
-            self.sim_logs.periodic_heals_shields += tot_dmg * self.stats.life_steal;
+            self.sim_logs.periodic_heals_shields += tot_dmg * life_steal;
         }
 
         //dmg done
@@ -1878,6 +1973,12 @@ impl Unit {
     /// and returns (average dps, effective hp, average move speed) obtained from the simulation.
     /// This function will always start by initializing the unit with `self.init_fight` and use all items actives before simulating.
     pub fn simulate_fight(&mut self, target_stats: &UnitStats, index: usize, fight_duration: f32) {
+        //sanity check
+        assert!(
+            index < self.properties.fight_scenarios.len(),
+            "Fight scenario index is out of bounds"
+        );
+
         self.init_fight();
         self.use_all_special_actives(target_stats);
         (self.properties.fight_scenarios[index].0)(self, target_stats, fight_duration);
@@ -1900,7 +2001,7 @@ fn default_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
 ///
 /// This is to avoid checking an Option everytime a `basic_attack` is called, since the majority of basic attacks aren't null
 /// and the user should know in advance if said unit `basic_attack` is null or not.
-pub fn null_basic_attack(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
+pub(crate) fn null_basic_attack(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     unreachable!("Null_basic_attack was called");
 }
 
@@ -1908,7 +2009,7 @@ pub fn null_basic_attack(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDm
 ///
 /// This is to avoid checking an Option everytime a spell is called, since the majority of spells aren't null
 /// and the user should know in advance if said unit spell is null or not.
-pub const NULL_BASIC_ABILITY: BasicAbility = BasicAbility {
+pub(crate) const NULL_BASIC_ABILITY: BasicAbility = BasicAbility {
     cast: null_spell_cast,
     cast_time: F32_TOL,
     base_cooldown_by_ability_lvl: [F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL],
@@ -1918,7 +2019,7 @@ pub const NULL_BASIC_ABILITY: BasicAbility = BasicAbility {
 ///
 /// This is to avoid checking an Option everytime a spell is called, since the majority of spells aren't null
 /// and the user should know in advance if said unit spell is null or not.
-pub const NULL_ULTIMATE_ABILITY: UltimateAbility = UltimateAbility {
+pub(crate) const NULL_ULTIMATE_ABILITY: UltimateAbility = UltimateAbility {
     cast: null_spell_cast,
     cast_time: F32_TOL,
     base_cooldown_by_ability_lvl: [F32_TOL, F32_TOL, F32_TOL],
@@ -1932,6 +2033,6 @@ fn null_spell_cast(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
 ///
 /// This is to avoid checking an Option everytime a `simulate_fight` is called, since the majority of `simulate_fight` aren't null
 /// and the user should know in advance if said unit `simulate_fight` is null or not.
-pub fn null_simulate_fight(_champ: &mut Unit, _target_stats: &UnitStats, _time_limit: f32) {
+pub(crate) fn null_simulate_fight(_champ: &mut Unit, _target_stats: &UnitStats, _time_limit: f32) {
     unreachable!("Null_simulate_fight was called");
 }

@@ -1,6 +1,7 @@
 use crate::game_data::*;
 
-use items_data::items::*;
+use items_data::Item;
+use runes_data::*;
 use units_data::*;
 
 use enumset::enum_set;
@@ -10,20 +11,27 @@ const ASHE_Q_MAX_STACKS: u8 = 4;
 const ASHE_W_N_TARGETS: f32 = 1.2;
 
 fn ashe_init_abilities(champ: &mut Unit) {
-    champ.effects_stacks[EffectStackId::AsheFrosted] = 0;
-
+    champ.effects_values[EffectValueId::AsheLastFrostTime] = -(ASHE_FROST_DELAY + F32_TOL);
+    //to allow for effect at time == 0
     champ.effects_stacks[EffectStackId::AsheFocusStacks] = 0;
     champ.effects_values[EffectValueId::AsheRangersFocusBonusAS] = 0.;
 }
 
+const ASHE_FROST_DELAY: f32 = 2.;
 fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //check if target is frosted
-    let special_crit_coef: f32 = if champ.effects_stacks[EffectStackId::AsheFrosted] == 1 {
-        1.15 + champ.stats.crit_chance * (0.75 + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)
-    } else {
-        champ.effects_stacks[EffectStackId::AsheFrosted] = 1; //apply frost, assumes slow never expires on target (real duration is 2s on patch 14.14)
+    let special_crit_coef: f32 = if champ.time
+        - champ.effects_values[EffectValueId::AsheLastFrostTime]
+        >= ASHE_FROST_DELAY
+    {
         1.
+    } else {
+        1.15 + champ.stats.crit_chance * (0.75 + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)
     };
+
+    //apply frost
+    champ.effects_values[EffectValueId::AsheLastFrostTime] = champ.time;
+
     //check if q buff is active (max stacks + 1 indicates that q buff is active)
     if champ.effects_stacks[EffectStackId::AsheFocusStacks] == ASHE_Q_MAX_STACKS + 1 {
         let phys_dmg: f32 = ASHE_Q_AD_RATIO_BY_Q_LVL[usize::from(champ.q_lvl - 1)]
@@ -87,11 +95,13 @@ fn ashe_q(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
 const ASHE_W_PHYS_DMG_BY_W_LVL: [f32; 5] = [20., 35., 50., 65., 80.];
 
 fn ashe_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+    //apply frost
+    champ.effects_values[EffectValueId::AsheLastFrostTime] = champ.time;
+
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 = ASHE_W_N_TARGETS * (ASHE_W_PHYS_DMG_BY_W_LVL[w_lvl_idx] + champ.stats.ad());
 
-    champ.effects_stacks[EffectStackId::AsheFrosted] = 1; //apply frost
     champ.dmg_on_target(
         target_stats,
         PartDmg(phys_dmg, 0., 0.),
@@ -109,11 +119,13 @@ fn ashe_e(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
 const ASHE_R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [200., 400., 600.];
 
 fn ashe_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
+    //apply frost
+    champ.effects_values[EffectValueId::AsheLastFrostTime] = champ.time;
+
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
     let magic_dmg: f32 = ASHE_R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + 1.20 * champ.stats.ap();
 
-    champ.effects_stacks[EffectStackId::AsheFrosted] = 1; //apply frost
     champ.dmg_on_target(
         target_stats,
         PartDmg(0., magic_dmg, 0.),
@@ -274,9 +286,9 @@ impl Unit {
             on_any_hit: None,
         },
         fight_scenarios: &[(ashe_fight_scenario, "all out")],
-        unit_defaults: UnitDefaults {
+        defaults: UnitDefaults {
             runes_pages: RunesPage {
-                keystone: &RunesPage::EMPTY_RUNE_KEYSTONE, //todo: add keystone
+                keystone: &RuneKeystone::EMPTY_RUNE_KEYSTONE, //todo: add keystone
                 shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,
@@ -290,88 +302,88 @@ impl Unit {
                 r: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
             },
             legendary_items_pool: &[
-                //&ABYSSAL_MASK,
-                &AXIOM_ARC,
-                //&BANSHEES_VEIL,
-                &BLACK_CLEAVER,
-                //&BLACKFIRE_TORCH,
-                &BLADE_OF_THE_RUINED_KING,
-                &BLOODTHIRSTER,
-                &CHEMPUNK_CHAINSWORD,
-                //&COSMIC_DRIVE,
-                //&CRYPTBLOOM,
-                &DEAD_MANS_PLATE,
-                &DEATHS_DANCE,
-                &ECLIPSE,
-                &EDGE_OF_NIGHT,
-                &ESSENCE_REAVER,
-                //&EXPERIMENTAL_HEXPLATE,
-                //&FROZEN_HEART,
-                &GUARDIAN_ANGEL,
-                &GUINSOOS_RAGEBLADE,
-                //&HEXTECH_ROCKETBELT,
-                //&HORIZON_FOCUS,
-                &HUBRIS,
-                &HULLBREAKER,
-                &ICEBORN_GAUNTLET,
-                &IMMORTAL_SHIELDBOW,
-                &INFINITY_EDGE,
-                //&JAKSHO,
-                //&KAENIC_ROOKERN,
-                &KRAKEN_SLAYER,
-                //&LIANDRYS_TORMENT,
-                //&LICH_BANE,
-                &LORD_DOMINIKS_REGARDS,
-                //&LUDENS_COMPANION,
-                //&MALIGNANCE,
-                &MAW_OF_MALMORTIUS,
-                &MERCURIAL_SCIMITAR,
-                //&MORELLONOMICON,
-                &MORTAL_REMINDER,
-                &MURAMANA,
-                //&NASHORS_TOOTH,
-                &NAVORI_FLICKERBLADE,
-                //&OPPORTUNITY,
-                &OVERLORDS_BLOODMAIL,
-                &PHANTOM_DANCER,
-                //&PROFANE_HYDRA,
-                //&RABADONS_DEATHCAP,
-                //&RANDUINS_OMEN,
-                &RAPID_FIRECANNON,
-                //&RAVENOUS_HYDRA,
-                //&RIFTMAKER,
-                //&ROD_OF_AGES,
-                &RUNAANS_HURRICANE,
-                //&RYLAIS_CRYSTAL_SCEPTER,
-                //&SERAPHS_EMBRACE,
-                &SERPENTS_FANG,
-                &SERYLDAS_GRUDGE,
-                //&SHADOWFLAME,
-                //&SPEAR_OF_SHOJIN,
-                &STATIKK_SHIV,
-                &STERAKS_GAGE,
-                //&STORMSURGE,
-                //&STRIDEBREAKER,
-                &SUNDERED_SKY,
-                &TERMINUS,
-                &THE_COLLECTOR,
-                &TITANIC_HYDRA,
-                &TRINITY_FORCE,
-                &UMBRAL_GLAIVE,
-                //&VOID_STAFF,
-                &VOLTAIC_CYCLOSWORD,
-                &WITS_END,
-                //&YOUMUUS_GHOSTBLADE,
-                &YUN_TAL_WILDARROWS,
-                //&ZHONYAS_HOURGLASS,
+                //&Item::ABYSSAL_MASK,
+                &Item::AXIOM_ARC,
+                //&Item::BANSHEES_VEIL,
+                &Item::BLACK_CLEAVER,
+                //&Item::BLACKFIRE_TORCH,
+                &Item::BLADE_OF_THE_RUINED_KING,
+                &Item::BLOODTHIRSTER,
+                &Item::CHEMPUNK_CHAINSWORD,
+                //&Item::COSMIC_DRIVE,
+                //&Item::CRYPTBLOOM,
+                &Item::DEAD_MANS_PLATE,
+                &Item::DEATHS_DANCE,
+                &Item::ECLIPSE,
+                &Item::EDGE_OF_NIGHT,
+                &Item::ESSENCE_REAVER,
+                //&Item::EXPERIMENTAL_HEXPLATE,
+                //&Item::FROZEN_HEART,
+                &Item::GUARDIAN_ANGEL,
+                &Item::GUINSOOS_RAGEBLADE,
+                //&Item::HEXTECH_ROCKETBELT,
+                //&Item::HORIZON_FOCUS,
+                &Item::HUBRIS,
+                &Item::HULLBREAKER,
+                &Item::ICEBORN_GAUNTLET,
+                &Item::IMMORTAL_SHIELDBOW,
+                &Item::INFINITY_EDGE,
+                //&Item::JAKSHO,
+                //&Item::KAENIC_ROOKERN,
+                &Item::KRAKEN_SLAYER,
+                //&Item::LIANDRYS_TORMENT,
+                //&Item::LICH_BANE,
+                &Item::LORD_DOMINIKS_REGARDS,
+                //&Item::LUDENS_COMPANION,
+                //&Item::MALIGNANCE,
+                &Item::MAW_OF_MALMORTIUS,
+                &Item::MERCURIAL_SCIMITAR,
+                //&Item::MORELLONOMICON,
+                &Item::MORTAL_REMINDER,
+                &Item::MURAMANA,
+                //&Item::NASHORS_TOOTH,
+                &Item::NAVORI_FLICKERBLADE,
+                //&Item::OPPORTUNITY,
+                &Item::OVERLORDS_BLOODMAIL,
+                &Item::PHANTOM_DANCER,
+                //&Item::PROFANE_HYDRA,
+                //&Item::RABADONS_DEATHCAP,
+                //&Item::RANDUINS_OMEN,
+                &Item::RAPID_FIRECANNON,
+                //&Item::RAVENOUS_HYDRA,
+                //&Item::RIFTMAKER,
+                //&Item::ROD_OF_AGES,
+                &Item::RUNAANS_HURRICANE,
+                //&Item::RYLAIS_CRYSTAL_SCEPTER,
+                //&Item::SERAPHS_EMBRACE,
+                &Item::SERPENTS_FANG,
+                &Item::SERYLDAS_GRUDGE,
+                //&Item::SHADOWFLAME,
+                //&Item::SPEAR_OF_SHOJIN,
+                &Item::STATIKK_SHIV,
+                &Item::STERAKS_GAGE,
+                //&Item::STORMSURGE,
+                //&Item::STRIDEBREAKER,
+                &Item::SUNDERED_SKY,
+                &Item::TERMINUS,
+                &Item::THE_COLLECTOR,
+                &Item::TITANIC_HYDRA,
+                &Item::TRINITY_FORCE,
+                &Item::UMBRAL_GLAIVE,
+                //&Item::VOID_STAFF,
+                &Item::VOLTAIC_CYCLOSWORD,
+                &Item::WITS_END,
+                //&Item::YOUMUUS_GHOSTBLADE,
+                &Item::YUN_TAL_WILDARROWS,
+                //&Item::ZHONYAS_HOURGLASS,
             ],
             boots_pool: &[
-                &BERSERKERS_GREAVES,
-                &BOOTS_OF_SWIFTNESS,
-                //&IONIAN_BOOTS_OF_LUCIDITY,
-                //&MERCURYS_TREADS,
-                //&PLATED_STEELCAPS,
-                //&SORCERERS_SHOES,
+                &Item::BERSERKERS_GREAVES,
+                &Item::BOOTS_OF_SWIFTNESS,
+                //&Item::IONIAN_BOOTS_OF_LUCIDITY,
+                //&Item::MERCURYS_TREADS,
+                //&Item::PLATED_STEELCAPS,
+                //&Item::SORCERERS_SHOES,
             ],
             support_items_pool: &[],
         },
