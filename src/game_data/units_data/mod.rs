@@ -109,8 +109,7 @@ pub const TARGET_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         true_dmg_modifier: 0.,
         tot_dmg_modifier: 0.,
     },
-    //no growth stats so they remain constant (lvl doesn't matter)
-    growth_stats: UnitStats::const_default(),
+    growth_stats: UnitStats::const_default(), //no growth stats so they remain constant (lvl doesn't matter)
     basic_attack: null_basic_attack,
     q: NULL_BASIC_ABILITY,
     w: NULL_BASIC_ABILITY,
@@ -134,7 +133,7 @@ pub const TARGET_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
     fight_scenarios: &[(null_simulate_fight, "null")],
     defaults: UnitDefaults {
         runes_pages: RunesPage::const_default(),
-        skill_order: SkillOrder::const_default(), //does nothing since dummy has no ability
+        skill_order: SkillOrder::const_default(), //does nothing since dummy has null abilities
         legendary_items_pool: &items_data::ALL_LEGENDARY_ITEMS,
         boots_pool: &items_data::ALL_BOOTS,
         support_items_pool: &items_data::ALL_SUPPORT_ITEMS,

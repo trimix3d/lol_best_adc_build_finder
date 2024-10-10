@@ -8,8 +8,8 @@ use game_data::units_data::*;
 use items_data::*;
 use runes_data::*;
 
+/// Debug function for validating champions implementations.
 #[allow(dead_code)]
-/// Test ground for validating champions implementations.
 fn champion_test_ground() {
     //creation of target dummy
     let dummy: Unit = Unit::new_target_dummy();
@@ -36,9 +36,9 @@ fn champion_test_ground() {
         ]),
     )
     .expect("Failed to create unit");
+    println!("{}", champ);
 
     //champion actions
-    println!("{}", champ);
     champ.walk(champ.get_basic_attack_cd());
     println!("{}", champ.basic_attack(dummy.get_stats()));
 }
