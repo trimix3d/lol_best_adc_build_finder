@@ -44,6 +44,6 @@ fn champion_test_ground() {
 }
 
 fn main() {
-    champion_test_ground();
-    //cli::launch_interface();
+    //champion_test_ground();
+    cli::launch_interface();
 }
