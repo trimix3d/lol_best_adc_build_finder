@@ -10,7 +10,7 @@ Displaying the list of generated builds takes some space and can look weird if y
 
 I tried to make the interface as comprehensive as possible and if i've done my work correctly, you should be able to use it by yourself without further explanations. If at any point you are lost in the interface, type `help` to show help info on the current context. You can also navigate to the previous menu by typing `back` and go to the home page at any point by typing `home`. Type `exit` to exit the program.
 
-I tried to get champions and items stats automatically but Riot's data dragon is ass (often has wrong values in it) so I entered them manually from the [LoL Wiki](https://wiki.leagueoflegends.com/en-us/) (god bless them) and will update them at each patch. For simplicity, the version number of each release is the same as the corresponding League of Legends patch number. If you have a reliable solution to automatically retrieve champions and items stats (not using data dragon), let me know.
+I tried to get champions and items stats automatically but Riot's data dragon is ass (often has wrong values in it) so I entered them manually from the [LoL Wiki](https://wiki.leagueoflegends.com/en-us/) (god bless them) and will update them at each patch. For simplicity, the version number of each release is the same as the corresponding League of Legends patch number. If you have a reliable solution to automatically retrieve champions and items stats and put it in constants in the code, please let me know (I will be working on this in the near future).
 
 This is a project i do during my free time. I try to document the code to the maximum, but it gets tedious (>﹏<). Also, no guarantees that i will update it forever.
 
