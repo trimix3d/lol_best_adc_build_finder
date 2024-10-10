@@ -12,7 +12,7 @@ use runes_data::*;
 /// Test ground for validating champions implementations.
 fn champion_test_ground() {
     //creation of target dummy
-    let dummy: Unit = Unit::new_dummy().expect("Failed to create target dummy");
+    let dummy: Unit = Unit::new_target_dummy();
 
     //creation of champion
     let properties: &UnitProperties = &Unit::ASHE_PROPERTIES;

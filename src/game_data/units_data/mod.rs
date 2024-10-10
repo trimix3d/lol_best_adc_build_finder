@@ -67,8 +67,8 @@ use basic_attack_aoe_effect_avg_additionnal_targets; //to make it accessible in 
 
 //default target dummy properties & stats
 const TARGET_DUMMY_BASE_AS: f32 = 0.658;
-pub const DUMMY_PROPERTIES: UnitProperties = UnitProperties {
-    name: "Dummy",
+pub const TARGET_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
+    name: "Target dummy",
     as_limit: Unit::DEFAULT_AS_LIMIT,
     as_ratio: TARGET_DUMMY_BASE_AS,
     windup_percent: 0.5,
@@ -1276,7 +1276,8 @@ impl Unit {
     }
 
     /// Creates a new Unit with the given properties, lvl and build.
-    /// The default runes and skill order from the given properties are used.
+    /// The default runes and skill order from the given unit properties are used.
+    /// Return an Err with a corresponding error message if the Unit could not be created because of an invalid argument.
     pub fn from_properties_defaults(
         properties: &'static UnitProperties,
         lvl: u8,
@@ -1291,8 +1292,10 @@ impl Unit {
         )
     }
 
-    pub fn new_dummy() -> Result<Self, String> {
-        Self::from_properties_defaults(&DUMMY_PROPERTIES, MIN_UNIT_LVL, Build::default())
+    /// Creates a new Unit with the properties of a target dummy.
+    pub fn new_target_dummy() -> Self {
+        Self::from_properties_defaults(&TARGET_DUMMY_PROPERTIES, MIN_UNIT_LVL, Build::default())
+            .expect("Failed to create target dummy")
     }
 
     #[must_use]
@@ -2036,4 +2039,16 @@ fn null_spell_cast(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
 /// and the user should know in advance if said unit `simulate_fight` is null or not.
 pub(crate) fn null_simulate_fight(_champ: &mut Unit, _target_stats: &UnitStats, _time_limit: f32) {
     unreachable!("Null_simulate_fight was called");
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(test)]
+    use super::*;
+
+    /// Test that the target dummy properties are valid.
+    #[test]
+    pub fn test_target_dummy_properties() {
+        Unit::new_target_dummy(); //can panic inside if `TARGET_DUMMY_PROPERTIES` is invalid
+    }
 }
