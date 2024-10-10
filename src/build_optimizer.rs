@@ -848,15 +848,15 @@ fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usiz
 fn get_scores_from_sim_results(champ: &Unit, phys_dmg_taken_percent: f32) -> (f32, f32, f32) {
     let actual_time: f32 = champ.get_time(); //take champ.time instead of fight_duration in scores calculations, since simulation can be slighlty extended
 
-    let dps: f32 = champ.sim_logs.dmg_done.as_sum() / actual_time; //average dps of the unit over the fight simulation
+    let dps: f32 = champ.get_dmg_done().as_sum() / actual_time; //average dps of the unit over the fight simulation
 
     let effective_hp: f32 = (champ.get_stats().hp
-        + champ.sim_logs.single_use_heals_shields
-        + DEFAULT_FIGHT_DURATION * champ.sim_logs.periodic_heals_shields / actual_time)
+        + champ.get_single_use_heals_shields()
+        + DEFAULT_FIGHT_DURATION * champ.get_periodic_heals_shields() / actual_time)
         / (phys_dmg_taken_percent * resistance_formula(champ.get_stats().armor)
             + (1. - phys_dmg_taken_percent) * resistance_formula(champ.get_stats().mr));
 
-    let move_speed: f32 = champ.sim_logs.units_travelled / actual_time; //average move speed of the unit over the fight simulation
+    let move_speed: f32 = champ.get_units_travelled() / actual_time; //average move speed of the unit over the fight simulation
 
     (dps, effective_hp, move_speed)
 }

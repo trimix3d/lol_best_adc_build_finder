@@ -129,7 +129,7 @@ fn ezreal_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
 const EZREAL_E_MAGIC_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
 
 fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
-    champ.sim_logs.units_travelled += 475.; //blink range
+    champ.units_travelled += 475.; //blink range
 
     let w_mark_dmg: PartDmg = ezreal_detonate_w_mark_if_any(champ, target_stats);
 

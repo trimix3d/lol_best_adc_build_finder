@@ -54,13 +54,6 @@ impl Unit {
         Ok(())
     }
 
-    #[allow(dead_code)]
-    #[must_use]
-    #[inline]
-    pub fn get_runes(&self) -> &RunesPage {
-        &self.runes_page
-    }
-
     /// Updates unit runes stats (stats only coming from runes).
     ///
     /// Because of runes hp by lvl and adaptive force, runes stats actually depend on lvl and items as well.
@@ -288,7 +281,7 @@ fn lethal_tempo_on_basic_attack_hit(
         return PartDmg(0., 0., 0.);
     }
     let adaptive_dmg: f32 = LETHAL_TEMPO_ADAPTIVE_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)]
-        * (1. + 0.66 * champ.stats.bonus_as);
+        * (1. + 0.66 * champ.stats.bonus_as); //ranged value
     if champ.adaptive_is_phys() {
         PartDmg(adaptive_dmg, 0., 0.)
     } else {
@@ -317,7 +310,102 @@ impl RuneKeystone {
     };
 }
 
-//todo: fleet footwork
+//fleet footwork
+fn fleet_footwork_init(champ: &mut Unit) {
+    champ.effects_values[EffectValueId::FleetFootworkLastTriggerDistance] =
+        -(ENERGIZED_ATTACKS_TRAVEL_REQUIRED + F32_TOL); // to allow for effect at time == 0
+    champ.effects_values[EffectValueId::FleetFootworkMSPercent] = 0.;
+}
+
+fn fleet_footwork_ms_enable(champ: &mut Unit, _availability_coef: f32) {
+    if champ.effects_values[EffectValueId::FleetFootworkMSPercent] == 0. {
+        let ms_percent_buff: f32 = 0.15; //ranged value
+        champ.stats.ms_percent += ms_percent_buff;
+        champ.effects_values[EffectValueId::FleetFootworkMSPercent] = ms_percent_buff;
+    }
+}
+
+fn fleet_footwork_ms_disable(champ: &mut Unit) {
+    champ.stats.ms_percent -= champ.effects_values[EffectValueId::FleetFootworkMSPercent];
+    champ.effects_values[EffectValueId::FleetFootworkMSPercent] = 0.;
+}
+
+const FLEET_FOOTWORK_MS: TemporaryEffect = TemporaryEffect {
+    id: EffectId::FleetFootworkMS,
+    add_stack: fleet_footwork_ms_enable,
+    remove_every_stack: fleet_footwork_ms_disable,
+    duration: 1.,
+    cooldown: 0.,
+};
+
+fn fleet_footwork_on_basic_attack_hit(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    if from_other_effect {
+        return PartDmg(0., 0., 0.);
+    }
+
+    //if not enough energy, add basic attack energy stacks
+    if champ.units_travelled - champ.effects_values[EffectValueId::FleetFootworkLastTriggerDistance]
+        < ENERGIZED_ATTACKS_TRAVEL_REQUIRED
+    {
+        champ.effects_values[EffectValueId::FleetFootworkLastTriggerDistance] -=
+            ENERGIZED_ATTACKS_TRAVEL_REQUIRED * (ENERGIZED_STACKS_PER_BASIC_ATTACK / 100.);
+        return PartDmg(0., 0., 0.);
+    }
+    //if enough energy (previous condition), trigger energized attack
+    champ.effects_values[EffectValueId::FleetFootworkLastTriggerDistance] = champ.units_travelled;
+    champ.periodic_heals_shields += FLEET_FOOTWORK_HEAL_BY_LVL[usize::from(champ.lvl.get() - 1)]
+        + 0.06 * champ.stats.bonus_ad
+        + 0.03 * champ.stats.ap(); //ranged value
+    champ.add_temporary_effect(&FLEET_FOOTWORK_MS, 0.);
+    PartDmg(0., 0., 0.)
+}
+
+const FLEET_FOOTWORK_HEAL_BY_LVL: [f32; MAX_UNIT_LVL] = [
+    6.,    //lvl 1
+    9.05,  //lvl 2
+    12.25, //lvl 3
+    15.59, //lvl 4
+    19.09, //lvl 5
+    22.73, //lvl 6
+    26.52, //lvl 7
+    30.46, //lvl 8
+    34.55, //lvl 9
+    38.78, //lvl 10
+    43.16, //lvl 11
+    47.7,  //lvl 12
+    52.38, //lvl 13
+    57.2,  //lvl 14
+    62.18, //lvl 15
+    67.31, //lvl 16
+    72.58, //lvl 17
+    78.,   //lvl 18
+]; //ranged value
+
+impl RuneKeystone {
+    pub const FLEET_FOOTWORK: RuneKeystone = RuneKeystone {
+        name: "Fleet footwork",
+        on_action_fns: OnActionFns {
+            on_lvl_set: None,
+            on_fight_init: Some(fleet_footwork_init),
+            special_active: None,
+            on_ability_cast: None,
+            on_ultimate_cast: None,
+            on_ability_hit: None,
+            on_ultimate_hit: None,
+            on_basic_attack_cast: None,
+            on_basic_attack_hit: Some(fleet_footwork_on_basic_attack_hit),
+            on_phys_hit: None,
+            on_magic_hit: None,
+            on_true_dmg_hit: None,
+            on_any_hit: None,
+        },
+    };
+}
 
 //todo: conqueror
 
@@ -339,5 +427,8 @@ impl RuneKeystone {
 
 //todo: first strike
 
-pub const ALL_RUNES_KEYSTONES: [RuneKeystone; 2] =
-    [RuneKeystone::PRESS_THE_ATTACK, RuneKeystone::LETHAL_TEMPO];
+pub const ALL_RUNES_KEYSTONES: [RuneKeystone; 3] = [
+    RuneKeystone::PRESS_THE_ATTACK,
+    RuneKeystone::LETHAL_TEMPO,
+    RuneKeystone::FLEET_FOOTWORK,
+];

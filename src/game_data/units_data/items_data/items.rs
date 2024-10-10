@@ -199,7 +199,7 @@ fn template_energized_item_energized_passive(champ: &mut Unit, _target_stats: &U
         < ENERGIZED_ATTACKS_TRAVEL_REQUIRED
     {
         champ.effects_values[EffectValueId::TemplateEnergizedItemEnergizedPassiveLastTriggerDistance] -=
-            ENERGIZED_ATTACKS_TRAVEL_REQUIRED * 6. / 100.; //basic attacks generate 6 energy stacks
+            ENERGIZED_ATTACKS_TRAVEL_REQUIRED * (ENERGIZED_STACKS_PER_BASIC_ATTACK / 100.);
         return (0., 0., 0.);
     }
     //if enough energy (previous condition), trigger energized attack
@@ -792,7 +792,7 @@ const BLOODTHIRSTER_ICHORSHIELD_MAX_SHIELD_BY_LVL: [f32; MAX_UNIT_LVL] = [
 ];
 fn bloodthirster_init(champ: &mut Unit) {
     //ichorshield passive
-    champ.sim_logs.single_use_heals_shields +=
+    champ.single_use_heals_shields +=
         BLOODTHIRSTER_ICHORSHIELD_MAX_SHIELD_BY_LVL[usize::from(champ.lvl.get() - 1)];
 }
 
@@ -1097,7 +1097,7 @@ fn dead_mans_plate_shipwrecker(
 
     //not affected by n_targets and from_other_effect
     //current implementation doesn't handle dashes correctly, so maybe disable item on concerned champs
-    let time_moving: f32 = (champ.sim_logs.units_travelled
+    let time_moving: f32 = (champ.units_travelled
         - champ.effects_values[EffectValueId::DeadMansPlateShipwreckerLastHitdistance])
         / champ.stats.ms();
 
@@ -1107,7 +1107,7 @@ fn dead_mans_plate_shipwrecker(
     ); //bound stacks to 100.
 
     champ.effects_values[EffectValueId::DeadMansPlateShipwreckerLastHitdistance] =
-        champ.sim_logs.units_travelled;
+        champ.units_travelled;
     PartDmg((stacks / 100.) * (40. + champ.stats.base_ad), 0., 0.)
 }
 
@@ -1275,7 +1275,7 @@ fn eclipse_ever_rising_moon(champ: &mut Unit, target_stats: &UnitStats) -> PartD
     //if last hit is recent enough and fully stacked (previous condition), reset stacks and trigger ever rising moon
     champ.effects_stacks[EffectStackId::EclipseEverRisingMoonStacks] = 0;
     champ.effects_values[EffectValueId::EclipseEverRisingMoonLastTriggerTime] = champ.time;
-    champ.sim_logs.periodic_heals_shields += 80. + 0.2 * champ.stats.bonus_ad; //value for ranged champions
+    champ.periodic_heals_shields += 80. + 0.2 * champ.stats.bonus_ad; //value for ranged champions
     PartDmg(0.04 * target_stats.hp, 0., 0.)
 }
 
@@ -1833,7 +1833,7 @@ impl Item {
 fn hextech_rocketbelt_supersonic(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let availability_coef: f32 =
         effect_availability_formula(40. * haste_formula(champ.stats.item_haste));
-    champ.sim_logs.units_travelled += availability_coef * 275.; //maximum dash distance
+    champ.units_travelled += availability_coef * 275.; //maximum dash distance
     let magic_dmg: f32 = availability_coef * (100. + 0.1 * champ.stats.ap());
     champ.dmg_on_target(
         target_stats,
@@ -2238,7 +2238,7 @@ const IMMORTAL_SHIELDBOW_LIFELINE_SHIELD_BY_LVL: [f32; MAX_UNIT_LVL] = [
 ];
 fn immortal_shieldbow_init(champ: &mut Unit) {
     //lifeline passive
-    champ.sim_logs.single_use_heals_shields += IMMORTAL_SHIELDBOW_LIFELINE_SHIELD_BY_LVL
+    champ.single_use_heals_shields += IMMORTAL_SHIELDBOW_LIFELINE_SHIELD_BY_LVL
         [usize::from(champ.lvl.get() - 1)]
         * effect_availability_formula(
             90. * haste_formula(champ.lvl_stats.item_haste + champ.items_stats.item_haste),
@@ -2435,7 +2435,7 @@ impl Item {
 //Kaenic Rookern
 fn kaenic_rookern_init(champ: &mut Unit) {
     //magebane passive
-    champ.sim_logs.single_use_heals_shields += 0.15 * (champ.lvl_stats.hp + champ.items_stats.hp);
+    champ.single_use_heals_shields += 0.15 * (champ.lvl_stats.hp + champ.items_stats.hp);
 }
 
 impl Item {
@@ -3118,7 +3118,7 @@ impl Item {
 //Maw of malmortius
 fn maw_of_malmortius_init(champ: &mut Unit) {
     //lifeline passive (omnivamp not implemented)
-    champ.sim_logs.single_use_heals_shields += (150.
+    champ.single_use_heals_shields += (150.
         + 1.125 * (champ.lvl_stats.bonus_ad + champ.items_stats.bonus_ad))
         * effect_availability_formula(
             90. * haste_formula(champ.lvl_stats.item_haste + champ.items_stats.item_haste),
@@ -4065,17 +4065,17 @@ fn rapid_firecannon_sharpshooter(
     }
 
     //if not enough energy, add basic attack energy stacks
-    if champ.sim_logs.units_travelled
+    if champ.units_travelled
         - champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance]
         < ENERGIZED_ATTACKS_TRAVEL_REQUIRED
     {
         champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance] -=
-            ENERGIZED_ATTACKS_TRAVEL_REQUIRED * 6. / 100.; //basic attacks generate 6 energy stacks
+            ENERGIZED_ATTACKS_TRAVEL_REQUIRED * (ENERGIZED_STACKS_PER_BASIC_ATTACK / 100.);
         return PartDmg(0., 0., 0.);
     }
     //if enough energy (previous condition), trigger energized attack
     champ.effects_values[EffectValueId::RapidFirecannonSharpshooterLastTriggerDistance] =
-        champ.sim_logs.units_travelled;
+        champ.units_travelled;
     PartDmg(0., 40., 0.)
 }
 
@@ -4150,7 +4150,7 @@ fn _ravenous_hydra_ravenous_crescent(champ: &mut Unit, target_stats: &UnitStats)
         enum_set!(),
         1.,
     );
-    champ.sim_logs.periodic_heals_shields += dmg.as_sum() * champ.stats.life_steal; //life steal applies to crescent
+    champ.periodic_heals_shields += dmg.as_sum() * champ.stats.life_steal; //life steal applies to crescent
     dmg
 }
 
@@ -4598,7 +4598,7 @@ fn seraphs_embrace_init(champ: &mut Unit) {
     champ.stats.ap_flat += 0.02 * champ.items_stats.mana; //only take bonus mana into account
 
     //lifeline passive
-    champ.sim_logs.single_use_heals_shields += (200.
+    champ.single_use_heals_shields += (200.
         + SERAPHS_EMBRACE_LIFELINE_MANA_PERCENT
             * 0.2
             * (champ.lvl_stats.mana + champ.items_stats.mana))
@@ -5051,7 +5051,7 @@ fn steraks_gage_init(champ: &mut Unit) {
     champ.stats.bonus_ad += 0.45 * (champ.lvl_stats.base_ad + champ.items_stats.base_ad);
 
     //lifeline passive
-    champ.sim_logs.single_use_heals_shields += 0.5
+    champ.single_use_heals_shields += 0.5
         * 0.6
         * champ.items_stats.hp
         * effect_availability_formula(
@@ -5396,7 +5396,7 @@ fn sundered_sky_lightshield_strike(
     }
     //if not on cooldown, put on cooldown and trigger effect
     champ.effects_values[EffectValueId::SunderedSkyLastTriggerTime] = champ.time;
-    champ.sim_logs.periodic_heals_shields +=
+    champ.periodic_heals_shields +=
         champ.stats.base_ad + SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP * 0.06 * champ.stats.hp;
     let phys_dmg: f32 =
         champ.stats.ad() * (1. - champ.stats.crit_chance) * (champ.stats.crit_dmg - 1.); //bonus dmg from a basic attack with 100% crit chance compared to an average basic_attack
@@ -5662,10 +5662,9 @@ fn the_collector_init(champ: &mut Unit) {
 const THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD: f32 = 0.05;
 fn the_collector_death(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     if champ.effects_stacks[EffectStackId::TheCollectorExecuted] != 1
-        && champ.sim_logs.dmg_done.as_sum()
-            >= (1. - THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD) * target_stats.hp
+        && champ.dmg_done.as_sum() >= (1. - THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD) * target_stats.hp
     {
-        champ.sim_logs.dmg_done.2 += THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD * target_stats.hp;
+        champ.dmg_done.2 += THE_COLLECTOR_DEATH_EXECUTE_THRESHOLD * target_stats.hp;
         champ.effects_stacks[EffectStackId::TheCollectorExecuted] = 1;
     }
     PartDmg(0., 0., 0.)
@@ -6094,17 +6093,17 @@ fn voltaic_cyclosword_firmament(
     }
 
     //if not enough energy, add basic attack energy stacks
-    if champ.sim_logs.units_travelled
+    if champ.units_travelled
         - champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance]
         < ENERGIZED_ATTACKS_TRAVEL_REQUIRED
     {
         champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance] -=
-            ENERGIZED_ATTACKS_TRAVEL_REQUIRED * 6. / 100.; //basic attacks generate 6 energy stacks
+            ENERGIZED_ATTACKS_TRAVEL_REQUIRED * (ENERGIZED_STACKS_PER_BASIC_ATTACK / 100.);
         return PartDmg(0., 0., 0.);
     }
     //if enough energy (previous condition), trigger energized attack
     champ.effects_values[EffectValueId::VoltaicCycloswordFirmamentLastTriggerDistance] =
-        champ.sim_logs.units_travelled;
+        champ.units_travelled;
     PartDmg(100., 0., 0.) //slow not implemented
 }
 

@@ -45,8 +45,9 @@ const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [
     18360., //needed to reach lvl 18
 ];
 
-/// Travel distance required to fully charge energized attacks (rapid firecanon, statikk shiv, ...).
+/// Travel distance required to fully charge energized attacks (rapid firecanon, fleet footwork, ...).
 const ENERGIZED_ATTACKS_TRAVEL_REQUIRED: f32 = 100. * 24.;
+const ENERGIZED_STACKS_PER_BASIC_ATTACK: f32 = 6.;
 
 /// Reference area used to compute the average number of targets hit by basic attacks aoe effects.
 /// Should have a value so that an aoe basic attack effect with this range hits on average the same number of targets than runaans bolts.
@@ -931,37 +932,6 @@ impl fmt::Display for UnitAction {
 }
 
 #[derive(Debug, Clone)]
-pub struct UnitSimulationLogs {
-    pub dmg_done: PartDmg,
-    pub periodic_heals_shields: f32, //heals and shields obtained over a duration
-    pub single_use_heals_shields: f32, //heals and shields obtained once
-    pub units_travelled: f32,
-    pub actions_performed: Vec<(f32, UnitAction)>, //records each action performed and at what time in execution order
-}
-
-impl Default for UnitSimulationLogs {
-    fn default() -> Self {
-        UnitSimulationLogs {
-            dmg_done: PartDmg(0., 0., 0.),
-            periodic_heals_shields: 0.,
-            single_use_heals_shields: 0.,
-            units_travelled: 0.,
-            actions_performed: Vec::new(),
-        }
-    }
-}
-
-impl UnitSimulationLogs {
-    fn clear(&mut self) {
-        self.dmg_done = PartDmg(0., 0., 0.);
-        self.periodic_heals_shields = 0.;
-        self.single_use_heals_shields = 0.;
-        self.units_travelled = 0.;
-        self.actions_performed.clear();
-    }
-}
-
-#[derive(Debug, Clone)]
 pub struct Unit {
     //properties
     pub properties: &'static UnitProperties,
@@ -986,13 +956,17 @@ pub struct Unit {
     e_lvl: u8,
     r_lvl: u8,
 
-    //simulation timings
+    //simulation timings & variables
     time: f32,
     basic_attack_cd: f32,
     q_cd: f32,
     w_cd: f32,
     e_cd: f32,
     r_cd: f32,
+    dmg_done: PartDmg,
+    periodic_heals_shields: f32, //heals and shields obtained over a duration
+    single_use_heals_shields: f32, //heals and shields obtained once
+    units_travelled: f32,
 
     //on action functions
     on_action_fns_holder: OnActionFnsHolder,
@@ -1004,7 +978,7 @@ pub struct Unit {
     temporary_effects_cooldowns: IndexMap<&'static TemporaryEffect, f32, FxBuildHasher>, //IndexMap of temporary effects on cooldown on the unit
 
     //simulation logs
-    pub sim_logs: UnitSimulationLogs,
+    actions_log: Vec<(f32, UnitAction)>, //records each action performed and at what time in execution order
 }
 
 impl fmt::Display for Unit {
@@ -1023,7 +997,7 @@ impl fmt::Display for Unit {
         writeln!(
             f,
             "time: {:.1}, dmg done: {:.0}, periodic heals & shields : {:.0}, single use heals & shields: {:.0}, units tavelled: {:.0}",
-            self.time, self.sim_logs.dmg_done, self.sim_logs.periodic_heals_shields, self.sim_logs.single_use_heals_shields, self.sim_logs.units_travelled
+            self.time, self.dmg_done, self.periodic_heals_shields, self.single_use_heals_shields, self.units_travelled
         )?;
         writeln!(f, "hp: {:.0}", self.stats.hp)?;
         writeln!(f, "mana: {:.0}", self.stats.mana)?;
@@ -1122,6 +1096,277 @@ impl Unit {
     pub(crate) const BASE_CRIT_DMG: f32 = 1.75;
     /// Default maximum attack speed limit for an Unit.
     pub(crate) const DEFAULT_AS_LIMIT: f32 = 2.5;
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_runes(&self) -> &RunesPage {
+        &self.runes_page
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_skill_order(&self) -> &SkillOrder {
+        &self.skill_order
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn get_build(&self) -> &Build {
+        &self.build
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn get_stats(&self) -> &UnitStats {
+        &self.stats
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn get_lvl(&self) -> NonZeroU8 {
+        self.lvl
+    }
+
+    #[must_use]
+    #[inline]
+    pub fn get_time(&self) -> f32 {
+        self.time
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_basic_attack_cd(&self) -> f32 {
+        self.basic_attack_cd
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_q_cd(&self) -> f32 {
+        self.q_cd
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_w_cd(&self) -> f32 {
+        self.w_cd
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_e_cd(&self) -> f32 {
+        self.e_cd
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_r_cd(&self) -> f32 {
+        self.r_cd
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_dmg_done(&self) -> PartDmg {
+        self.dmg_done
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_periodic_heals_shields(&self) -> f32 {
+        self.periodic_heals_shields
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_single_use_heals_shields(&self) -> f32 {
+        self.single_use_heals_shields
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_units_travelled(&self) -> f32 {
+        self.units_travelled
+    }
+
+    #[allow(dead_code)]
+    #[must_use]
+    #[inline]
+    pub fn get_actions_log(&self) -> &[(f32, UnitAction)] {
+        &self.actions_log
+    }
+
+    /// Returns true if adaptive force for the unit is physical, false if it is magic.
+    #[must_use]
+    #[inline]
+    fn adaptive_is_phys(&self) -> bool {
+        self.items_stats.bonus_ad >= self.items_stats.ap()
+    }
+
+    /// Sets the Unit level to the request value, returns Ok if success or Err if failure (depending on the validity of the given value).
+    /// In case of a failure, the unit is not modified.
+    pub fn set_lvl(&mut self, lvl: u8) -> Result<(), String> {
+        //these checks are relatively inexpensive
+        //return early if lvl is outside of range
+        let maybe_lvl: Option<NonZeroU8> = NonZeroU8::new(lvl);
+        if !(usize::from(MIN_UNIT_LVL)..=MAX_UNIT_LVL).contains(&usize::from(lvl))
+            || maybe_lvl.is_none()
+        {
+            return Err(format!(
+                "Unit lvl must be non zero and between {MIN_UNIT_LVL} and {MAX_UNIT_LVL} (got {lvl})"
+            ));
+        }
+
+        self.lvl = maybe_lvl.unwrap(); //should never panic since we check for None value above
+        self.update_abilities_lvls();
+
+        //update unit lvl stats
+        let base: &UnitStats = &self.properties.base_stats;
+        let growth: &UnitStats = &self.properties.growth_stats;
+        self.lvl_stats.hp = growth_stat_formula(self.lvl, base.hp, growth.hp);
+        self.lvl_stats.mana = growth_stat_formula(self.lvl, base.mana, growth.mana);
+        self.lvl_stats.base_ad = growth_stat_formula(self.lvl, base.base_ad, growth.base_ad);
+        self.lvl_stats.bonus_ad = growth_stat_formula(self.lvl, base.bonus_ad, growth.bonus_ad);
+        self.lvl_stats.ap_flat = growth_stat_formula(self.lvl, base.ap_flat, growth.ap_flat);
+        self.lvl_stats.ap_percent =
+            growth_stat_formula(self.lvl, base.ap_percent, growth.ap_percent);
+        self.lvl_stats.armor = growth_stat_formula(self.lvl, base.armor, growth.armor);
+        self.lvl_stats.mr = growth_stat_formula(self.lvl, base.mr, growth.mr);
+        self.lvl_stats.base_as = growth_stat_formula(self.lvl, base.base_as, growth.base_as);
+        self.lvl_stats.bonus_as = growth_stat_formula(self.lvl, base.bonus_as, growth.bonus_as);
+        self.lvl_stats.ability_haste =
+            growth_stat_formula(self.lvl, base.ability_haste, growth.ability_haste);
+        self.lvl_stats.basic_haste =
+            growth_stat_formula(self.lvl, base.basic_haste, growth.basic_haste);
+        self.lvl_stats.ultimate_haste =
+            growth_stat_formula(self.lvl, base.ultimate_haste, growth.ultimate_haste);
+        self.lvl_stats.item_haste =
+            growth_stat_formula(self.lvl, base.item_haste, growth.item_haste);
+        self.lvl_stats.crit_chance = f32::min(
+            1.,
+            growth_stat_formula(self.lvl, base.crit_chance, growth.crit_chance),
+        ); //cr capped at 100%
+        self.lvl_stats.crit_dmg = growth_stat_formula(self.lvl, base.crit_dmg, growth.crit_dmg);
+        self.lvl_stats.ms_flat = growth_stat_formula(self.lvl, base.ms_flat, growth.ms_flat);
+        self.lvl_stats.ms_percent =
+            growth_stat_formula(self.lvl, base.ms_percent, growth.ms_percent);
+        self.lvl_stats.lethality = growth_stat_formula(self.lvl, base.lethality, growth.lethality);
+        self.lvl_stats.armor_pen_percent =
+            growth_stat_formula(self.lvl, base.armor_pen_percent, growth.armor_pen_percent);
+        self.lvl_stats.magic_pen_flat =
+            growth_stat_formula(self.lvl, base.magic_pen_flat, growth.magic_pen_flat);
+        self.lvl_stats.magic_pen_percent =
+            growth_stat_formula(self.lvl, base.magic_pen_percent, growth.magic_pen_percent);
+        self.lvl_stats.armor_red_flat =
+            growth_stat_formula(self.lvl, base.armor_red_flat, growth.armor_red_flat);
+        self.lvl_stats.armor_red_percent =
+            growth_stat_formula(self.lvl, base.armor_red_percent, growth.armor_red_percent);
+        self.lvl_stats.mr_red_flat =
+            growth_stat_formula(self.lvl, base.mr_red_flat, growth.mr_red_flat);
+        self.lvl_stats.mr_red_percent =
+            growth_stat_formula(self.lvl, base.mr_red_percent, growth.mr_red_percent);
+        self.lvl_stats.life_steal =
+            growth_stat_formula(self.lvl, base.life_steal, growth.life_steal);
+        self.lvl_stats.omnivamp = growth_stat_formula(self.lvl, base.omnivamp, growth.omnivamp);
+        self.lvl_stats.ability_dmg_modifier = growth_stat_formula(
+            self.lvl,
+            base.ability_dmg_modifier,
+            growth.ability_dmg_modifier,
+        );
+        self.lvl_stats.phys_dmg_modifier =
+            growth_stat_formula(self.lvl, base.phys_dmg_modifier, growth.phys_dmg_modifier);
+        self.lvl_stats.magic_dmg_modifier =
+            growth_stat_formula(self.lvl, base.magic_dmg_modifier, growth.magic_dmg_modifier);
+        self.lvl_stats.true_dmg_modifier =
+            growth_stat_formula(self.lvl, base.true_dmg_modifier, growth.true_dmg_modifier);
+        self.lvl_stats.tot_dmg_modifier =
+            growth_stat_formula(self.lvl, base.tot_dmg_modifier, growth.tot_dmg_modifier);
+
+        //perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to lvl_stats)
+        self.all_on_lvl_set();
+
+        Ok(())
+    }
+
+    /// Sets the Unit skill order, returns Ok if success or Err if failure (depending on the validity of the given skill order).
+    /// In case of a failure, the unit is not modified.
+    pub fn set_skill_order(&mut self, skill_order: SkillOrder) -> Result<(), String> {
+        //return early if skill_order is not valid
+        skill_order.check_skill_order_validity(*self.properties == Unit::APHELIOS_PROPERTIES)?;
+
+        self.skill_order = skill_order;
+        self.update_abilities_lvls();
+
+        Ok(())
+    }
+
+    /// Updates unit spells lvl.
+    ///
+    /// Because they depend on unit lvl, this function is called when setting lvl and skill order.
+    /// This leads to redundant work when setting these in chain, but it's not a big deal.
+    fn update_abilities_lvls(&mut self) {
+        let lvl: usize = usize::from(self.lvl.get());
+        self.q_lvl = self.skill_order.q[..lvl].iter().sum();
+        self.w_lvl = self.skill_order.w[..lvl].iter().sum();
+        self.e_lvl = self.skill_order.e[..lvl].iter().sum();
+        self.r_lvl = self.skill_order.r[..lvl].iter().sum();
+    }
+
+    /// Clears the items on-action-fns from the unit, leaving only on-action-fns from the unit properties and runes.
+    fn clear_items_on_action_fns(&mut self) {
+        self.on_action_fns_holder.clear();
+
+        //add base on-action-fns (from unit properties) and runes on-action-fns only
+        self.on_action_fns_holder
+            .extend(&self.properties.on_action_fns);
+        self.on_action_fns_holder
+            .extend(&self.runes_page.keystone.on_action_fns);
+    }
+
+    /// Clears every on-action-fns from the unit and re-add them.
+    fn reload_on_action_fns(&mut self) {
+        self.clear_items_on_action_fns();
+
+        //add items on-action-fns
+        for &item in self.build.iter().filter(|&&item| *item != Item::NULL_ITEM) {
+            self.on_action_fns_holder.extend(&item.on_action_fns);
+        }
+    }
+
+    /// Updates the Unit build, returns Ok if success or Err if failure (depending on the validity of the given build).
+    /// In case of a failure, the unit is not modified.
+    pub fn set_build(&mut self, build: Build) -> Result<(), String> {
+        //these checks are relatively expensive, if calling this function in hot code, consider using `Unit.set_build_unchecked()` instead
+        build.check_validity()?;
+        self.set_build_unchecked(build);
+        Ok(())
+    }
+
+    /// Updates the Unit build regardless of its validity (saving some running time by discarding checks).
+    /// You must ensure that the given build is valid. Otherwise, this will lead to wrong results when simulating fights with the unit.
+    pub(crate) fn set_build_unchecked(&mut self, build: Build) {
+        //no build validity check
+        self.build = build;
+
+        //clear items from unit
+        self.items_stats.clear();
+        self.clear_items_on_action_fns();
+
+        //add items one by one to unit
+        for &item in build.iter().filter(|&&item| *item != Item::NULL_ITEM) {
+            self.items_stats.add(&item.stats);
+            self.on_action_fns_holder.extend(&item.on_action_fns);
+        }
+    }
 
     /// Creates a new Unit with the given properties, runes, skill order, lvl and build.
     /// Return an Err with a corresponding error message if the Unit could not be created because of an invalid argument.
@@ -1226,6 +1471,10 @@ impl Unit {
             w_cd: 0.,
             e_cd: 0.,
             r_cd: 0.,
+            dmg_done: PartDmg(0., 0., 0.),
+            periodic_heals_shields: 0.,
+            single_use_heals_shields: 0.,
+            units_travelled: 0.,
 
             //on action functions
             on_action_fns_holder: OnActionFnsHolder {
@@ -1251,7 +1500,7 @@ impl Unit {
             temporary_effects_cooldowns: IndexMap::with_hasher(FxBuildHasher),
 
             //simulation logs
-            sim_logs: UnitSimulationLogs::default(),
+            actions_log: Vec::new(),
         };
 
         //set on-action-fns (done implicitely in `new_unit.set_build` but we do it here as well just in case)
@@ -1295,266 +1544,6 @@ impl Unit {
     pub fn new_target_dummy() -> Self {
         Self::from_properties_defaults(&TARGET_DUMMY_PROPERTIES, MIN_UNIT_LVL, Build::default())
             .expect("Failed to create target dummy")
-    }
-
-    #[must_use]
-    #[inline]
-    pub fn get_stats(&self) -> &UnitStats {
-        &self.stats
-    }
-
-    #[must_use]
-    #[inline]
-    pub fn get_time(&self) -> f32 {
-        self.time
-    }
-
-    #[allow(dead_code)]
-    #[must_use]
-    #[inline]
-    pub fn get_basic_attack_cd(&self) -> f32 {
-        self.basic_attack_cd
-    }
-
-    #[allow(dead_code)]
-    #[must_use]
-    #[inline]
-    pub fn get_q_cd(&self) -> f32 {
-        self.q_cd
-    }
-
-    #[allow(dead_code)]
-    #[must_use]
-    #[inline]
-    pub fn get_w_cd(&self) -> f32 {
-        self.w_cd
-    }
-
-    #[allow(dead_code)]
-    #[must_use]
-    #[inline]
-    pub fn get_e_cd(&self) -> f32 {
-        self.e_cd
-    }
-
-    #[allow(dead_code)]
-    #[must_use]
-    #[inline]
-    pub fn get_r_cd(&self) -> f32 {
-        self.r_cd
-    }
-
-    /// Returns true if adaptive force for the unit is physical, false if it is magic.
-    #[must_use]
-    #[inline]
-    fn adaptive_is_phys(&self) -> bool {
-        self.items_stats.bonus_ad >= self.items_stats.ap()
-    }
-
-    /// Sets the Unit skill order, returns Ok if success or Err if failure (depending on the validity of the given skill order).
-    /// In case of a failure, the unit is not modified.
-    pub fn set_skill_order(&mut self, skill_order: SkillOrder) -> Result<(), String> {
-        //return early if skill_order is not valid
-        skill_order.check_skill_order_validity(*self.properties == Unit::APHELIOS_PROPERTIES)?;
-
-        self.skill_order = skill_order;
-        self.update_abilities_lvls();
-
-        Ok(())
-    }
-
-    #[allow(dead_code)]
-    #[must_use]
-    #[inline]
-    pub fn get_skill_order(&self) -> &SkillOrder {
-        &self.skill_order
-    }
-
-    /// Updates unit spells lvl.
-    ///
-    /// Because they depend on unit lvl, this function is called when setting lvl and skill order.
-    /// This leads to redundant work when setting these in chain, but it's not a big deal.
-    fn update_abilities_lvls(&mut self) {
-        let lvl: usize = usize::from(self.lvl.get());
-        self.q_lvl = self.skill_order.q[..lvl].iter().sum();
-        self.w_lvl = self.skill_order.w[..lvl].iter().sum();
-        self.e_lvl = self.skill_order.e[..lvl].iter().sum();
-        self.r_lvl = self.skill_order.r[..lvl].iter().sum();
-    }
-
-    /// Sets the Unit level to the request value, returns Ok if success or Err if failure (depending on the validity of the given value).
-    /// In case of a failure, the unit is not modified.
-    pub fn set_lvl(&mut self, lvl: u8) -> Result<(), String> {
-        //these checks are relatively inexpensive
-        //return early if lvl is outside of range
-        let maybe_lvl: Option<NonZeroU8> = NonZeroU8::new(lvl);
-        if !(usize::from(MIN_UNIT_LVL)..=MAX_UNIT_LVL).contains(&usize::from(lvl))
-            || maybe_lvl.is_none()
-        {
-            return Err(format!(
-                "Unit lvl must be non zero and between {MIN_UNIT_LVL} and {MAX_UNIT_LVL} (got {lvl})"
-            ));
-        }
-
-        self.lvl = maybe_lvl.unwrap(); //should never panic since we check for None value above
-        self.update_abilities_lvls();
-
-        //update unit lvl stats
-        let base: &UnitStats = &self.properties.base_stats;
-        let growth: &UnitStats = &self.properties.growth_stats;
-        self.lvl_stats.hp = growth_stat_formula(self.lvl, base.hp, growth.hp);
-        self.lvl_stats.mana = growth_stat_formula(self.lvl, base.mana, growth.mana);
-        self.lvl_stats.base_ad = growth_stat_formula(self.lvl, base.base_ad, growth.base_ad);
-        self.lvl_stats.bonus_ad = growth_stat_formula(self.lvl, base.bonus_ad, growth.bonus_ad);
-        self.lvl_stats.ap_flat = growth_stat_formula(self.lvl, base.ap_flat, growth.ap_flat);
-        self.lvl_stats.ap_percent =
-            growth_stat_formula(self.lvl, base.ap_percent, growth.ap_percent);
-        self.lvl_stats.armor = growth_stat_formula(self.lvl, base.armor, growth.armor);
-        self.lvl_stats.mr = growth_stat_formula(self.lvl, base.mr, growth.mr);
-        self.lvl_stats.base_as = growth_stat_formula(self.lvl, base.base_as, growth.base_as);
-        self.lvl_stats.bonus_as = growth_stat_formula(self.lvl, base.bonus_as, growth.bonus_as);
-        self.lvl_stats.ability_haste =
-            growth_stat_formula(self.lvl, base.ability_haste, growth.ability_haste);
-        self.lvl_stats.basic_haste =
-            growth_stat_formula(self.lvl, base.basic_haste, growth.basic_haste);
-        self.lvl_stats.ultimate_haste =
-            growth_stat_formula(self.lvl, base.ultimate_haste, growth.ultimate_haste);
-        self.lvl_stats.item_haste =
-            growth_stat_formula(self.lvl, base.item_haste, growth.item_haste);
-        self.lvl_stats.crit_chance = f32::min(
-            1.,
-            growth_stat_formula(self.lvl, base.crit_chance, growth.crit_chance),
-        ); //cr capped at 100%
-        self.lvl_stats.crit_dmg = growth_stat_formula(self.lvl, base.crit_dmg, growth.crit_dmg);
-        self.lvl_stats.ms_flat = growth_stat_formula(self.lvl, base.ms_flat, growth.ms_flat);
-        self.lvl_stats.ms_percent =
-            growth_stat_formula(self.lvl, base.ms_percent, growth.ms_percent);
-        self.lvl_stats.lethality = growth_stat_formula(self.lvl, base.lethality, growth.lethality);
-        self.lvl_stats.armor_pen_percent =
-            growth_stat_formula(self.lvl, base.armor_pen_percent, growth.armor_pen_percent);
-        self.lvl_stats.magic_pen_flat =
-            growth_stat_formula(self.lvl, base.magic_pen_flat, growth.magic_pen_flat);
-        self.lvl_stats.magic_pen_percent =
-            growth_stat_formula(self.lvl, base.magic_pen_percent, growth.magic_pen_percent);
-        self.lvl_stats.armor_red_flat =
-            growth_stat_formula(self.lvl, base.armor_red_flat, growth.armor_red_flat);
-        self.lvl_stats.armor_red_percent =
-            growth_stat_formula(self.lvl, base.armor_red_percent, growth.armor_red_percent);
-        self.lvl_stats.mr_red_flat =
-            growth_stat_formula(self.lvl, base.mr_red_flat, growth.mr_red_flat);
-        self.lvl_stats.mr_red_percent =
-            growth_stat_formula(self.lvl, base.mr_red_percent, growth.mr_red_percent);
-        self.lvl_stats.life_steal =
-            growth_stat_formula(self.lvl, base.life_steal, growth.life_steal);
-        self.lvl_stats.omnivamp = growth_stat_formula(self.lvl, base.omnivamp, growth.omnivamp);
-        self.lvl_stats.ability_dmg_modifier = growth_stat_formula(
-            self.lvl,
-            base.ability_dmg_modifier,
-            growth.ability_dmg_modifier,
-        );
-        self.lvl_stats.phys_dmg_modifier =
-            growth_stat_formula(self.lvl, base.phys_dmg_modifier, growth.phys_dmg_modifier);
-        self.lvl_stats.magic_dmg_modifier =
-            growth_stat_formula(self.lvl, base.magic_dmg_modifier, growth.magic_dmg_modifier);
-        self.lvl_stats.true_dmg_modifier =
-            growth_stat_formula(self.lvl, base.true_dmg_modifier, growth.true_dmg_modifier);
-        self.lvl_stats.tot_dmg_modifier =
-            growth_stat_formula(self.lvl, base.tot_dmg_modifier, growth.tot_dmg_modifier);
-
-        //perform specific actions required when setting the Unit lvl (exemple: add veigar passive stacks ap to lvl_stats)
-        self.all_on_lvl_set();
-
-        Ok(())
-    }
-
-    #[must_use]
-    #[inline]
-    pub fn get_lvl(&self) -> NonZeroU8 {
-        self.lvl
-    }
-
-    /// Clears the items on-action-fns from the unit, leaving only on-action-fns from the unit properties and runes.
-    fn clear_items_on_action_fns(&mut self) {
-        self.on_action_fns_holder.clear();
-
-        //add base on-action-fns (from unit properties) and runes on-action-fns only
-        self.on_action_fns_holder
-            .extend(&self.properties.on_action_fns);
-        self.on_action_fns_holder
-            .extend(&self.runes_page.keystone.on_action_fns);
-    }
-
-    /// Clears every on-action-fns from the unit and re-add them.
-    fn reload_on_action_fns(&mut self) {
-        self.clear_items_on_action_fns();
-
-        //add items on-action-fns
-        for &item in self.build.iter().filter(|&&item| *item != Item::NULL_ITEM) {
-            self.on_action_fns_holder.extend(&item.on_action_fns);
-        }
-    }
-
-    /// Updates the Unit build, returns Ok if success or Err if failure (depending on the validity of the given build).
-    /// In case of a failure, the unit is not modified.
-    pub fn set_build(&mut self, build: Build) -> Result<(), String> {
-        //these checks are relatively expensive, if calling this function in hot code, consider using `Unit.set_build_unchecked()` instead
-        build.check_validity()?;
-        self.set_build_unchecked(build);
-        Ok(())
-    }
-
-    /// Updates the Unit build regardless of its validity (saving some running time by discarding checks).
-    /// You must ensure that the given build is valid. Otherwise, this will lead to wrong results when simulating fights with the unit.
-    pub(crate) fn set_build_unchecked(&mut self, build: Build) {
-        //no build validity check
-        self.build = build;
-
-        //clear items from unit
-        self.items_stats.clear();
-        self.clear_items_on_action_fns();
-
-        //add items one by one to unit
-        for &item in build.iter().filter(|&&item| *item != Item::NULL_ITEM) {
-            self.items_stats.add(&item.stats);
-            self.on_action_fns_holder.extend(&item.on_action_fns);
-        }
-    }
-
-    #[must_use]
-    #[inline]
-    pub fn get_build(&self) -> &Build {
-        &self.build
-    }
-
-    pub fn init_fight(&mut self) {
-        //simulation timings
-        self.time = 0.;
-        self.basic_attack_cd = 0.;
-        self.q_cd = 0.;
-        self.w_cd = 0.;
-        self.e_cd = 0.;
-        self.r_cd = 0.;
-
-        //init stats (runes are done later, need to do it after items passives init)
-        self.stats.clear();
-        self.stats.add(&self.lvl_stats);
-        self.stats.add(&self.items_stats);
-
-        //reset temporary effects
-        self.effects_stacks.clear(); //this is not really needed since we init the variables later, but we do it to clear unused variables for debugging convenience
-        self.effects_values.clear(); //same as above
-        self.temporary_effects_durations.clear(); //this is needed to remove every temporary effects
-        self.temporary_effects_cooldowns.clear(); //same as above
-
-        //init effect variables and temporary effects on the unit (after effects reset)
-        self.all_on_fight_init();
-
-        //runes stats (after items passives init)
-        self.update_runes_stats();
-        self.stats.add(&self.runes_stats);
-
-        //reset simulation logs
-        self.sim_logs.clear();
     }
 
     /// Attempt to add the given effect to the Unit. If the effect is not on cooldown, the function
@@ -1650,10 +1639,45 @@ impl Unit {
                 .unwrap(); //will never panic as we chain with once so there is at minimum 1 element
 
             //walk until next expiring effect
-            self.sim_logs.units_travelled += self.stats.ms() * min_duration; //must be before self.wait() to still benefit from temporary effects
+            self.units_travelled += self.stats.ms() * min_duration; //must be before self.wait() to still benefit from temporary effects
             self.wait(min_duration);
             dt -= min_duration;
         }
+    }
+
+    pub fn init_fight(&mut self) {
+        //simulation timings & variables
+        self.time = 0.;
+        self.basic_attack_cd = 0.;
+        self.q_cd = 0.;
+        self.w_cd = 0.;
+        self.e_cd = 0.;
+        self.r_cd = 0.;
+        self.dmg_done = PartDmg(0., 0., 0.);
+        self.periodic_heals_shields = 0.;
+        self.single_use_heals_shields = 0.;
+        self.units_travelled = 0.;
+
+        //init stats (runes are done later, need to do it after items passives init)
+        self.stats.clear();
+        self.stats.add(&self.lvl_stats);
+        self.stats.add(&self.items_stats);
+
+        //reset temporary effects
+        self.effects_stacks.clear(); //this is not really needed since we init the variables later, but we do it to clear unused variables for debugging convenience
+        self.effects_values.clear(); //same as above
+        self.temporary_effects_durations.clear(); //this is needed to remove every temporary effects
+        self.temporary_effects_cooldowns.clear(); //same as above
+
+        //init effect variables and temporary effects on the unit (after effects reset)
+        self.all_on_fight_init();
+
+        //runes stats (after items passives init)
+        self.update_runes_stats();
+        self.stats.add(&self.runes_stats);
+
+        //reset actions logs
+        self.actions_log.clear();
     }
 
     /// From partial dmg (separated ad, ap & true dmg values without taking resistances into account),
@@ -1798,22 +1822,21 @@ impl Unit {
         //update simulation logs
         let tot_dmg: f32 = part_dmg.as_sum();
         //omnivamp
-        self.sim_logs.periodic_heals_shields += tot_dmg * omnivamp;
+        self.periodic_heals_shields += tot_dmg * omnivamp;
         //lifesteal
         if dmg_tags.contains(DmgTag::BasicAttack) {
-            self.sim_logs.periodic_heals_shields += tot_dmg * life_steal;
+            self.periodic_heals_shields += tot_dmg * life_steal;
         }
 
         //dmg done
-        self.sim_logs.dmg_done += part_dmg;
+        self.dmg_done += part_dmg;
         part_dmg
     }
 
     /// Triggers every item actives on the unit and returns dmg done.
     pub fn use_all_special_actives(&mut self, target_stats: &UnitStats) -> PartDmg {
         //save log
-        self.sim_logs
-            .actions_performed
+        self.actions_log
             .push((self.time, UnitAction::SpecialActives));
 
         self.all_special_active(target_stats)
@@ -1822,9 +1845,7 @@ impl Unit {
     /// Performs a basic attack and returns dmg done.
     pub fn basic_attack(&mut self, target_stats: &UnitStats) -> PartDmg {
         //save log
-        self.sim_logs
-            .actions_performed
-            .push((self.time, UnitAction::BasicAttack));
+        self.actions_log.push((self.time, UnitAction::BasicAttack));
 
         //wait cast (windup) time
         let windup_time: f32 = real_windup_time(windup_formula(
@@ -1854,9 +1875,7 @@ impl Unit {
     /// cast q and returns dmg done.
     pub fn q(&mut self, target_stats: &UnitStats) -> PartDmg {
         //save log
-        self.sim_logs
-            .actions_performed
-            .push((self.time, UnitAction::Q));
+        self.actions_log.push((self.time, UnitAction::Q));
 
         //wait cast time
         self.wait(self.properties.q.cast_time);
@@ -1875,9 +1894,7 @@ impl Unit {
     /// cast w and returns dmg done.
     pub fn w(&mut self, target_stats: &UnitStats) -> PartDmg {
         //save log
-        self.sim_logs
-            .actions_performed
-            .push((self.time, UnitAction::W));
+        self.actions_log.push((self.time, UnitAction::W));
 
         //wait cast time
         self.wait(self.properties.w.cast_time);
@@ -1896,9 +1913,7 @@ impl Unit {
     /// cast e and returns dmg done.
     pub fn e(&mut self, target_stats: &UnitStats) -> PartDmg {
         //save log
-        self.sim_logs
-            .actions_performed
-            .push((self.time, UnitAction::E));
+        self.actions_log.push((self.time, UnitAction::E));
 
         //wait cast time
         self.wait(self.properties.e.cast_time);
@@ -1917,9 +1932,7 @@ impl Unit {
     /// cast r and returns dmg done.
     pub fn r(&mut self, target_stats: &UnitStats) -> PartDmg {
         //save log
-        self.sim_logs
-            .actions_performed
-            .push((self.time, UnitAction::R));
+        self.actions_log.push((self.time, UnitAction::R));
 
         //wait cast time
         self.wait(self.properties.r.cast_time);
@@ -1940,29 +1953,29 @@ impl Unit {
     /// according to the availability formula (to account for the r cooldown).
     /// Useless to use for ultimates that only adds a effect.
     pub fn weighted_r(&mut self, target_stats: &UnitStats) -> PartDmg {
-        let phys_dmg_done_before_r: f32 = self.sim_logs.dmg_done.0;
-        let magic_dmg_done_before_r: f32 = self.sim_logs.dmg_done.1;
-        let true_dmg_done_before_r: f32 = self.sim_logs.dmg_done.2;
+        let phys_dmg_done_before_r: f32 = self.dmg_done.0;
+        let magic_dmg_done_before_r: f32 = self.dmg_done.1;
+        let true_dmg_done_before_r: f32 = self.dmg_done.2;
 
-        let periodic_heals_shields_before_r: f32 = self.sim_logs.periodic_heals_shields;
-        let single_use_heals_shields_before_r: f32 = self.sim_logs.single_use_heals_shields;
-        let units_travelled_before_r: f32 = self.sim_logs.units_travelled;
+        let periodic_heals_shields_before_r: f32 = self.periodic_heals_shields;
+        let single_use_heals_shields_before_r: f32 = self.single_use_heals_shields;
+        let units_travelled_before_r: f32 = self.units_travelled;
         self.r(target_stats);
         let percent_to_remove: f32 = 1. - effect_availability_formula(self.r_cd);
 
-        let phys_dmg: f32 = self.sim_logs.dmg_done.0 - phys_dmg_done_before_r;
-        let magic_dmg: f32 = self.sim_logs.dmg_done.1 - magic_dmg_done_before_r;
-        let true_dmg: f32 = self.sim_logs.dmg_done.2 - true_dmg_done_before_r;
-        self.sim_logs.dmg_done.0 -= percent_to_remove * phys_dmg;
-        self.sim_logs.dmg_done.1 -= percent_to_remove * magic_dmg;
-        self.sim_logs.dmg_done.2 -= percent_to_remove * true_dmg;
+        let phys_dmg: f32 = self.dmg_done.0 - phys_dmg_done_before_r;
+        let magic_dmg: f32 = self.dmg_done.1 - magic_dmg_done_before_r;
+        let true_dmg: f32 = self.dmg_done.2 - true_dmg_done_before_r;
+        self.dmg_done.0 -= percent_to_remove * phys_dmg;
+        self.dmg_done.1 -= percent_to_remove * magic_dmg;
+        self.dmg_done.2 -= percent_to_remove * true_dmg;
 
-        self.sim_logs.periodic_heals_shields -= percent_to_remove
-            * (self.sim_logs.periodic_heals_shields - periodic_heals_shields_before_r);
-        self.sim_logs.single_use_heals_shields -= percent_to_remove
-            * (self.sim_logs.single_use_heals_shields - single_use_heals_shields_before_r);
-        self.sim_logs.units_travelled -=
-            percent_to_remove * (self.sim_logs.units_travelled - units_travelled_before_r);
+        self.periodic_heals_shields -=
+            percent_to_remove * (self.periodic_heals_shields - periodic_heals_shields_before_r);
+        self.single_use_heals_shields -=
+            percent_to_remove * (self.single_use_heals_shields - single_use_heals_shields_before_r);
+        self.units_travelled -=
+            percent_to_remove * (self.units_travelled - units_travelled_before_r);
 
         let percent_to_keep = 1. - percent_to_remove;
         PartDmg(

@@ -142,7 +142,7 @@ fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
 }
 
 fn lucian_e(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
-    champ.sim_logs.units_travelled += 425.; //maximum dash range
+    champ.units_travelled += 425.; //maximum dash range
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
     PartDmg(0., 0., 0.)
 }

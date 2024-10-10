@@ -91,7 +91,7 @@ fn caitlyn_w(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
 const CAITLYN_E_MAGIC_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
 
 fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
-    champ.sim_logs.units_travelled += 390.;
+    champ.units_travelled += 390.;
 
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 

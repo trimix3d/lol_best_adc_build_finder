@@ -254,10 +254,10 @@ const KAISA_R_SHIELD_AD_RATIO_BY_R_LVL: [f32; 3] = [0.90, 1.35, 1.8];
 
 fn kaisa_r(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
-    champ.sim_logs.single_use_heals_shields += KAISA_R_SHIELD_BY_R_LVL[r_lvl_idx]
+    champ.single_use_heals_shields += KAISA_R_SHIELD_BY_R_LVL[r_lvl_idx]
         + KAISA_R_SHIELD_AD_RATIO_BY_R_LVL[r_lvl_idx] * champ.stats.ad()
         + 1.2 * champ.stats.ap();
-    champ.sim_logs.units_travelled += 425.; //assumed dash range (max r radius around the ennemy - champion width)
+    champ.units_travelled += 425.; //assumed dash range (max r radius around the ennemy - champion width)
     PartDmg(0., 0., 0.)
 }
 

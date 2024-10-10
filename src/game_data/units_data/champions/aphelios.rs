@@ -321,8 +321,7 @@ fn aphelios_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         * (APHELIOS_R_CALIBRUM_PHYS_DMG_BY_R_LVL[r_lvl_idx] + 15. + 0.2 * champ.stats.bonus_ad);
 
     //severum, heal weighted 1/5
-    champ.sim_logs.single_use_heals_shields +=
-        1. / 5. * (APHELIOS_R_SEVERUM_HEAL_BY_R_LVL[r_lvl_idx]);
+    champ.single_use_heals_shields += 1. / 5. * (APHELIOS_R_SEVERUM_HEAL_BY_R_LVL[r_lvl_idx]);
 
     //gravitum, root not taken into account
 
