@@ -481,18 +481,17 @@ fn black_cleaver_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::BlackCleaverFervorMsFlat] = 0.;
 }
 
-const BLACK_CLEAVER_CARVE_P_ARMOR_RED_PER_STACK: f32 = 0.06;
+const BLACK_CLEAVER_CARVE_ARMOR_RED_PERCENT_PER_STACK: f32 = 0.06;
 fn black_cleaver_carve_add_stack(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_stacks[EffectStackId::BlackCleaverCarveStacks] < 5 {
+        champ.effects_stacks[EffectStackId::BlackCleaverCarveStacks] += 1;
+
         decrease_multiplicatively_scaling_stat(
             &mut champ.stats.armor_red_percent,
             champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent],
         ); //decrease amount temporarly
-
-        champ.effects_stacks[EffectStackId::BlackCleaverCarveStacks] += 1;
         champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent] +=
-            BLACK_CLEAVER_CARVE_P_ARMOR_RED_PER_STACK;
-
+            BLACK_CLEAVER_CARVE_ARMOR_RED_PERCENT_PER_STACK;
         increase_multiplicatively_scaling_stat(
             &mut champ.stats.armor_red_percent,
             champ.effects_values[EffectValueId::BlackCleaverCarveArmorRedPercent],
@@ -1696,6 +1695,7 @@ impl Item {
 //Guinsoo's rageblade
 fn guinsoos_rageblade_init(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks] = 0;
+    champ.effects_values[EffectValueId::GuinsoosRagebladeSeethingStrikeBonusAS] = 0.;
     champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] = 0;
 }
 
@@ -1707,13 +1707,15 @@ fn guinsoos_rageblade_seething_strike_add_stack(champ: &mut Unit, _availability_
     {
         champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks] += 1;
         champ.stats.bonus_as += GUINSOOS_RAGEBLADE_SEETHING_STRIKE_BONUS_AS_PER_STACK;
+        champ.effects_values[EffectValueId::GuinsoosRagebladeSeethingStrikeBonusAS] +=
+            GUINSOOS_RAGEBLADE_SEETHING_STRIKE_BONUS_AS_PER_STACK;
     }
 }
 
 fn guinsoos_rageblade_seething_strike_remove_every_stack(champ: &mut Unit) {
     champ.stats.bonus_as -=
-        f32::from(champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks])
-            * GUINSOOS_RAGEBLADE_SEETHING_STRIKE_BONUS_AS_PER_STACK;
+        champ.effects_values[EffectValueId::GuinsoosRagebladeSeethingStrikeBonusAS];
+    champ.effects_values[EffectValueId::GuinsoosRagebladeSeethingStrikeBonusAS] = 0.;
     champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks] = 0;
     champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] = 0;
 }

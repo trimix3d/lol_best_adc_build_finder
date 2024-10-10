@@ -19,15 +19,15 @@ fn champion_test_ground() {
     let mut champ: Unit = Unit::new(
         properties,
         RunesPage {
-            keystone: &RuneKeystone::PRESS_THE_ATTACK,
+            keystone: &RuneKeystone::LETHAL_TEMPO,
             shard1: RuneShard::Middle,
             shard2: RuneShard::Left,
             shard3: RuneShard::Left,
         },
         properties.defaults.skill_order.clone(),
-        6,
+        18,
         Build([
-            &Item::NULL_ITEM,
+            &Item::WITS_END,
             &Item::NULL_ITEM,
             &Item::NULL_ITEM,
             &Item::NULL_ITEM,
@@ -44,6 +44,6 @@ fn champion_test_ground() {
 }
 
 fn main() {
-    //champion_test_ground();
-    cli::launch_interface();
+    champion_test_ground();
+    //cli::launch_interface();
 }

@@ -1342,6 +1342,7 @@ impl Unit {
         self.r_cd
     }
 
+    /// Returns true if adaptive force for the unit is physical, false if it is magic.
     #[must_use]
     #[inline]
     fn adaptive_is_phys(&self) -> bool {

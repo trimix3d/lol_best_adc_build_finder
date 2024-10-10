@@ -15,7 +15,7 @@ pub enum RuneShard {
 }
 
 /// Represents the runes page of a champion.
-/// For now, only implements runes shards.
+/// Doesn't implement
 #[derive(Debug, Clone)]
 pub struct RunesPage {
     pub keystone: &'static RuneKeystone,
@@ -25,14 +25,14 @@ pub struct RunesPage {
 }
 
 impl Default for RunesPage {
-    /// Returns runes pages with only Left `RuneShards`.
+    /// Returns runes pages with an empty `RuneKeystone` and only Left `RuneShards`.
     fn default() -> Self {
         Self::const_default()
     }
 }
 
 impl RunesPage {
-    /// Returns runes pages with only Left `RuneShards`.
+    /// Returns runes pages with an empty `RuneKeystone` and only Left `RuneShards`.
     /// Provides a default valid value for `SkillOrder` usable in compile time constants (unlike `Default::default()` which is not const).
     #[must_use]
     pub const fn const_default() -> Self {
@@ -135,7 +135,7 @@ fn press_the_attack_init(champ: &mut Unit) {
         -(PRESS_THE_ATTACK_DELAY + F32_TOL); //to allow for effect at time == 0
 }
 
-const PRESS_THE_ATTACK_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const PRESS_THE_ATTACK_ADAPTIVE_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     40.,    //lvl 1
     47.06,  //lvl 2
     54.12,  //lvl 3
@@ -162,11 +162,10 @@ fn press_the_attack_on_basic_attack_hit(
     champ: &mut Unit,
     _target_stats: &UnitStats,
     _n_targets: f32,
-    from_other_effect: bool,
+    _from_other_effect: bool,
 ) -> PartDmg {
-    if from_other_effect
-        || champ.effects_stacks[EffectStackId::PressTheAttackStacks] == PRESS_THE_ATTACK_MAX_STACKS
-    {
+    //assumes champ doesn't leave combat when fully stacked
+    if champ.effects_stacks[EffectStackId::PressTheAttackStacks] == PRESS_THE_ATTACK_MAX_STACKS {
         return PartDmg(0., 0., 0.);
     }
     //if last hit from too long ago, reset stacks and add 1
@@ -193,9 +192,8 @@ fn press_the_attack_on_basic_attack_hit(
         &mut champ.stats.magic_dmg_modifier,
         PRESS_THE_ATTACK_DMG_MODIFIER,
     );
-    let adaptive_dmg: f32 = PRESS_THE_ATTACK_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)];
+    let adaptive_dmg: f32 = PRESS_THE_ATTACK_ADAPTIVE_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)];
     if champ.adaptive_is_phys() {
-        //todo: adaptive condition
         PartDmg(adaptive_dmg, 0., 0.)
     } else {
         PartDmg(0., adaptive_dmg, 0.)
@@ -223,7 +221,101 @@ impl RuneKeystone {
     };
 }
 
-//todo: lethal tempo
+//lethal tempo
+fn lethal_tempo_init(champ: &mut Unit) {
+    champ.effects_stacks[EffectStackId::LethalTempoStacks] = 0;
+    champ.effects_values[EffectValueId::LethalTempoBonusAS] = 0.;
+}
+
+const LETHAL_TEMPO_MAX_STACKS: u8 = 6;
+const LETHAL_TEMPO_BONUS_AS_PER_STACK: f32 = 0.04; //ranged value
+fn lethal_tempo_add_stack(champ: &mut Unit, _availability_coef: f32) {
+    if champ.effects_stacks[EffectStackId::LethalTempoStacks] < LETHAL_TEMPO_MAX_STACKS {
+        champ.effects_stacks[EffectStackId::LethalTempoStacks] += 1;
+        champ.stats.bonus_as += LETHAL_TEMPO_BONUS_AS_PER_STACK; //ranged value
+        champ.effects_values[EffectValueId::LethalTempoBonusAS] += LETHAL_TEMPO_BONUS_AS_PER_STACK;
+    }
+}
+
+fn lethal_tempo_remove_every_stack(champ: &mut Unit) {
+    champ.stats.bonus_as -= champ.effects_values[EffectValueId::LethalTempoBonusAS];
+    champ.effects_values[EffectValueId::LethalTempoBonusAS] = 0.;
+    champ.effects_stacks[EffectStackId::LethalTempoStacks] = 0;
+}
+
+const LETHAL_TEMPO_AS: TemporaryEffect = TemporaryEffect {
+    id: EffectId::LethalTempoAS,
+    add_stack: lethal_tempo_add_stack,
+    remove_every_stack: lethal_tempo_remove_every_stack,
+    duration: 6.,
+    cooldown: 0.,
+};
+
+fn lethal_tempo_on_basic_attack_cast(champ: &mut Unit) {
+    champ.add_temporary_effect(&LETHAL_TEMPO_AS, 0.);
+}
+
+const LETHAL_TEMPO_ADAPTIVE_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
+    6.,    //lvl 1
+    7.06,  //lvl 2
+    8.12,  //lvl 3
+    9.18,  //lvl 4
+    10.24, //lvl 5
+    11.29, //lvl 6
+    12.35, //lvl 7
+    13.41, //lvl 8
+    14.47, //lvl 9
+    15.53, //lvl 10
+    16.59, //lvl 11
+    17.65, //lvl 12
+    18.71, //lvl 13
+    19.76, //lvl 14
+    20.82, //lvl 15
+    21.88, //lvl 16
+    22.94, //lvl 17
+    24.,   //lvl 18
+]; //ranged value
+
+fn lethal_tempo_on_basic_attack_hit(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    if from_other_effect
+        || champ.effects_stacks[EffectStackId::LethalTempoStacks] < LETHAL_TEMPO_MAX_STACKS
+    {
+        return PartDmg(0., 0., 0.);
+    }
+    let adaptive_dmg: f32 = LETHAL_TEMPO_ADAPTIVE_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)]
+        * (1. + 0.66 * champ.stats.bonus_as);
+    if champ.adaptive_is_phys() {
+        PartDmg(adaptive_dmg, 0., 0.)
+    } else {
+        PartDmg(0., adaptive_dmg, 0.)
+    }
+}
+
+impl RuneKeystone {
+    pub const LETHAL_TEMPO: RuneKeystone = RuneKeystone {
+        name: "Lethal tempo",
+        on_action_fns: OnActionFns {
+            on_lvl_set: None,
+            on_fight_init: Some(lethal_tempo_init),
+            special_active: None,
+            on_ability_cast: None,
+            on_ultimate_cast: None,
+            on_ability_hit: None,
+            on_ultimate_hit: None,
+            on_basic_attack_cast: Some(lethal_tempo_on_basic_attack_cast),
+            on_basic_attack_hit: Some(lethal_tempo_on_basic_attack_hit),
+            on_phys_hit: None,
+            on_magic_hit: None,
+            on_true_dmg_hit: None,
+            on_any_hit: None,
+        },
+    };
+}
 
 //todo: fleet footwork
 
@@ -246,3 +338,6 @@ impl RuneKeystone {
 //todo: aftershock
 
 //todo: first strike
+
+pub const ALL_RUNES_KEYSTONES: [RuneKeystone; 2] =
+    [RuneKeystone::PRESS_THE_ATTACK, RuneKeystone::LETHAL_TEMPO];
