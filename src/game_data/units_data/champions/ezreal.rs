@@ -11,7 +11,7 @@ const EZREAL_Q_HIT_PERCENT: f32 = 0.9;
 const EZREAL_W_HIT_PERCENT: f32 = 0.8;
 /// Number of targets hit by ezreal R.
 const EZREAL_R_N_TARGETS: f32 = 1.;
-const EZREAL_R_HIT_PERCENT: f32 = 0.85;
+const EZREAL_R_HIT_PERCENT: f32 = 1.; // !!! 0.85;
 
 fn ezreal_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::EzrealEssenceFluxMark] = 0;
@@ -27,14 +27,12 @@ fn ezreal_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         + units_data::default_basic_attack(champ, target_stats)
 }
 
-const EZREAL_RISING_SPELL_FORCE_BONUS_AS_PER_STACK: f32 = 0.10;
-
 fn ezreal_rising_spell_force_add_stack(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_stacks[EffectStackId::EzrealRisingSpellForceStacks] < 5 {
         champ.effects_stacks[EffectStackId::EzrealRisingSpellForceStacks] += 1;
-        champ.stats.bonus_as += EZREAL_RISING_SPELL_FORCE_BONUS_AS_PER_STACK;
-        champ.effects_values[EffectValueId::EzrealRisingSpellForceBonusAS] +=
-            EZREAL_RISING_SPELL_FORCE_BONUS_AS_PER_STACK;
+        let bonus_ad_buff: f32 = 0.10;
+        champ.stats.bonus_as += bonus_ad_buff;
+        champ.effects_values[EffectValueId::EzrealRisingSpellForceBonusAS] += bonus_ad_buff;
     }
 }
 

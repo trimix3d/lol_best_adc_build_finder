@@ -73,13 +73,11 @@ fn xayah_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     )
 }
 
-const XAYAH_DEADLY_PLUMAGE_PERCENT_MS_BUFF: f32 = 0.30;
-
 fn xayah_deadly_plumage_ms_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::XayahDeadlyPlumageMsPercent] == 0. {
-        champ.stats.ms_percent += XAYAH_DEADLY_PLUMAGE_PERCENT_MS_BUFF;
-        champ.effects_values[EffectValueId::XayahDeadlyPlumageMsPercent] =
-            XAYAH_DEADLY_PLUMAGE_PERCENT_MS_BUFF;
+        let ms_percent_buff: f32 = 0.30;
+        champ.stats.ms_percent += ms_percent_buff;
+        champ.effects_values[EffectValueId::XayahDeadlyPlumageMsPercent] = ms_percent_buff;
     }
 }
 

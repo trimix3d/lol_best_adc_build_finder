@@ -45,6 +45,9 @@ const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [
     18360., //needed to reach lvl 18
 ];
 
+/// amount of AD one adaptive AP is worth.
+const ADAPTIVE_AP_TO_AD_RATIO: f32 = 0.6;
+
 /// Travel distance required to fully charge energized attacks (rapid firecanon, fleet footwork, ...).
 const ENERGIZED_ATTACKS_TRAVEL_REQUIRED: f32 = 100. * 24.;
 const ENERGIZED_STACKS_PER_BASIC_ATTACK: f32 = 6.;
@@ -978,7 +981,7 @@ pub struct Unit {
     temporary_effects_cooldowns: IndexMap<&'static TemporaryEffect, f32, FxBuildHasher>, //IndexMap of temporary effects on cooldown on the unit
 
     //simulation logs
-    actions_log: Vec<(f32, UnitAction)>, //records each action performed and at what time in execution order
+    actions_log: Vec<(f32, UnitAction)>, //records each action performed and at what time in execution order, purely for debug purposes
 }
 
 impl fmt::Display for Unit {
@@ -1206,10 +1209,19 @@ impl Unit {
     }
 
     /// Returns true if adaptive force for the unit is physical, false if it is magic.
+    /// Adaptive force doesn't count in champions passives, so it only depends on items stats in practise.
     #[must_use]
     #[inline]
     fn adaptive_is_phys(&self) -> bool {
         self.items_stats.bonus_ad >= self.items_stats.ap()
+    }
+
+    /// Returns true if adaptive force for the unit is physical, false if it is magic (alternative version, for electrocute, sumon aery, ...).
+    /// Adaptive force doesn't count in champions passives, so it only depends on items stats in practise.
+    #[must_use]
+    #[inline]
+    fn adaptive_is_phys_alternate(&self) -> bool {
+        0.10 * self.items_stats.bonus_ad >= 0.05 * self.items_stats.ap()
     }
 
     /// Sets the Unit level to the request value, returns Ok if success or Err if failure (depending on the validity of the given value).
@@ -1309,7 +1321,7 @@ impl Unit {
         Ok(())
     }
 
-    /// Updates unit spells lvl.
+    /// Updates unit abilities lvl.
     ///
     /// Because they depend on unit lvl, this function is called when setting lvl and skill order.
     /// This leads to redundant work when setting these in chain, but it's not a big deal.
@@ -1685,7 +1697,7 @@ impl Unit {
     ///
     /// Since this is a relatively expensive function to run, try to call it as little as possible and use
     /// `n_targets`, `n_dmg_instances`, `n_stacking_instances` arguments to regroup multiple sources of dmg
-    /// that happens at the same time or are from the same spell, ...
+    /// that happens at the same time or are from the same ability, ...
     ///
     /// ARGUMENTS :
     ///
@@ -1754,7 +1766,7 @@ impl Unit {
         let true_dmg_modifier: f32 = self.stats.true_dmg_modifier;
         let tot_dmg_modifier: f32 = self.stats.tot_dmg_modifier;
 
-        //on ability hit and ability coef, must be done before on-basic-attack-hit (because of muramana shock that applies ability part first)
+        //on ability hit and ability coef, must be done before on-basic-attack-hit (because of muramana shock that applies ability part first & conqueror...)
         if dmg_tags.contains(DmgTag::Ability) {
             //ability dmg modifier (as of patch 14.19, it doesn't affect on_ability_hit and on_ultimate_hit dmg anymore)
             part_dmg *= 1. + ability_dmg_modifier;
@@ -1806,7 +1818,7 @@ impl Unit {
             }
         }
 
-        //on any hit
+        //on any hit (must be done after on-basic-attack-hit because of conqueror...)
         for _ in 0..n_stacking_instances {
             part_dmg += self.all_on_any_hit(target_stats);
         }
@@ -2021,28 +2033,28 @@ pub(crate) fn null_basic_attack(_champ: &mut Unit, _target_stats: &UnitStats) ->
     unreachable!("Null_basic_attack was called");
 }
 
-/// For performance reasons, we use a `NULL_BASIC_SPELL` constant (that should never be used) instead of an Option, for units that do not have one.
+/// For performance reasons, we use a `NULL_BASIC_ABILITY` constant (that should never be used) instead of an Option, for units that do not have one.
 ///
-/// This is to avoid checking an Option everytime a spell is called, since the majority of spells aren't null
-/// and the user should know in advance if said unit spell is null or not.
+/// This is to avoid checking an Option everytime an ability is called, since the majority of abilities aren't null
+/// and the user should know in advance if said unit ability is null or not.
 pub(crate) const NULL_BASIC_ABILITY: BasicAbility = BasicAbility {
-    cast: null_spell_cast,
+    cast: null_ability_cast,
     cast_time: F32_TOL,
     base_cooldown_by_ability_lvl: [F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL, F32_TOL],
 };
 
-/// For performance reasons, we use a `NULL_ULTIMATE_SPELL` constant (that should never be used) instead of an Option, for units that do not have one.
+/// For performance reasons, we use a `NULL_ULTIMATE_ABILITY` constant (that should never be used) instead of an Option, for units that do not have one.
 ///
-/// This is to avoid checking an Option everytime a spell is called, since the majority of spells aren't null
-/// and the user should know in advance if said unit spell is null or not.
+/// This is to avoid checking an Option everytime an ability is called, since the majority of abilities aren't null
+/// and the user should know in advance if said unit ability is null or not.
 pub(crate) const NULL_ULTIMATE_ABILITY: UltimateAbility = UltimateAbility {
-    cast: null_spell_cast,
+    cast: null_ability_cast,
     cast_time: F32_TOL,
     base_cooldown_by_ability_lvl: [F32_TOL, F32_TOL, F32_TOL],
 };
 
-fn null_spell_cast(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
-    unreachable!("Null_spell_cast was called");
+fn null_ability_cast(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
+    unreachable!("null_ability_cast was called");
 }
 
 /// For performance reasons, we use a `null_simulate_fight` function (that should never be called and will panic if so) instead of an Option, for units that do not have one.
@@ -2050,7 +2062,7 @@ fn null_spell_cast(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
 /// This is to avoid checking an Option everytime a `simulate_fight` is called, since the majority of `simulate_fight` aren't null
 /// and the user should know in advance if said unit `simulate_fight` is null or not.
 pub(crate) fn null_simulate_fight(_champ: &mut Unit, _target_stats: &UnitStats, _time_limit: f32) {
-    unreachable!("Null_simulate_fight was called");
+    unreachable!("null_simulate_fight was called");
 }
 
 #[cfg(test)]

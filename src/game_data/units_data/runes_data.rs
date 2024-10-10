@@ -31,6 +31,9 @@ impl Default for RunesPage {
     }
 }
 
+/// Amount of AP given by adaptive runes shards.
+const RUNES_SHARDS_ADAPTIVE_AP: f32 = 9.;
+
 impl RunesPage {
     /// Returns runes pages with an empty `RuneKeystone` and only Left `RuneShards`.
     /// Provides a default valid value for `SkillOrder` usable in compile time constants (unlike `Default::default()` which is not const).
@@ -62,15 +65,14 @@ impl Unit {
     pub(crate) fn update_runes_stats(&mut self) {
         self.runes_stats.clear();
 
-        //adaptive force doesn't count in champions passives, so it only depends on items stats in practise
         let runes_adaptive_bonus_ad: f32;
         let runes_adaptive_ap_flat: f32;
         if self.adaptive_is_phys() {
-            runes_adaptive_bonus_ad = 5.4;
+            runes_adaptive_bonus_ad = ADAPTIVE_AP_TO_AD_RATIO * RUNES_SHARDS_ADAPTIVE_AP;
             runes_adaptive_ap_flat = 0.;
         } else {
             runes_adaptive_bonus_ad = 0.;
-            runes_adaptive_ap_flat = 9.;
+            runes_adaptive_ap_flat = RUNES_SHARDS_ADAPTIVE_AP;
         }
 
         match self.runes_page.shard1 {
@@ -221,12 +223,12 @@ fn lethal_tempo_init(champ: &mut Unit) {
 }
 
 const LETHAL_TEMPO_MAX_STACKS: u8 = 6;
-const LETHAL_TEMPO_BONUS_AS_PER_STACK: f32 = 0.04; //ranged value
 fn lethal_tempo_add_stack(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_stacks[EffectStackId::LethalTempoStacks] < LETHAL_TEMPO_MAX_STACKS {
         champ.effects_stacks[EffectStackId::LethalTempoStacks] += 1;
-        champ.stats.bonus_as += LETHAL_TEMPO_BONUS_AS_PER_STACK; //ranged value
-        champ.effects_values[EffectValueId::LethalTempoBonusAS] += LETHAL_TEMPO_BONUS_AS_PER_STACK;
+        let bonus_as_buff: f32 = 0.04; //ranged value
+        champ.stats.bonus_as += bonus_as_buff;
+        champ.effects_values[EffectValueId::LethalTempoBonusAS] += bonus_as_buff;
     }
 }
 
@@ -408,6 +410,129 @@ impl RuneKeystone {
 }
 
 //todo: conqueror
+fn conqueror_init(champ: &mut Unit) {
+    champ.effects_stacks[EffectStackId::ConquerorAdaptiveIsPhys] =
+        u8::from(champ.adaptive_is_phys());
+    champ.effects_stacks[EffectStackId::ConquerorStacks] = 0;
+    champ.effects_values[EffectValueId::ConquerorAdaptiveAP] = 0.;
+    champ.effects_values[EffectValueId::ConquerorLastAbilityHitTime] = -F32_TOL; //to allow for effect at time == 0
+    champ.effects_values[EffectValueId::ConquerorLastBasicAttackHitTime] = -F32_TOL;
+    //to allow for effect at time == 0
+}
+
+const CONQUEROR_ADAPTIVE_AP_PER_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
+    1.8,  //lvl 1
+    1.93, //lvl 2
+    2.06, //lvl 3
+    2.19, //lvl 4
+    2.32, //lvl 5
+    2.45, //lvl 6
+    2.58, //lvl 7
+    2.71, //lvl 8
+    2.84, //lvl 9
+    2.96, //lvl 10
+    3.09, //lvl 11
+    3.22, //lvl 12
+    3.35, //lvl 13
+    3.48, //lvl 14
+    3.61, //lvl 15
+    3.74, //lvl 16
+    3.87, //lvl 17
+    4.,   //lvl 18
+];
+
+fn conqueror_add_stack(champ: &mut Unit, _availability_coef: f32) {
+    if champ.effects_stacks[EffectStackId::ConquerorStacks] < 12 {
+        champ.effects_stacks[EffectStackId::ConquerorStacks] += 1;
+
+        let adaptive_buff: f32 =
+            CONQUEROR_ADAPTIVE_AP_PER_STACK_BY_LVL[usize::from(champ.lvl.get() - 1)];
+        champ.effects_values[EffectValueId::ConquerorAdaptiveAP] += adaptive_buff;
+
+        if champ.effects_stacks[EffectStackId::ConquerorAdaptiveIsPhys] == 1 {
+            champ.stats.bonus_ad += ADAPTIVE_AP_TO_AD_RATIO * adaptive_buff;
+        } else {
+            champ.stats.ap_flat += adaptive_buff;
+        }
+    }
+}
+
+fn conqueror_remove_every_stack(champ: &mut Unit) {
+    if champ.effects_stacks[EffectStackId::ConquerorAdaptiveIsPhys] == 1 {
+        champ.stats.bonus_ad -=
+            ADAPTIVE_AP_TO_AD_RATIO * champ.effects_values[EffectValueId::ConquerorAdaptiveAP];
+    } else {
+        champ.stats.ap_flat -= champ.effects_values[EffectValueId::ConquerorAdaptiveAP];
+    }
+    champ.effects_stacks[EffectStackId::ConquerorStacks] = 0;
+    champ.effects_values[EffectValueId::ConquerorAdaptiveAP] = 0.;
+}
+
+const CONQUEROR: TemporaryEffect = TemporaryEffect {
+    id: EffectId::Conqueror,
+    add_stack: conqueror_add_stack,
+    remove_every_stack: conqueror_remove_every_stack,
+    duration: 5.,
+    cooldown: 0.,
+};
+
+fn conqueror_on_basic_attack_hit(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    from_other_effect: bool,
+) -> PartDmg {
+    if from_other_effect {
+        return PartDmg(0., 0., 0.);
+    }
+
+    //set last basic attack hit time only if real basic attack (not ability that applies basic attack effects)
+    if champ.effects_values[EffectValueId::ConquerorLastAbilityHitTime] != champ.time {
+        champ.effects_values[EffectValueId::ConquerorLastBasicAttackHitTime] = champ.time;
+    }
+    PartDmg(0., 0., 0.)
+}
+
+fn conqueror_on_ability_hit(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+) -> PartDmg {
+    champ.effects_values[EffectValueId::ConquerorLastAbilityHitTime] = champ.time;
+    PartDmg(0., 0., 0.)
+}
+
+fn conqueror_on_any_hit(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
+    //basic attacks give 1 stacks, any other attacks give 2
+    champ.add_temporary_effect(&CONQUEROR, 0.);
+
+    //if not same instance of dmg as last basic attack hit -> apply second stack because not a basic attack
+    if champ.time != champ.effects_values[EffectValueId::ConquerorLastBasicAttackHitTime] {
+        champ.add_temporary_effect(&CONQUEROR, 0.);
+    }
+    PartDmg(0., 0., 0.)
+}
+
+impl RuneKeystone {
+    pub const CONQUEROR: RuneKeystone = RuneKeystone {
+        name: "Conqueror",
+        on_action_fns: OnActionFns {
+            on_lvl_set: None,
+            on_fight_init: Some(conqueror_init),
+            special_active: None,
+            on_ability_cast: None,
+            on_ultimate_cast: None,
+            on_ability_hit: Some(conqueror_on_ability_hit),
+            on_ultimate_hit: None,
+            on_basic_attack_cast: None,
+            on_basic_attack_hit: Some(conqueror_on_basic_attack_hit),
+            on_phys_hit: None,
+            on_magic_hit: None,
+            on_true_dmg_hit: None,
+            on_any_hit: Some(conqueror_on_any_hit),
+        },
+    };
+}
 
 //todo: electrocute
 
@@ -427,8 +552,9 @@ impl RuneKeystone {
 
 //todo: first strike
 
-pub const ALL_RUNES_KEYSTONES: [RuneKeystone; 3] = [
+pub const ALL_RUNES_KEYSTONES: [RuneKeystone; 4] = [
     RuneKeystone::PRESS_THE_ATTACK,
     RuneKeystone::LETHAL_TEMPO,
     RuneKeystone::FLEET_FOOTWORK,
+    RuneKeystone::CONQUEROR,
 ];

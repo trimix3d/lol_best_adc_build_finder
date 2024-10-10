@@ -1700,15 +1700,15 @@ fn guinsoos_rageblade_init(champ: &mut Unit) {
 }
 
 const GUINSOOS_RAGEBLADE_SEETHING_STRIKE_MAX_STACKS: u8 = 4;
-const GUINSOOS_RAGEBLADE_SEETHING_STRIKE_BONUS_AS_PER_STACK: f32 = 0.08;
 fn guinsoos_rageblade_seething_strike_add_stack(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks]
         < GUINSOOS_RAGEBLADE_SEETHING_STRIKE_MAX_STACKS
     {
         champ.effects_stacks[EffectStackId::GuinsoosRagebladeSeethingStrikeStacks] += 1;
-        champ.stats.bonus_as += GUINSOOS_RAGEBLADE_SEETHING_STRIKE_BONUS_AS_PER_STACK;
+        let bonus_as_buff: f32 = 0.08;
+        champ.stats.bonus_as += bonus_as_buff;
         champ.effects_values[EffectValueId::GuinsoosRagebladeSeethingStrikeBonusAS] +=
-            GUINSOOS_RAGEBLADE_SEETHING_STRIKE_BONUS_AS_PER_STACK;
+            bonus_as_buff;
     }
 }
 
@@ -3017,12 +3017,11 @@ fn malignance_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::MalignanceHatefogCurseMrRedFlat] = 0.;
 }
 
-const MALIGNANCE_HATEFOG_CURSE_F_MR_RED: f32 = 10.;
 fn malignance_hatefog_curse_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::MalignanceHatefogCurseMrRedFlat] == 0. {
-        champ.stats.mr_red_flat += MALIGNANCE_HATEFOG_CURSE_F_MR_RED;
-        champ.effects_values[EffectValueId::MalignanceHatefogCurseMrRedFlat] =
-            MALIGNANCE_HATEFOG_CURSE_F_MR_RED;
+        let mr_ref_flat: f32 = 10.;
+        champ.stats.mr_red_flat += mr_ref_flat;
+        champ.effects_values[EffectValueId::MalignanceHatefogCurseMrRedFlat] = mr_ref_flat;
     }
 }
 
@@ -3387,7 +3386,7 @@ fn muramana_init(champ: &mut Unit) {
     champ.stats.bonus_ad += 0.02 * (champ.lvl_stats.mana + champ.items_stats.mana);
 }
 
-fn muramana_shock_on_spell_hit(
+fn muramana_shock_on_ability_hit(
     champ: &mut Unit,
     _target_stats: &UnitStats,
     n_targets: f32,
@@ -3403,8 +3402,7 @@ fn muramana_shock_on_basic_attack_hit(
     n_targets: f32,
     _from_other_effect: bool,
 ) -> PartDmg {
-    //it is okay to have this condition in static on hit (exception)
-    //if same instance of dmg (==exact same time) as muramana_shock_on_spell_hit, do nothing (to prevent basic attack that trigger on hit to apply muramana passive twice)
+    //if same instance of dmg (==exact same time) as muramana_shock_on_ability_hit, do nothing (to prevent basic attack that trigger on hit to apply muramana passive twice)
     if champ.time == champ.effects_values[EffectValueId::MuramanaShockLastSpellHitTime] {
         return PartDmg(0., 0., 0.);
     }
@@ -3461,7 +3459,7 @@ impl Item {
             special_active: None,
             on_ability_cast: None,
             on_ultimate_cast: None,
-            on_ability_hit: Some(muramana_shock_on_spell_hit),
+            on_ability_hit: Some(muramana_shock_on_ability_hit),
             on_ultimate_hit: None,
             on_basic_attack_cast: None,
             on_basic_attack_hit: Some(muramana_shock_on_basic_attack_hit),
@@ -5234,13 +5232,12 @@ fn stridebreaker_init(champ: &mut Unit) {
     champ.effects_values[EffectValueId::StridebreakerBreakingShockwaveMsPercent] = 0.;
 }
 
-const STRIDEBREAKER_BREAKING_SHOCKWAVE_P_MS: f32 = 0.35;
 fn stridebreaker_braking_shockwave_ms_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::StridebreakerBreakingShockwaveMsPercent] == 0. {
-        //ms buff halved because decays over time
-        champ.stats.ms_percent += 0.5 * STRIDEBREAKER_BREAKING_SHOCKWAVE_P_MS;
+        let ms_percent_buff: f32 = 0.5 * 0.35; //ms buff halved because decays over time
+        champ.stats.ms_percent += ms_percent_buff;
         champ.effects_values[EffectValueId::StridebreakerBreakingShockwaveMsPercent] =
-            0.5 * STRIDEBREAKER_BREAKING_SHOCKWAVE_P_MS;
+            ms_percent_buff;
     }
 }
 

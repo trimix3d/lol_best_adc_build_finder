@@ -15,11 +15,11 @@ fn champion_test_ground() {
     let dummy: Unit = Unit::new_target_dummy();
 
     //creation of champion
-    let properties: &UnitProperties = &Unit::ASHE_PROPERTIES;
+    let properties: &UnitProperties = &Unit::EZREAL_PROPERTIES;
     let mut champ: Unit = Unit::new(
         properties,
         RunesPage {
-            keystone: &RuneKeystone::FLEET_FOOTWORK,
+            keystone: &RuneKeystone::CONQUEROR,
             shard1: RuneShard::Middle,
             shard2: RuneShard::Left,
             shard3: RuneShard::Left,
@@ -27,8 +27,8 @@ fn champion_test_ground() {
         properties.defaults.skill_order.clone(),
         6,
         Build([
-            &Item::INFINITY_EDGE,
-            &Item::ZHONYAS_HOURGLASS,
+            &Item::NULL_ITEM,
+            &Item::NULL_ITEM,
             &Item::NULL_ITEM,
             &Item::NULL_ITEM,
             &Item::NULL_ITEM,
