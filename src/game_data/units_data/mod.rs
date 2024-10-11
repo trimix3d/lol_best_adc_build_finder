@@ -1126,6 +1126,7 @@ impl Unit {
         &self.stats
     }
 
+    #[allow(dead_code)]
     #[must_use]
     #[inline]
     pub fn get_lvl(&self) -> NonZeroU8 {
@@ -1545,7 +1546,7 @@ impl Unit {
     ) -> Result<Self, String> {
         Self::new(
             properties,
-            properties.defaults.runes_pages.clone(),
+            properties.defaults.runes_pages,
             properties.defaults.skill_order.clone(),
             lvl,
             build,
@@ -1693,7 +1694,7 @@ impl Unit {
     }
 
     /// From partial dmg (separated ad, ap & true dmg values without taking resistances into account),
-    /// returns the actual dmg taken by the target. Also stacks Unit/items passive effects.
+    /// returns the post mitigation dmg received by the target. Also stacks passive effects.
     ///
     /// Since this is a relatively expensive function to run, try to call it as little as possible and use
     /// `n_targets`, `n_dmg_instances`, `n_stacking_instances` arguments to regroup multiple sources of dmg

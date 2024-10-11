@@ -1,8 +1,11 @@
-use super::build_optimizer::*;
+use crate::RuneKeystone;
+
 use super::builds_analyzer::*;
+use super::champion_optimizer::*;
 use super::game_data::*;
 
 use items_data::*;
+use runes_data::*;
 use units_data::*;
 
 use constcat::concat;
@@ -22,6 +25,8 @@ pub(crate) const CHECK_MARK_CHAR: char = '●';
 pub(crate) const UNCHECKED_MARK_CHAR: char = ' ';
 /// Number of builds to be printed by default when displaying results.
 const DEFAULT_N_PRINTED_BUILDS: usize = 18;
+/// Number of items used when automatically finding the best runes.
+const N_ITEMS_WHEN_FINDING_BEST_RUNES: usize = 2;
 
 pub fn launch_interface() {
     println!(
@@ -43,14 +48,14 @@ pub fn launch_interface() {
          - exit to exit the program."
     );
 
-    let champion_names: Vec<&str> = Unit::ALL_CHAMPIONS
+    let champ_names: Vec<&str> = Unit::ALL_CHAMPIONS
         .iter()
         .map(|champ_properties| champ_properties.name)
         .collect();
 
     let mut greetings_msg: String = String::from("Available champions: ");
-    greetings_msg.push_str(champion_names[0]);
-    for name in champion_names[1..].iter() {
+    greetings_msg.push_str(champ_names[0]);
+    for name in champ_names[1..].iter() {
         greetings_msg.push_str(", ");
         greetings_msg.push_str(name);
     }
@@ -61,7 +66,7 @@ pub fn launch_interface() {
             "Enter the champion for which you want to find the best builds",
             "Please enter a valid champion name (among those available)",
             "No help message available.",
-            champion_names.iter().copied(),
+            champ_names.iter().copied(),
             false, //safety of a later expect() depends on this argument to be false
         ) {
             Ok(index) => {
@@ -405,17 +410,13 @@ fn get_user_item(
 /// Handle the whole build generation with the user.
 /// This function never returns `Err(UserCommand::back)` because cannot go further back.
 fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result<(), UserCommand> {
-    //create champion
-    let mut champ: Unit = Unit::from_properties_defaults(champ_properties, 6, Build::default())
-        .expect("Failed to create unit");
-
     //create build generation settings
     let mut settings: BuildsGenerationSettings =
-        BuildsGenerationSettings::default_by_champion(champ.properties);
+        BuildsGenerationSettings::default_by_champion(champ_properties);
 
     loop {
         //set build generation settings
-        match confirm_builds_generation_settings(&mut settings, &mut champ) {
+        match confirm_builds_generation_settings(&mut settings, champ_properties) {
             Ok(()) => (),
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
@@ -423,11 +424,15 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
 
         //compute best builds
         println!();
-        let mut pareto_builds = match find_best_builds(&mut champ, &settings) {
+        let mut pareto_builds: Vec<BuildContainer> = match find_best_builds(
+            champ_properties,
+            &settings,
+            false,
+        ) {
             Ok(pareto_builds) => pareto_builds,
             Err(error_msg) => {
                 get_user_raw_input(&format!(
-                        "\nFailed to generate builds: {error_msg} (press enter to return to settings screen) "
+                        "\nFailed to generate builds: {error_msg} (press enter to return to settings screen)"
                     ))?;
                 continue;
             }
@@ -442,6 +447,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
             println!();
             print_builds_scores(
                 &pareto_builds,
+                champ_properties.name,
                 settings.judgment_weights,
                 n_to_print,
                 must_have_utils,
@@ -507,34 +513,35 @@ const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
     FIGHT_SCENARIO_HELP_MSG,
     "\n\n3) fight duration: ",
     FIGHT_DURATION_HELP_MSG,
-    "\n\n4) percentage of physical damage taken: ",
-    PHYS_DMG_TAKEN_PERCENT_HELP_MSG,
-    "\n\n5) judgment weights: 3 values, one for DPS, one for defense and one for mobility.\n\
+    "\n\n4) percentage of physical damage received: ",
+    PHYS_DMG_RECEIVED_PERCENT_HELP_MSG,
+    "go to runes settings: change rune keystone and rune shards.",
+    "\n\n6) judgment weights: 3 values, one for DPS, one for defense and one for mobility.\n\
     The DPS weight is used to measure the importance of the champion's DPS in the score given to a build.\n\
     The defense weight is used to measure the importance of the champion's defensive stats, heals and hields in the score given to a build.\n\
     The mobility weight is used to measure the importance of the champion's mobility in the score given to a build.\n\
     The absolute value of these weight is not relevant, what's important is their value relative to each other.\n\
     i.e. if the DPS weight has 2x the value of the defense weight, increasing the DPS will be 2x more important than increasing the defense in the eyes of the optimizer",
-    "\n\n6) number of items per build: ",
+    "\n\n7) number of items per build: ",
     N_ITEMS_HELP_MSG,
-    "\n\n7) go to items pools settings: manage items pools rules such as at which slot must boots be purchased, which items are allowed, etc.",
-    "\n\n8) mandatory items: ",
+    "\n\n8) go to items pools settings: manage items pools rules such as at which slot must boots be purchased, which items are allowed, etc.",
+    "\n\n9) mandatory items: ",
     MANDATORY_ITEMS_HELP_MSG,
-    "\n\n9) search threshold: ",
+    "\n\n10) search threshold: ",
     SEARCH_THRESHOLD_HELP_MSG
 );
 
 /// Show the build generation settings, prompt the user for any change and returns the settings when done.
 fn confirm_builds_generation_settings(
     settings: &mut BuildsGenerationSettings,
-    champ: &mut Unit,
+    champ_properties: &'static UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
-        let choices_strings: [String; 10] = [
+        let choices_strings: [String; 11] = [
             format!("target: {}", settings.target_properties.name),
             format!(
                 "fight scenario: {}",
-                champ.properties.fight_scenarios[settings.fight_scenario_number.get() - 1].1
+                champ_properties.fight_scenarios[settings.fight_scenario_number.get() - 1].1
             ),
             format!(
                 "fight duration: {}s{}",
@@ -549,8 +556,13 @@ fn confirm_builds_generation_settings(
                 }
             ),
             format!(
-                "percentage of physical damage taken: {:.0}%",
-                100. * settings.phys_dmg_taken_percent,
+                "percentage of physical damage received (by {}): {:.0}%",
+                champ_properties.name,
+                100. * settings.phys_dmg_received_percent,
+            ),
+            format!(
+                "go to runes settings (current keystone: {}) ->",
+                settings.runes_page.keystone.name
             ),
             format!(
                 "judgment weights: DPS {}, defense {}, mobility {}",
@@ -584,7 +596,7 @@ fn confirm_builds_generation_settings(
         let choice: usize = match get_user_choice(
             format!(
                 "Build generation for {} will be launched with these settings:",
-                champ.properties.name
+                champ_properties.name
             )
             .as_str(),
             "Select a setting to change (press enter to confirm current settings)",
@@ -596,47 +608,50 @@ fn confirm_builds_generation_settings(
             None => return Ok(()),
         };
 
-        //todo: change runes (keystone + shards?) feature
         match choice {
             1 => {
                 //target
-                change_target(settings, champ)?;
+                change_target(settings, champ_properties)?;
             }
             2 => {
                 //fight_scenario
-                change_fight_scenario_number(settings, champ)?;
+                change_fight_scenario_number(settings, champ_properties)?;
             }
             3 => {
                 //fight_duration
-                change_fight_duration(settings, champ)?;
+                change_fight_duration(settings, champ_properties)?;
             }
             4 => {
-                //phys_dmg_taken_percent
-                change_phys_dmg_taken_percent(settings, champ)?;
+                //phys_dmg_received_percent
+                change_phys_dmg_received_percent(settings, champ_properties)?;
             }
             5 => {
-                //judgment_weights
-                change_judgment_weights(settings, champ)?;
+                //change runes
+                handle_runes_settings(settings, champ_properties)?;
             }
             6 => {
-                //n_items
-                change_n_items(settings, champ)?;
+                //judgment_weights
+                change_judgment_weights(settings, champ_properties)?;
             }
             7 => {
-                //
-                handle_items_pools_settings(settings, champ)?;
+                //n_items
+                change_n_items(settings, champ_properties)?;
             }
             8 => {
-                //mandatory_items
-                change_mandatory_items(settings, champ)?;
+                //items pools settings
+                handle_items_pools_settings(settings, champ_properties)?;
             }
             9 => {
-                //search_threshold
-                change_search_threshold(settings, champ)?;
+                //mandatory_items
+                change_mandatory_items(settings, champ_properties)?;
             }
             10 => {
+                //search_threshold
+                change_search_threshold(settings, champ_properties)?;
+            }
+            11 => {
                 //reset to default settings
-                *settings = BuildsGenerationSettings::default_by_champion(champ.properties);
+                *settings = BuildsGenerationSettings::default_by_champion(champ_properties);
             }
             _ => unreachable!("Unhandled user input"),
         }
@@ -646,7 +661,10 @@ fn confirm_builds_generation_settings(
 const TARGET_HELP_MSG: &str = "The selected target will be used to compute the champion's DPS.";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_target(settings: &mut BuildsGenerationSettings, champ: &Unit) -> Result<(), UserCommand> {
+fn change_target(
+    settings: &mut BuildsGenerationSettings,
+    champ_properties: &UnitProperties,
+) -> Result<(), UserCommand> {
     loop {
         let choice: usize = match get_user_choice(
             "Available targets:",
@@ -656,7 +674,7 @@ fn change_target(settings: &mut BuildsGenerationSettings, champ: &Unit) -> Resul
             false,
         ) {
             Ok(Some(choice)) => choice,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but just in case
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
@@ -664,7 +682,7 @@ fn change_target(settings: &mut BuildsGenerationSettings, champ: &Unit) -> Resul
         let old_target: &UnitProperties = settings.target_properties; //backup before checking validity
         settings.target_properties = TARGET_OPTIONS[choice - 1];
 
-        if let Err(error_msg) = settings.check_settings(champ) {
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
             println!("Failed to set target: {error_msg}");
             settings.target_properties = old_target; //restore valid value
         } else {
@@ -679,25 +697,24 @@ const FIGHT_SCENARIO_HELP_MSG: &str = "Each generated build will go through a fi
 /// This function never returns `Err(UserCommand::back)`.
 fn change_fight_scenario_number(
     settings: &mut BuildsGenerationSettings,
-    champ: &mut Unit,
+    champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
         let number: usize = match get_user_choice(
             &format!(
                 "Available fight scenarios for {} are:",
-                champ.properties.name
+                champ_properties.name
             ),
-            &format!("Select a fight scenario for {}", champ.properties.name),
+            &format!("Select a fight scenario for {}", champ_properties.name),
             FIGHT_SCENARIO_HELP_MSG,
-            champ
-                .properties
+            champ_properties
                 .fight_scenarios
                 .iter()
                 .map(|scenario| scenario.1),
             false,
         ) {
             Ok(Some(choice)) => choice,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but just in case
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
@@ -706,7 +723,7 @@ fn change_fight_scenario_number(
         settings.fight_scenario_number =
             NonZeroUsize::new(number).expect("Fight scenario number must be non-zero");
 
-        if let Err(error_msg) = settings.check_settings(champ) {
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
             println!("Failed to set fight scenario: {error_msg}");
             settings.fight_scenario_number = old_fight_scenario_number; //restore valid value
         } else {
@@ -721,13 +738,13 @@ const FIGHT_DURATION_HELP_MSG: &str =
 /// This function never returns `Err(UserCommand::back)`.
 fn change_fight_duration(
     settings: &mut BuildsGenerationSettings,
-    champ: &Unit,
+    champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
         let number: f32 =
             match get_user_f32("", "Enter a fight duration", FIGHT_DURATION_HELP_MSG, false) {
                 Ok(Some(number)) => number,
-                Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but just in case
+                Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
                 Err(UserCommand::Back) => return Ok(()),
                 Err(command) => return Err(command),
             };
@@ -735,7 +752,7 @@ fn change_fight_duration(
         let old_fight_duration: f32 = settings.fight_duration; //backup before checking validity
         settings.fight_duration = number;
 
-        if let Err(error_msg) = settings.check_settings(champ) {
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
             println!("Failed to set fight duration: {error_msg}");
             settings.fight_duration = old_fight_duration; //restore valid value
         } else {
@@ -744,34 +761,187 @@ fn change_fight_duration(
     }
 }
 
-const PHYS_DMG_TAKEN_PERCENT_HELP_MSG: &str =
-    "When evaluating the defensive value of different builds, the selected percentage of physical dmg taken will be considered.\n\
-     The percentage of magic dmg taken is deducted from this (assuming no true dmg taken).";
+const PHYS_DMG_RECEIVED_PERCENT_HELP_MSG: &str =
+    "The selected percentage of physical dmg received will be considered when evaluating the defensive value of different builds.\n\
+     The percentage of magic dmg received is deducted from this (assuming no true dmg received).";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_phys_dmg_taken_percent(
+fn change_phys_dmg_received_percent(
     settings: &mut BuildsGenerationSettings,
-    champ: &Unit,
+    champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
         let number: f32 = match get_user_f32(
             "",
-            "Enter the percentage of physical dmg taken by the champion",
-            PHYS_DMG_TAKEN_PERCENT_HELP_MSG,
+            format!(
+                "Enter the percentage of physical dmg received by {}",
+                champ_properties.name
+            )
+            .as_str(),
+            PHYS_DMG_RECEIVED_PERCENT_HELP_MSG,
             false,
         ) {
             Ok(Some(number)) => number,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but just in case
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
 
-        let old_phys_dmg_taken_percent: f32 = settings.phys_dmg_taken_percent; //backup before checking validity
-        settings.phys_dmg_taken_percent = number / 100.;
+        let old_phys_dmg_received_percent: f32 = settings.phys_dmg_received_percent; //backup before checking validity
+        settings.phys_dmg_received_percent = number / 100.;
 
-        if let Err(error_msg) = settings.check_settings(champ) {
-            println!("Failed to set percentage of physical dmg taken: {error_msg}");
-            settings.phys_dmg_taken_percent = old_phys_dmg_taken_percent; //restore valid value
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
+            println!("Failed to set percentage of physical dmg received: {error_msg}");
+            settings.phys_dmg_received_percent = old_phys_dmg_received_percent; //restore valid value
+        } else {
+            return Ok(());
+        }
+    }
+}
+
+//todo: automatically find best rune keystone (1 item + boots?)
+fn handle_runes_settings(
+    settings: &mut BuildsGenerationSettings,
+    champ_properties: &'static UnitProperties,
+) -> Result<(), UserCommand> {
+    loop {
+        let choice: usize = match get_user_choice(
+            "Runes settings:",
+            "Select a setting to change (press enter to confirm current runes)",
+            "No help message available",
+            [
+                format!("rune shard 1: {:?}", settings.runes_page.shard1).as_str(),
+                format!("rune shard 2: {:?}", settings.runes_page.shard2).as_str(),
+                format!("rune shard 3: {:?}", settings.runes_page.shard3).as_str(),
+                format!("rune keystone: {}", settings.runes_page.keystone.name).as_str(),
+                "automatically find the best runes keystones",
+            ],
+            true,
+        ) {
+            Ok(Some(choice)) => choice,
+            Ok(None) => return Ok(()),
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
+
+        match choice {
+            1 => {
+                //set rune shard 1
+                change_rune_shard(settings, champ_properties, 1)?;
+            }
+            2 => {
+                //set rune shard 2
+                change_rune_shard(settings, champ_properties, 2)?;
+            }
+            3 => {
+                //set rune shard 3
+                change_rune_shard(settings, champ_properties, 3)?;
+            }
+            4 => {
+                //change rune keystone
+                change_rune_keystone(settings, champ_properties)?;
+            }
+            5 => {
+                //find best runes keystones
+                let best_keystones: Vec<(&RuneKeystone, f32)> = match find_best_runes_keystones(
+                    champ_properties,
+                    settings,
+                    N_ITEMS_WHEN_FINDING_BEST_RUNES,
+                ) {
+                    Ok(best_keystones) => best_keystones,
+                    Err(error_msg) => {
+                        get_user_raw_input(&format!(
+                            "\nFailed to find best runes keystones: {error_msg} (press enter to return to runes settings screen)"
+                        ))?;
+                        continue;
+                    }
+                };
+                settings.runes_page.keystone = best_keystones[0].0; //should never go out of bounds since `runes_data::ALL_RUNES_KEYSTONES` should never be empty
+
+                //print best runes keystone screen
+                println!("\nBest runes keystone:");
+                println!(
+                    " - 1: {} (score: {:.0}) - has replaced the previous setting",
+                    best_keystones[0].0.name, best_keystones[0].1
+                );
+                for (i, k) in best_keystones[1..].iter().enumerate() {
+                    println!(" - {}: {} (score: {:.0})", i + 2, k.0.name, k.1);
+                }
+            }
+            _ => unreachable!("Unhandled user input"),
+        }
+    }
+}
+
+fn change_rune_keystone(
+    settings: &mut BuildsGenerationSettings,
+    champ_properties: &UnitProperties,
+) -> Result<(), UserCommand> {
+    let keystone_choices: Vec<&RuneKeystone> = [
+        &runes_data::ALL_RUNES_KEYSTONES[..],
+        &[&RuneKeystone::EMPTY_RUNE_KEYSTONE][..],
+    ]
+    .concat();
+
+    loop {
+        let choice: usize = match get_user_choice(
+            "Available rune keystones:",
+            "Select a rune keystone",
+            "No help message available.",
+            keystone_choices.iter().map(|keystone| keystone.name),
+            false,
+        ) {
+            Ok(Some(choice)) => choice,
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
+
+        let old_runes: RunesPage = settings.runes_page; //backup before checking validity
+        settings.runes_page.keystone = keystone_choices[choice - 1];
+
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
+            println!("Failed to set rune shard: {error_msg}");
+            settings.runes_page = old_runes; //restore valid value
+        } else {
+            return Ok(());
+        }
+    }
+}
+
+fn change_rune_shard(
+    settings: &mut BuildsGenerationSettings,
+    champ_properties: &UnitProperties,
+    shard_number: usize,
+) -> Result<(), UserCommand> {
+    loop {
+        let choice: RuneShard = match get_user_choice(
+            "Available rune shards:",
+            "Select a rune shard",
+            "No help message available.",
+            ["Left", "Middle", "Right"],
+            false,
+        ) {
+            Ok(Some(1)) => RuneShard::Left,
+            Ok(Some(2)) => RuneShard::Middle,
+            Ok(Some(3)) => RuneShard::Right,
+            Ok(Some(_)) => unreachable!("Unhandled shard number"),
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
+
+        let old_runes: RunesPage = settings.runes_page; //backup before checking validity
+        match shard_number {
+            1 => settings.runes_page.shard1 = choice,
+            2 => settings.runes_page.shard2 = choice,
+            3 => settings.runes_page.shard3 = choice,
+            _ => unreachable!("Unhandled shard number"),
+        }
+
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
+            println!("Failed to set rune shard: {error_msg}");
+            settings.runes_page = old_runes; //restore valid value
         } else {
             return Ok(());
         }
@@ -807,7 +977,7 @@ fn get_user_judgment_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>)
 /// This function never returns `Err(UserCommand::back)`.
 fn change_judgment_weights(
     settings: &mut BuildsGenerationSettings,
-    champ: &Unit,
+    champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
         let input_weights: (Option<f32>, Option<f32>, Option<f32>) =
@@ -828,7 +998,7 @@ fn change_judgment_weights(
             settings.judgment_weights.2 = ms_weight;
         }
 
-        if let Err(error_msg) = settings.check_settings(champ) {
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
             println!("Failed to set judgment weights: {error_msg}");
             settings.judgment_weights = old_judgment_weights; //restore valid value
         } else {
@@ -842,7 +1012,7 @@ const N_ITEMS_HELP_MSG: &str = "Generated builds will have the selected number o
 /// This function never returns `Err(UserCommand::back)`.
 fn change_n_items(
     settings: &mut BuildsGenerationSettings,
-    champ: &Unit,
+    champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
         let n_items: usize = match get_user_usize(
@@ -853,7 +1023,7 @@ fn change_n_items(
             false,
         ) {
             Ok(Some(n_items)) => n_items,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but just in case
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
@@ -861,7 +1031,7 @@ fn change_n_items(
         let old_n_items: usize = settings.n_items; //backup before checking validity
         settings.n_items = n_items;
 
-        if let Err(error_msg) = settings.check_settings(champ) {
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
             println!("Failed to set number of items per build: {error_msg}");
             settings.n_items = old_n_items; //restore valid value
         } else {
@@ -872,7 +1042,7 @@ fn change_n_items(
 
 const ITEMS_POOLS_SETTINGS_HELP_MSG: &str = concat!(
     "Meaning of these settings:\n\
-    \n\n1) boots slot: ",
+    1) boots slot: ",
     BOOTS_SLOT_HELP_MSG,
     "\n\n2) allow boots if slot is not specified: ",
     ALLOW_BOOTS_IF_NO_SLOT_HELP_MSG,
@@ -887,7 +1057,7 @@ const ITEMS_POOLS_SETTINGS_HELP_MSG: &str = concat!(
 
 fn handle_items_pools_settings(
     settings: &mut BuildsGenerationSettings,
-    champ: &Unit,
+    champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
         let choice: usize = match get_user_choice(
@@ -938,14 +1108,15 @@ fn handle_items_pools_settings(
         match choice {
             1 => {
                 //boots_slot
-                change_boots_slot(settings, champ)?;
+                change_boots_slot(settings, champ_properties)?;
             }
             2 => {
+                //flip allow_boots_if_no_slot
                 settings.allow_boots_if_no_slot = !settings.allow_boots_if_no_slot;
             }
             3 => {
                 //support_item_slot
-                change_support_item_slot(settings, champ)?;
+                change_support_item_slot(settings, champ_properties)?;
             }
             4 => {
                 //change legendary items pool
@@ -960,6 +1131,7 @@ fn handle_items_pools_settings(
                 change_items_pool(ItemPoolType::Support, &mut settings.support_items_pool)?;
             }
             7 => {
+                //flip allow_manaflow_first_item
                 settings.allow_manaflow_first_item = !settings.allow_manaflow_first_item;
             }
             _ => unreachable!("Unhandled user input"),
@@ -1030,7 +1202,7 @@ and boots are considered like any other regular item (thus not guaranteed to be 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_boots_slot(
     settings: &mut BuildsGenerationSettings,
-    champ: &Unit,
+    champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
         let boots_slot: usize = match get_user_usize(
@@ -1041,7 +1213,7 @@ fn change_boots_slot(
             false,
         ) {
             Ok(Some(boots_slot)) => boots_slot,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but just in case
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
@@ -1049,7 +1221,7 @@ fn change_boots_slot(
         let old_boots_slot: usize = settings.boots_slot; //backup before checking validity
         settings.boots_slot = boots_slot;
 
-        if let Err(error_msg) = settings.check_settings(champ) {
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
             println!("Failed to set boots slot: {error_msg}");
             settings.boots_slot = old_boots_slot; //restore valid value
         } else {
@@ -1064,7 +1236,7 @@ const SUPPORT_ITEM_SLOT_HELP_MSG: &str =
 /// This function never returns `Err(UserCommand::back)`.
 fn change_support_item_slot(
     settings: &mut BuildsGenerationSettings,
-    champ: &Unit,
+    champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
         let support_item_slot: usize = match get_user_usize(
@@ -1075,7 +1247,7 @@ fn change_support_item_slot(
             false,
         ) {
             Ok(Some(support_item_slot)) => support_item_slot,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but just in case
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
@@ -1083,7 +1255,7 @@ fn change_support_item_slot(
         let old_support_item_slot: usize = settings.support_item_slot; //backup before checking validity
         settings.support_item_slot = support_item_slot;
 
-        if let Err(error_msg) = settings.check_settings(champ) {
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
             println!("Failed to set support item slot: {error_msg}");
             settings.support_item_slot = old_support_item_slot; //restore valid value
         } else {
@@ -1104,7 +1276,7 @@ const MANDATORY_ITEMS_HELP_MSG: &str =
 /// This function never returns `Err(UserCommand::back)`.
 fn change_mandatory_items(
     settings: &mut BuildsGenerationSettings,
-    champ: &Unit,
+    champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     //get item index first
     loop {
@@ -1140,7 +1312,7 @@ fn change_mandatory_items(
             let old_item: &Item = settings.mandatory_items[item_idx]; //backup before checking validity
             settings.mandatory_items[item_idx] = item;
 
-            if let Err(error_msg) = settings.check_settings(champ) {
+            if let Err(error_msg) = settings.check_settings(champ_properties) {
                 println!("Failed to set mandatory items: {error_msg}");
                 settings.mandatory_items[item_idx] = old_item; //restore valid value
             } else {
@@ -1159,7 +1331,7 @@ const SEARCH_THRESHOLD_HELP_MSG: &str =
 /// This function never returns `Err(UserCommand::back)`.
 fn change_search_threshold(
     settings: &mut BuildsGenerationSettings,
-    champ: &Unit,
+    champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
         let number: f32 = match get_user_f32(
@@ -1169,7 +1341,7 @@ fn change_search_threshold(
             false,
         ) {
             Ok(Some(number)) => number,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but just in case
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
@@ -1177,7 +1349,7 @@ fn change_search_threshold(
         let old_search_threshold: f32 = settings.search_threshold; //backup before checking validity
         settings.search_threshold = number / 100.;
 
-        if let Err(error_msg) = settings.check_settings(champ) {
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
             println!("Failed to set search threshold: {error_msg}");
             settings.search_threshold = old_search_threshold; //restore valid value
         } else {

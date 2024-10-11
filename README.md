@@ -36,11 +36,11 @@ If your OS/CPU architecture is not included in the release or if you want to com
 
 The project is separated in different modules:
 - `game_data`: provides functions to manage champions, simulate fights against a target dummy and record the results.
-- `build_optimizer`: generate the best combinations of items by using `game_data` to simulate them.
-- `builds_analyzer`: tools for analyzing and displaying the output of `build_optimizer`. In the future i have plans to expand this module (making a tier list of differents champions based on their best builds performance?, ...).
+- `champion_optimizer`: find the best build/runes for a champion by using the `game_data` module to simulate them.
+- `builds_analyzer`: tools for analyzing and displaying the output of `champion_optimizer`. In the future i have plans to expand this module (making a tier list of differents champions based on their best builds performance?, ...).
 - `cli`: command line interface to let the user interact with all of this.
 
-Generating every possible combinations of n-items gives an absurd number of builds to try and this is impossible to process in reasonable time. That's why in `build_optimizer` I use another approach, based on the assumption that a good build made of n-items must also be a good build at n-1 items, and so on. This allows to drastically reduce the number of combinations because build options can now be explored like a tree and only the best "branches" are kept before choosing the next item, and so on.
+Generating every possible combinations of n-items gives an absurd number of builds to try and this is impossible to process in reasonable time. That's why in `champion_optimizer` I use another approach, based on the assumption that a good build made of n-items must also be a good build at n-1 items, and so on. This allows to drastically reduce the number of combinations because build options can now be explored like a tree and only the best "branches" are kept before choosing the next item, and so on.
 
 After selecting a champion, the builds generation process works as the following, starting with a list containing one empty build at the beginning:
 

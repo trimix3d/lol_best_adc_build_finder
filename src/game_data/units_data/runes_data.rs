@@ -16,7 +16,7 @@ pub enum RuneShard {
 
 /// Represents the runes page of a champion.
 /// Doesn't implement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct RunesPage {
     pub keystone: &'static RuneKeystone,
     pub shard1: RuneShard,
@@ -46,13 +46,18 @@ impl RunesPage {
             shard3: RuneShard::Left,
         }
     }
+
+    /// In the current state, this function will always succeed because all possible runes pages are valid (but it may change in the future).
+    pub fn check_validity(&self) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 impl Unit {
     /// Sets the Unit runes, returns Ok if success or Err if failure (depending on the validity of the given runes page).
     /// In case of a failure, the unit is not modified.
-    /// In the current state, this function will always succeed because all possible runes pages are valid (but it may change in the future).
     pub fn set_runes(&mut self, runes_page: RunesPage) -> Result<(), String> {
+        runes_page.check_validity()?;
         self.runes_page = runes_page;
         Ok(())
     }
@@ -409,12 +414,13 @@ impl RuneKeystone {
     };
 }
 
-//todo: conqueror
+//conqueror
 fn conqueror_init(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::ConquerorAdaptiveIsPhys] =
         u8::from(champ.adaptive_is_phys());
     champ.effects_stacks[EffectStackId::ConquerorStacks] = 0;
     champ.effects_values[EffectValueId::ConquerorAdaptiveAP] = 0.;
+    champ.effects_values[EffectValueId::ConquerorOmnivamp] = 0.;
     champ.effects_values[EffectValueId::ConquerorLastAbilityHitTime] = -F32_TOL; //to allow for effect at time == 0
     champ.effects_values[EffectValueId::ConquerorLastBasicAttackHitTime] = -F32_TOL;
     //to allow for effect at time == 0
@@ -441,8 +447,11 @@ const CONQUEROR_ADAPTIVE_AP_PER_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
     4.,   //lvl 18
 ];
 
+//todo: add healing when fully stacked + try out every rune for each champ
+const CONQUEROR_MAX_STACKS: u8 = 12;
 fn conqueror_add_stack(champ: &mut Unit, _availability_coef: f32) {
-    if champ.effects_stacks[EffectStackId::ConquerorStacks] < 12 {
+    //add stacks until fullty stacked
+    if champ.effects_stacks[EffectStackId::ConquerorStacks] < CONQUEROR_MAX_STACKS {
         champ.effects_stacks[EffectStackId::ConquerorStacks] += 1;
 
         let adaptive_buff: f32 =
@@ -455,6 +464,14 @@ fn conqueror_add_stack(champ: &mut Unit, _availability_coef: f32) {
             champ.stats.ap_flat += adaptive_buff;
         }
     }
+    //if fully stacked, add omnivamp
+    if champ.effects_stacks[EffectStackId::ConquerorStacks] == CONQUEROR_MAX_STACKS
+        || champ.effects_values[EffectValueId::ConquerorOmnivamp] == 0.
+    {
+        let omnivamp_buff: f32 = 0.05; // ranged value
+        champ.stats.omnivamp += omnivamp_buff;
+        champ.effects_values[EffectValueId::ConquerorOmnivamp] += omnivamp_buff;
+    }
 }
 
 fn conqueror_remove_every_stack(champ: &mut Unit) {
@@ -464,8 +481,10 @@ fn conqueror_remove_every_stack(champ: &mut Unit) {
     } else {
         champ.stats.ap_flat -= champ.effects_values[EffectValueId::ConquerorAdaptiveAP];
     }
-    champ.effects_stacks[EffectStackId::ConquerorStacks] = 0;
     champ.effects_values[EffectValueId::ConquerorAdaptiveAP] = 0.;
+    champ.stats.omnivamp -= champ.effects_values[EffectValueId::ConquerorOmnivamp];
+    champ.effects_values[EffectValueId::ConquerorOmnivamp] = 0.;
+    champ.effects_stacks[EffectStackId::ConquerorStacks] = 0;
 }
 
 const CONQUEROR: TemporaryEffect = TemporaryEffect {
@@ -552,9 +571,9 @@ impl RuneKeystone {
 
 //todo: first strike
 
-pub const ALL_RUNES_KEYSTONES: [RuneKeystone; 4] = [
-    RuneKeystone::PRESS_THE_ATTACK,
-    RuneKeystone::LETHAL_TEMPO,
-    RuneKeystone::FLEET_FOOTWORK,
-    RuneKeystone::CONQUEROR,
+pub const ALL_RUNES_KEYSTONES: [&RuneKeystone; 4] = [
+    &RuneKeystone::PRESS_THE_ATTACK,
+    &RuneKeystone::LETHAL_TEMPO,
+    &RuneKeystone::FLEET_FOOTWORK,
+    &RuneKeystone::CONQUEROR,
 ];

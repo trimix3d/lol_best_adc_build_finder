@@ -1,5 +1,5 @@
-mod build_optimizer;
 mod builds_analyzer;
+mod champion_optimizer;
 mod cli;
 mod game_data;
 

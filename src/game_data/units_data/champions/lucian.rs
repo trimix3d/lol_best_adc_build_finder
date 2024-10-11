@@ -362,8 +362,8 @@ impl Unit {
         ],
         defaults: UnitDefaults {
             runes_pages: RunesPage {
-                keystone: &RuneKeystone::EMPTY_RUNE_KEYSTONE, //todo: add keystone
-                shard1: RuneShard::Middle,                    //todo: test other runes
+                keystone: &RuneKeystone::PRESS_THE_ATTACK, //conqueror better for long fights, press the attack better for poke (14.20) //todo: prone to change
+                shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,
             },
@@ -462,4 +462,16 @@ impl Unit {
             support_items_pool: &[],
         },
     };
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(test)]
+    use super::*;
+
+    #[test]
+    pub fn test_unit_defaults() {
+        Unit::from_properties_defaults(&Unit::LUCIAN_PROPERTIES, MIN_UNIT_LVL, Build::default())
+            .expect("Failed to create unit");
+    }
 }

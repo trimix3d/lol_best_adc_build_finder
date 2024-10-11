@@ -1,5 +1,5 @@
 use super::{
-    build_optimizer::{get_normalized_judgment_weights, BuildContainer},
+    champion_optimizer::{get_normalized_judgment_weights, BuildContainer},
     cli::{CHECK_MARK_CHAR, UNCHECKED_MARK_CHAR},
     game_data::{
         units_data::items_data::{BuildHash, ItemUtils},
@@ -36,7 +36,7 @@ pub fn sort_builds_by_score(builds: &mut [BuildContainer], judgment_weights: (f3
     for container in builds.iter() {
         let old_score_maybe = average_scores.insert(
             container.build.get_hash(),
-            container.get_avg_score_with_normalized_weights(
+            container._get_avg_score_with_normalized_weights(
                 n_items,
                 max_golds,
                 normalized_judgment_weights,
@@ -60,6 +60,7 @@ pub fn sort_builds_by_score(builds: &mut [BuildContainer], judgment_weights: (f3
 /// Prints the provided pareto builds.
 pub fn print_builds_scores(
     builds: &[BuildContainer],
+    champ_name: &str,
     judgment_weights: (f32, f32, f32),
     n_to_print: NonZeroUsize,
     must_have_utils: EnumSet<ItemUtils>,
@@ -71,10 +72,9 @@ pub fn print_builds_scores(
 
     let n_to_print: usize = usize::min(n_to_print.get(), filtered_len);
     println!(
-        "Showing the {n_to_print} best builds (out of {}):\n\
+        "Showing the {n_to_print} best {champ_name} builds (out of {filtered_len}):\n\
          score | !h/s | surv | spec | build\n\
-         ---------------------------------------------------",
-        filtered_len
+         ---------------------------------------------------"
     );
 
     //sanity check
@@ -94,7 +94,7 @@ pub fn print_builds_scores(
     for container in filtered_builds.take(n_to_print) {
         print!(
             "{:5.0} | {:^4} | {:^4} | {:^4} | ",
-            container.get_avg_score_with_normalized_weights(
+            container._get_avg_score_with_normalized_weights(
                 n_items,
                 max_golds,
                 normalized_judgement_weights
@@ -120,15 +120,20 @@ pub fn print_builds_scores(
                 "{}-{} ({:.0}), ",
                 item_idx + 1,
                 container.build[item_idx],
-                container
-                    .get_score_with_normalized_weights(item_idx + 1, normalized_judgement_weights)
+                container._get_score_item_slot_with_normalized_weights(
+                    item_idx + 1,
+                    normalized_judgement_weights
+                )
             );
         }
         println!(
             "{}-{} ({:.0})",
             n_items,
             container.build[n_items - 1],
-            container.get_score_with_normalized_weights(n_items, normalized_judgement_weights)
+            container._get_score_item_slot_with_normalized_weights(
+                n_items,
+                normalized_judgement_weights
+            )
         );
     }
 }

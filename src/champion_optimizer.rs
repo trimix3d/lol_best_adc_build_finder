@@ -1,9 +1,11 @@
+use crate::builds_analyzer::sort_builds_by_score;
+use crate::RuneKeystone;
+
 use super::game_data::*;
 
-use units_data::*;
-
 use items_data::*;
-use runes_data::RunesPage;
+use runes_data::*;
+use units_data::*;
 
 use enumset::{enum_set, EnumSet};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -11,7 +13,7 @@ use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use core::iter::zip;
-use core::num::{NonZero, NonZeroU8, NonZeroUsize};
+use core::num::NonZeroUsize;
 use core::time::Duration;
 
 /// Meaningless to go above this value (in seconds).
@@ -383,94 +385,13 @@ fn has_duplicates(slice: &[&'static Item]) -> Option<usize> {
     None
 }
 
-/// Returns the average of the curve formed by the given points.
-/// values is a slice over values for y.
-/// golds is a slice over associated values for x (must be in increasing order and same length as values),
-/// Together they represent a series of points (x,y).
-///
-/// The curve is defined piecewise for windows of two consecutive points (xA,yA) and (xB,yB),
-/// the formula for a piece is: y = yA + (yB - yA)*((x - xA)/(xB - xA))^2.
-/// The curve is the union of every window.
-///
-/// If the last value in golds (x) is lower than `max_golds`,
-/// the last value in values (y) is used to prolong the curve to reach `max_golds`.
-/// The returned area is equal to the integral of the curve over its domain: [golds[0], max(golds[len-1], `max_golds`)]
-/// (assumes x is sorted in increasing order).
-///
-/// If golds (x) or values (y) contains less than two values, or if golds (x) is not sorted,
-/// a wrong area may be returned (but the function will run fine).
-/// If values (y) is shorter than golds (x), the function may try to access data out of array bounds and crash.
-fn gold_weighted_average(values: &[f32], golds: &[f32], max_golds: f32) -> f32 {
-    //piece by piece area calculation
-    let mut area: f32 = 0.;
-    for (x, y) in zip(golds.windows(2), values.windows(2)) {
-        //integral of yA + (yB - yA)*((x - xA)/(xB - xA))^2 from xA to xB = (xB - xA)*(2*yA + yB)/3
-        area += (x[1] - x[0]) * (2. * y[0] + y[1]) / 3.;
-    }
-    //prolong area up to max_golds
-    let last_idx: usize = golds.len() - 1;
-    if golds[last_idx] < max_golds {
-        area += (max_golds - golds[last_idx]) * (values[last_idx]);
-    }
-    area / (max_golds - golds[0])
-}
-
 #[derive(Debug, Clone)]
-pub struct BuildContainer {
-    pub build: Build,
-    pub cum_utils: EnumSet<ItemUtils>,
-    pub golds: [f32; MAX_UNIT_ITEMS + 1], //starting golds + 1 value per item
-    pub dps: [f32; MAX_UNIT_ITEMS + 1],   //starting dps + 1 value per item
-    pub defense: [f32; MAX_UNIT_ITEMS + 1], //starting defense + 1 value per item
-    pub ms: [f32; MAX_UNIT_ITEMS + 1],    //starting ms + 1 value per item
-}
-
-impl BuildContainer {
-    /// Returns the build score at the given item count.
-    /// `Judgment_weights` must be >= 0 and normalized (their sum must be 3.0) for the formula to be correct.
-    #[inline]
-    pub fn get_score_with_normalized_weights(
-        &self,
-        item_count: usize,
-        normalized_judgment_weights: (f32, f32, f32),
-    ) -> f32 {
-        score_formula_with_normalized_weights(
-            self.golds[item_count],
-            self.dps[item_count],
-            self.defense[item_count],
-            self.ms[item_count],
-            normalized_judgment_weights,
-        )
-    }
-
-    /// Returns the build average score over the requested item slots.
-    /// `Judgment_weights` must be >= 0 and normalized (their sum must be 3.0) for the formula to be correct.
-    pub fn get_avg_score_with_normalized_weights(
-        &self,
-        n_items: usize,
-        max_golds: f32,
-        normalized_judgment_weights: (f32, f32, f32),
-    ) -> f32 {
-        //sanity check
-        assert!(
-            n_items != 0,
-            "Number of items to compute average score from must be at least 1"
-        );
-        let len: usize = n_items + 1;
-        let mut scores: Vec<f32> = Vec::with_capacity(len);
-        for i in 0..len {
-            scores.push(self.get_score_with_normalized_weights(i, normalized_judgment_weights));
-        }
-        gold_weighted_average(&scores, &self.golds[0..len], max_golds)
-    }
-}
-
-#[derive(Debug)]
 pub struct BuildsGenerationSettings {
     pub target_properties: &'static UnitProperties,
     pub fight_scenario_number: NonZeroUsize,
     pub fight_duration: f32,
-    pub phys_dmg_taken_percent: f32,
+    pub phys_dmg_received_percent: f32,
+    pub runes_page: RunesPage,
     pub judgment_weights: (f32, f32, f32),
     pub n_items: usize,
     pub boots_slot: usize,
@@ -484,14 +405,15 @@ pub struct BuildsGenerationSettings {
     pub search_threshold: f32,
 }
 
-const DEFAULT_FIGHT_DURATION: f32 = 8.;
+const DEFAULT_FIGHT_DURATION: f32 = 7.5;
 impl Default for BuildsGenerationSettings {
     fn default() -> Self {
         BuildsGenerationSettings {
             target_properties: &SQUISHY_OPTIMIZER_DUMMY_PROPERTIES,
             fight_scenario_number: NonZeroUsize::new(1).unwrap(),
             fight_duration: DEFAULT_FIGHT_DURATION,
-            phys_dmg_taken_percent: 0.60,
+            phys_dmg_received_percent: 0.60,
+            runes_page: RunesPage::default(),
             judgment_weights: (1., 0.25, 0.5),
             n_items: 4,
             boots_slot: 2,
@@ -527,17 +449,9 @@ impl BuildsGenerationSettings {
         match doesn't work :,(
         */
         #[allow(clippy::if_same_then_else)]
-        if *properties == Unit::ASHE_PROPERTIES {
+        if *properties == Unit::EZREAL_PROPERTIES {
             BuildsGenerationSettings {
-                //boots_slot: 1, //gives questionable results
-                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.defaults.boots_pool),
-                support_items_pool: Vec::from(properties.defaults.support_items_pool),
-                search_threshold: 0.15,
-                ..Default::default()
-            }
-        } else if *properties == Unit::DRAVEN_PROPERTIES {
-            BuildsGenerationSettings {
+                runes_page: properties.defaults.runes_pages,
                 legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties.defaults.boots_pool),
                 support_items_pool: Vec::from(properties.defaults.support_items_pool),
@@ -546,21 +460,16 @@ impl BuildsGenerationSettings {
             }
         } else if *properties == Unit::KAISA_PROPERTIES {
             BuildsGenerationSettings {
+                runes_page: properties.defaults.runes_pages,
                 legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties.defaults.boots_pool),
                 support_items_pool: Vec::from(properties.defaults.support_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
-        } else if *properties == Unit::LUCIAN_PROPERTIES {
-            BuildsGenerationSettings {
-                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.defaults.boots_pool),
-                support_items_pool: Vec::from(properties.defaults.support_items_pool),
-                ..Default::default()
-            }
         } else if *properties == Unit::VARUS_PROPERTIES {
             BuildsGenerationSettings {
+                runes_page: properties.defaults.runes_pages,
                 legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties.defaults.boots_pool),
                 support_items_pool: Vec::from(properties.defaults.support_items_pool),
@@ -569,6 +478,7 @@ impl BuildsGenerationSettings {
             }
         } else {
             BuildsGenerationSettings {
+                runes_page: properties.defaults.runes_pages,
                 legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties.defaults.boots_pool),
                 support_items_pool: Vec::from(properties.defaults.support_items_pool),
@@ -577,7 +487,7 @@ impl BuildsGenerationSettings {
         }
     }
 
-    pub fn check_settings(&self, champ: &Unit) -> Result<(), String> {
+    pub fn check_settings(&self, champ_properties: &UnitProperties) -> Result<(), String> {
         if !TARGET_OPTIONS
             .iter()
             .any(|properties| self.target_properties == *properties)
@@ -588,10 +498,10 @@ impl BuildsGenerationSettings {
             ));
         }
 
-        if self.fight_scenario_number.get() > champ.properties.fight_scenarios.len() {
+        if self.fight_scenario_number.get() > champ_properties.fight_scenarios.len() {
             return Err(format!(
                 "Fight scenario number must be lower than the number of available fight scenarios for {} which is {} (got {})",
-                champ.properties.name, champ.properties.fight_scenarios.len(), self.fight_scenario_number.get(),
+                champ_properties.name, champ_properties.fight_scenarios.len(), self.fight_scenario_number.get(),
             ));
         }
 
@@ -603,13 +513,16 @@ impl BuildsGenerationSettings {
                 self.fight_duration
             ));
         }
-        if !self.phys_dmg_taken_percent.is_finite()
-            || !(0.0..=1.0).contains(&self.phys_dmg_taken_percent)
+        if !self.phys_dmg_received_percent.is_finite()
+            || !(0.0..=1.0).contains(&self.phys_dmg_received_percent)
         {
             return Err(format!(
-                "Percentage of physical dmg taken must be greater than 0% and under 100% (got {}%)",
-                100. * self.phys_dmg_taken_percent
+                "Percentage of physical dmg received must be greater than 0% and under 100% (got {}%)",
+                100. * self.phys_dmg_received_percent
             ));
+        }
+        if let Err(error_msg) = self.runes_page.check_validity() {
+            return Err(format!("Invalid runes page: {error_msg}"));
         }
         if !self.judgment_weights.0.is_finite()
             || !self.judgment_weights.1.is_finite()
@@ -747,6 +660,118 @@ impl BuildsGenerationSettings {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct BuildContainer {
+    pub build: Build,
+    pub cum_utils: EnumSet<ItemUtils>,
+    pub golds: [f32; MAX_UNIT_ITEMS + 1], //starting golds + 1 value per item
+    pub dps: [f32; MAX_UNIT_ITEMS + 1],   //starting dps + 1 value per item
+    pub defense: [f32; MAX_UNIT_ITEMS + 1], //starting defense + 1 value per item
+    pub ms: [f32; MAX_UNIT_ITEMS + 1],    //starting ms + 1 value per item
+}
+
+/// Returns the average of the curve formed by the given points.
+/// values is a slice over values for y.
+/// golds is a slice over associated values for x (must be in increasing order and same length as values),
+/// Together they represent a series of points (x,y).
+///
+/// The curve is defined piecewise for windows of two consecutive points (xA,yA) and (xB,yB),
+/// the formula for a piece is: y = yA + (yB - yA)*((x - xA)/(xB - xA))^2.
+/// The curve is the union of every window.
+///
+/// If the last value in golds (x) is lower than `max_golds`,
+/// the last value in values (y) is used to prolong the curve to reach `max_golds`.
+/// The returned area is equal to the integral of the curve over its domain: [golds[0], max(golds[len-1], `max_golds`)]
+/// (assumes x is sorted in increasing order).
+///
+/// If golds (x) or values (y) contains less than two values, or if golds (x) is not sorted,
+/// a wrong area may be returned (but the function will run fine).
+/// If values (y) is shorter than golds (x), the function may try to access data out of array bounds and crash.
+fn gold_weighted_average(values: &[f32], golds: &[f32], max_golds: f32) -> f32 {
+    //piece by piece area calculation
+    let mut area: f32 = 0.;
+    for (x, y) in zip(golds.windows(2), values.windows(2)) {
+        //integral of yA + (yB - yA)*((x - xA)/(xB - xA))^2 from xA to xB = (xB - xA)*(2*yA + yB)/3
+        area += (x[1] - x[0]) * (2. * y[0] + y[1]) / 3.;
+    }
+    //prolong area up to max_golds
+    let last_idx: usize = golds.len() - 1;
+    if golds[last_idx] < max_golds {
+        area += (max_golds - golds[last_idx]) * (values[last_idx]);
+    }
+    area / (max_golds - golds[0])
+}
+
+impl BuildContainer {
+    /// Returns the build score at the given item count.
+    #[allow(dead_code)]
+    pub fn get_item_slot_score(&self, item_count: usize, judgment_weights: (f32, f32, f32)) -> f32 {
+        let normalized_judgment_weights: (f32, f32, f32) =
+            get_normalized_judgment_weights(judgment_weights);
+        score_formula_with_normalized_weights(
+            self.golds[item_count],
+            self.dps[item_count],
+            self.defense[item_count],
+            self.ms[item_count],
+            normalized_judgment_weights,
+        )
+    }
+
+    /// Returns the build score at the given item count.
+    /// `Judgment_weights` must be >= 0 and normalized (their sum must be 3.0) for the formula to be correct.
+    #[inline]
+    pub(crate) fn _get_score_item_slot_with_normalized_weights(
+        &self,
+        item_count: usize,
+        normalized_judgment_weights: (f32, f32, f32),
+    ) -> f32 {
+        score_formula_with_normalized_weights(
+            self.golds[item_count],
+            self.dps[item_count],
+            self.defense[item_count],
+            self.ms[item_count],
+            normalized_judgment_weights,
+        )
+    }
+
+    /// Returns the build average score over the requested item slots.
+    pub fn get_avg_score(
+        &self,
+        n_items: usize,
+        max_golds: f32,
+        judgment_weights: (f32, f32, f32),
+    ) -> f32 {
+        self._get_avg_score_with_normalized_weights(
+            n_items,
+            max_golds,
+            get_normalized_judgment_weights(judgment_weights),
+        )
+    }
+
+    /// Returns the build average score over the requested item slots.
+    /// `Judgment_weights` must be >= 0 and normalized (their sum must be 3.0) for the formula to be correct.
+    pub(crate) fn _get_avg_score_with_normalized_weights(
+        &self,
+        n_items: usize,
+        max_golds: f32,
+        normalized_judgment_weights: (f32, f32, f32),
+    ) -> f32 {
+        //sanity check
+        assert!(
+            n_items != 0,
+            "Number of items to compute average score from must be at least 1"
+        );
+        let len: usize = n_items + 1;
+        let mut scores: Vec<f32> = Vec::with_capacity(len);
+        for i in 0..len {
+            scores.push(
+                self._get_score_item_slot_with_normalized_weights(i, normalized_judgment_weights),
+            );
+        }
+        gold_weighted_average(&scores, &self.golds[0..len], max_golds)
+    }
+}
+
 #[inline]
 pub fn get_normalized_judgment_weights(
     (dps_value_weight, defense_weight, ms_weight): (f32, f32, f32),
@@ -779,7 +804,7 @@ fn score_formula_with_normalized_weights(
 fn generate_build_layer(
     current_builds: Vec<BuildContainer>,
     pool: &[&'static Item],
-    layer_idx: usize,
+    layer_to_fill_idx: usize,
     normalized_judgment_weights: (f32, f32, f32),
 ) -> Option<Vec<BuildContainer>> {
     let mut new_builds: Vec<BuildContainer> = Vec::with_capacity(current_builds.len()); //new_builds will probably have at least this size
@@ -788,7 +813,7 @@ fn generate_build_layer(
 
     let max_golds: f32 = current_builds
         .iter()
-        .map(|build| build.golds[layer_idx])
+        .map(|build| build.golds[layer_to_fill_idx])
         .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
         .unwrap_or(STARTING_GOLDS); //needed later
 
@@ -801,7 +826,7 @@ fn generate_build_layer(
                 continue;
             }
             //candidate build must have no item groups overlap
-            candidate.build[layer_idx] = pool_item;
+            candidate.build[layer_to_fill_idx] = pool_item;
             if candidate.build.has_item_groups_overlap() {
                 continue;
             }
@@ -810,12 +835,12 @@ fn generate_build_layer(
             if let Some(&other_idx) = hashes.get(&candidate_hash) {
                 //if hash already exists
                 let other: &BuildContainer = &new_builds[other_idx];
-                if candidate.get_avg_score_with_normalized_weights(
-                    layer_idx,
+                if candidate._get_avg_score_with_normalized_weights(
+                    layer_to_fill_idx,
                     max_golds,
                     normalized_judgment_weights,
-                ) > other.get_avg_score_with_normalized_weights(
-                    layer_idx,
+                ) > other._get_avg_score_with_normalized_weights(
+                    layer_to_fill_idx,
                     max_golds,
                     normalized_judgment_weights,
                 ) {
@@ -838,14 +863,14 @@ fn generate_build_layer(
 
 /// Get the size of the chunks needed to process a given amount of elements in parallel with the specified amount of workers.
 /// The chunk size will be choosen so that the number of elements per chunk is the most evenly distributed possible.
-fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZero<usize>) -> usize {
+fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZeroUsize) -> usize {
     usize::max(
         1,
         (n_elements + (thread_count.get() - 1)) / thread_count.get(),
     )
 }
 
-fn get_scores_from_sim_results(champ: &Unit, phys_dmg_taken_percent: f32) -> (f32, f32, f32) {
+fn get_scores_from_sim_results(champ: &Unit, phys_dmg_received_percent: f32) -> (f32, f32, f32) {
     let actual_time: f32 = champ.get_time(); //take champ.time instead of fight_duration in scores calculations, since simulation can be slighlty extended
 
     let dps: f32 = champ.get_dmg_done().as_sum() / actual_time; //average dps of the unit over the fight simulation
@@ -853,8 +878,8 @@ fn get_scores_from_sim_results(champ: &Unit, phys_dmg_taken_percent: f32) -> (f3
     let effective_hp: f32 = (champ.get_stats().hp
         + champ.get_single_use_heals_shields()
         + DEFAULT_FIGHT_DURATION * champ.get_periodic_heals_shields() / actual_time)
-        / (phys_dmg_taken_percent * resistance_formula(champ.get_stats().armor)
-            + (1. - phys_dmg_taken_percent) * resistance_formula(champ.get_stats().mr));
+        / (phys_dmg_received_percent * resistance_formula(champ.get_stats().armor)
+            + (1. - phys_dmg_received_percent) * resistance_formula(champ.get_stats().mr));
 
     let move_speed: f32 = champ.get_units_travelled() / actual_time; //average move speed of the unit over the fight simulation
 
@@ -908,7 +933,7 @@ impl ParetoSpacePoint {
             settings.fight_duration - 1.25 * std_dev,
         );
         let (dps, defense, ms): (f32, f32, f32) =
-            get_scores_from_sim_results(champ, settings.phys_dmg_taken_percent);
+            get_scores_from_sim_results(champ, settings.phys_dmg_received_percent);
         avg_dps += 0.25 * dps;
         avg_defense += 0.25 * defense;
         avg_ms += 0.25 * ms;
@@ -920,7 +945,7 @@ impl ParetoSpacePoint {
             settings.fight_duration,
         );
         let (dps, defense, ms): (f32, f32, f32) =
-            get_scores_from_sim_results(champ, settings.phys_dmg_taken_percent);
+            get_scores_from_sim_results(champ, settings.phys_dmg_received_percent);
         avg_dps += 0.50 * dps;
         avg_defense += 0.50 * defense;
         avg_ms += 0.50 * ms;
@@ -932,7 +957,7 @@ impl ParetoSpacePoint {
             settings.fight_duration + 1.25 * std_dev,
         );
         let (dps, defense, ms): (f32, f32, f32) =
-            get_scores_from_sim_results(champ, settings.phys_dmg_taken_percent);
+            get_scores_from_sim_results(champ, settings.phys_dmg_received_percent);
         avg_dps += 0.25 * dps;
         avg_defense += 0.25 * defense;
         avg_ms += 0.25 * ms;
@@ -988,7 +1013,7 @@ fn pareto_compare_chunk_to_ref_point(
 fn pareto_front_multithread(
     points: &mut Vec<ParetoSpacePoint>,
     discard_percent: f32,
-    n_threads: NonZero<usize>,
+    n_threads: NonZeroUsize,
 ) -> Vec<bool> {
     let input_len: usize = points.len();
     let mut pareto_mask: Vec<bool> = Vec::with_capacity(input_len);
@@ -1032,45 +1057,45 @@ fn pareto_front_multithread(
     pareto_mask
 }
 
-/// Generates the best builds for a champion, using a multithreaded approach.
+/// Returns a Vec containing the best builds generated for the given champion.
+/// If the generation process fails, return an Err with the corresponding error message.
 ///
-/// # Arguments
-///
-/// * `champ` - The champion for whom to generate the builds.
-/// * `settings` - The settings to use for the builds generation.
-///
-/// # Returns
-///
-/// A vector of `BuildContainer` holding the best builds for the champion.
-/// If the generation fails, returns an error message.
+/// Use the silent argument to control if the function shows a progress bar to stdout or not.
 pub fn find_best_builds(
-    champ: &mut Unit,
+    champ_properties: &'static UnitProperties,
     settings: &BuildsGenerationSettings,
+    silent: bool,
 ) -> Result<Vec<BuildContainer>, String> {
     //check input arguments
-    settings.check_settings(champ)?;
+    settings.check_settings(champ_properties)?;
 
-    //backup original champion configuration
-    let original_lvl: NonZeroU8 = champ.get_lvl();
-    let original_build: Build = *champ.get_build();
+    //create unit
+    let mut champ: Unit = Unit::from_properties_defaults(champ_properties, 6, Build::default())
+        .expect("Failed to create unit");
+    champ.set_runes(settings.runes_page)?;
 
     //get number of available threads
-    let n_threads: NonZero<usize> =
+    let n_threads: NonZeroUsize =
         std::thread::available_parallelism().expect("Failed to get amount of available threads");
 
     //start progress bar
-    let progress_bar: ProgressBar = ProgressBar::new(settings.n_items as u64)
-        .with_style(
-            ProgressStyle::with_template(
-                "{msg}\n[{elapsed_precise}] {bar} {pos}/{len} items {spinner}",
+    let progress_bar: ProgressBar = if silent {
+        ProgressBar::hidden()
+    } else {
+        let bar: ProgressBar = ProgressBar::new(settings.n_items as u64)
+            .with_style(
+                ProgressStyle::with_template(
+                    "{msg}\n[{elapsed_precise}] {bar} {pos}/{len} items {spinner}",
+                )
+                .expect("Failed to create progress bar style"),
             )
-            .expect("Failed to create progress bar style"),
-        )
-        .with_message(format!(
-            "Calculating best builds for {}...",
-            champ.properties.name
-        ));
-    progress_bar.enable_steady_tick(Duration::from_millis(200));
+            .with_message(format!(
+                "Calculating best builds for {}...",
+                champ_properties.name
+            ));
+        bar.enable_steady_tick(Duration::from_millis(200));
+        bar
+    };
 
     //create target dummy
     let lvl: u8 = 6; //use lvl 6 for the empty build scores
@@ -1096,7 +1121,7 @@ pub fn find_best_builds(
     let empty_build_point: ParetoSpacePoint = ParetoSpacePoint::from_build_fight_simulation(
         &empty_build,
         0,
-        champ,
+        &mut champ,
         target.get_stats(),
         settings,
     );
@@ -1155,14 +1180,6 @@ pub fn find_best_builds(
         {
             best_builds = new_builds;
         } else {
-            //restore original champion configuration
-            champ
-                .set_lvl(original_lvl.get())
-                .expect("Failed to set lvl");
-            champ
-                .set_build(original_build)
-                .expect("Failed to set build");
-            champ.init_fight();
             return Err(format!("Can't reach requested item slot (stopped at slot {item_slot} because not enough items in pool/too much items incompatible with each other)"));
         }
 
@@ -1240,23 +1257,62 @@ pub fn find_best_builds(
     }
     //finish progress bar
     progress_bar.finish();
-    println!(
-        "Found {} optimized builds for {}",
-        best_builds.len(),
-        champ.properties.name
-    );
-
-    //restore original champion configuration
-    champ
-        .set_lvl(original_lvl.get())
-        .expect("Failed to set lvl");
-    champ
-        .set_build(original_build)
-        .expect("Failed to set build");
-    champ.init_fight();
+    if !silent {
+        println!(
+            "Found {} optimized builds for {}",
+            best_builds.len(),
+            champ_properties.name
+        );
+    }
 
     //return builds
     Ok(best_builds)
+}
+
+/// Returns a `Vec<(&'static RuneKeystone, f32)>` containing the best runes keystones at the requested number of items with their corresponding score.
+/// The keystones are in order (first element == keystone with the best score).
+pub fn find_best_runes_keystones(
+    champ_properties: &'static UnitProperties,
+    settings: &BuildsGenerationSettings,
+    n_items: usize,
+) -> Result<Vec<(&'static RuneKeystone, f32)>, String> {
+    //sanity check
+    if runes_data::ALL_RUNES_KEYSTONES.is_empty() {
+        return Err("No runes keystones available to test".to_string());
+    }
+
+    let mut test_settings: BuildsGenerationSettings = settings.clone();
+    test_settings.n_items = n_items;
+
+    let mut best_keystones: Vec<(&'static RuneKeystone, f32)> = Vec::new();
+    for &keystone in runes_data::ALL_RUNES_KEYSTONES.iter() {
+        test_settings.runes_page.keystone = keystone;
+        let mut best_builds: Vec<BuildContainer> =
+            find_best_builds(champ_properties, &test_settings, true)?;
+        sort_builds_by_score(&mut best_builds, test_settings.judgment_weights);
+
+        let max_golds: f32 = best_builds
+            .iter()
+            .map(|build| build.golds[n_items])
+            .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
+            .unwrap_or(STARTING_GOLDS);
+        let n_to_take: usize = usize::min(5, best_builds.len()); //in case too few generated builds
+
+        #[allow(clippy::cast_precision_loss)]
+        let avg_score: f32 = (best_builds
+            .iter()
+            .take(n_to_take)
+            .map(|container| {
+                container.get_avg_score(n_items, max_golds, test_settings.judgment_weights)
+            })
+            .sum::<f32>())
+            / (n_to_take as f32); //n_to_take is well within f32 precision
+
+        best_keystones.push((keystone, avg_score));
+    }
+    //sort in reverse order
+    best_keystones.sort_unstable_by(|k1, k2| (k2.1).partial_cmp(&k1.1).unwrap());
+    Ok(best_keystones)
 }
 
 #[cfg(test)]
@@ -1268,12 +1324,8 @@ mod tests {
     pub fn test_default_build_generation_settings() {
         //test for every champion
         for properties in Unit::ALL_CHAMPIONS.iter() {
-            let champ: Unit =
-                Unit::from_properties_defaults(*properties, MIN_UNIT_LVL, Build::default())
-                    .expect("Failed to create unit");
-
             if let Err(error_msg) =
-                BuildsGenerationSettings::default_by_champion(properties).check_settings(&champ)
+                BuildsGenerationSettings::default_by_champion(properties).check_settings(properties)
             {
                 panic!(
                     "Default build generation settings for '{}' are not valid: {}",

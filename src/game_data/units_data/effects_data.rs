@@ -106,6 +106,7 @@ pub(crate) enum EffectValueId {
     BlackCleaverFervorMsFlat,
     BlackfireTorchBalefulBlazeLastApplicationTime,
     ConquerorAdaptiveAP,
+    ConquerorOmnivamp,
     ConquerorLastAbilityHitTime,
     ConquerorLastBasicAttackHitTime,
     CosmicDriveSpellDanceMsFlat,

@@ -345,7 +345,7 @@ impl Unit {
         fight_scenarios: &[(xayah_fight_scenario, "all out")],
         defaults: UnitDefaults {
             runes_pages: RunesPage {
-                keystone: &RuneKeystone::EMPTY_RUNE_KEYSTONE, //todo: add keystone
+                keystone: &RuneKeystone::LETHAL_TEMPO, //todo: prone to change
                 shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,
@@ -453,7 +453,13 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn test_xayah_constant_parameters() {
+    pub fn test_unit_defaults() {
+        Unit::from_properties_defaults(&Unit::XAYAH_PROPERTIES, MIN_UNIT_LVL, Build::default())
+            .expect("Failed to create unit");
+    }
+
+    #[test]
+    pub fn test_constant_parameters() {
         assert!(
             XAYAH_N_FEATHERS_BEFORE_RECALL <= 8,
             "Number of feathers before pressing Xayah E must be less or equal to 8 (got {})",

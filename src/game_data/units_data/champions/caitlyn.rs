@@ -269,7 +269,7 @@ impl Unit {
         fight_scenarios: &[(caitlyn_fight_scenario, "all out")],
         defaults: UnitDefaults {
             runes_pages: RunesPage {
-                keystone: &RuneKeystone::EMPTY_RUNE_KEYSTONE, //todo: add keystone
+                keystone: &RuneKeystone::FLEET_FOOTWORK, //todo: prone to change (no real good rune for cait rn in 14.20 kek)
                 shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,
@@ -369,4 +369,16 @@ impl Unit {
             support_items_pool: &[],
         },
     };
+}
+
+#[cfg(test)]
+mod tests {
+    #[cfg(test)]
+    use super::*;
+
+    #[test]
+    pub fn test_unit_defaults() {
+        Unit::from_properties_defaults(&Unit::CAITLYN_PROPERTIES, MIN_UNIT_LVL, Build::default())
+            .expect("Failed to create unit");
+    }
 }

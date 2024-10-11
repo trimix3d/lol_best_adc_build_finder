@@ -390,7 +390,7 @@ impl Unit {
         fight_scenarios: &[(sivir_fight_scenario, "all out")],
         defaults: UnitDefaults {
             runes_pages: RunesPage {
-                keystone: &RuneKeystone::EMPTY_RUNE_KEYSTONE, //todo: add keystone
+                keystone: &RuneKeystone::LETHAL_TEMPO, //todo: prone to change
                 shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,
@@ -498,7 +498,13 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn test_sivir_constant_parameters() {
+    pub fn test_unit_defaults() {
+        Unit::from_properties_defaults(&Unit::SIVIR_PROPERTIES, MIN_UNIT_LVL, Build::default())
+            .expect("Failed to create unit");
+    }
+
+    #[test]
+    pub fn test_constant_parameters() {
         assert!(
             SIVIR_W_N_RICOCHETS <= 9.,
             "Number of sivir's W ricochets must be less or equal to 9 (got {})",
