@@ -867,6 +867,8 @@ fn handle_runes_settings(
                 for (i, k) in best_keystones[1..].iter().enumerate() {
                     println!(" - {}: {:#} (score: {:.0})", i + 2, k.0, k.1);
                 }
+
+                get_user_raw_input("\npress enter to return to runes settings screen")?;
             }
             _ => unreachable!("Unhandled user input"),
         }
