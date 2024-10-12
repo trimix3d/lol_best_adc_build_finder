@@ -11,7 +11,7 @@ const EZREAL_Q_HIT_PERCENT: f32 = 0.9;
 const EZREAL_W_HIT_PERCENT: f32 = 0.8;
 /// Number of targets hit by ezreal R.
 const EZREAL_R_N_TARGETS: f32 = 1.;
-const EZREAL_R_HIT_PERCENT: f32 = 1.; // !!! 0.85;
+const EZREAL_R_HIT_PERCENT: f32 = 0.85;
 
 fn ezreal_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::EzrealEssenceFluxMark] = 0;

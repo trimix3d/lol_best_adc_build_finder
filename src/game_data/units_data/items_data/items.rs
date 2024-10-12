@@ -16,11 +16,11 @@ const SHADOWFLAME_CINDERBLOOM_COEF: f32 = 0.40 * 0.40;
 ///x*x, where x is the % of hp under which the passive activates.
 const STORMSURGE_STORMRAIDER_COEF: f32 = 0.75 * 0.75;
 /// Percentage of target missing hp to account for the average dmg calculation.
-const KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT: f32 = 1. / 3.;
+const KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT: f32 = 0.33;
 /// % of missing HP used to calculate the heal from Sundered sky lightshield strike
-const SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP: f32 = 1. / 3.;
+const SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP: f32 = 0.33;
 /// Average hp % considered for mists edge dmg.
-const BLADE_OF_THE_RUINED_KING_MISTS_EDGE_AVG_TARGET_HP_PERCENT: f32 = 2. / 3.;
+const BLADE_OF_THE_RUINED_KING_MISTS_EDGE_AVG_TARGET_HP_PERCENT: f32 = 0.67;
 /// Percentage of dmg that is done in the passive range and profit from mr reduction.
 const ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE: f32 = 0.70;
 /// Percentage of abilities that benefits from the increased dmg modifier.

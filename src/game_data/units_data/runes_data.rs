@@ -464,7 +464,6 @@ const CONQUEROR_ADAPTIVE_AP_PER_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
     4.,   //lvl 18
 ];
 
-//todo: add healing when fully stacked + try out every rune for each champ
 const CONQUEROR_MAX_STACKS: u8 = 12;
 fn conqueror_add_stack(champ: &mut Unit, _availability_coef: f32) {
     //add stacks until fullty stacked

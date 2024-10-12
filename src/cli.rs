@@ -799,7 +799,6 @@ fn change_phys_dmg_received_percent(
     }
 }
 
-//todo: automatically find best rune keystone (1 item + boots?)
 fn handle_runes_settings(
     settings: &mut BuildsGenerationSettings,
     champ_properties: &'static UnitProperties,

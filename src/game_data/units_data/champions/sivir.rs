@@ -9,7 +9,7 @@ use enumset::enum_set;
 //champion parameters (constants):
 const SIVIR_Q_N_TARGETS: f32 = 1.0;
 /// Percentage of the time the q return hit its targets.
-const SIVIR_Q_RETURN_PERCENT: f32 = 2. / 3.;
+const SIVIR_Q_RETURN_PERCENT: f32 = 0.67;
 /// Number of targets hit by sivir ricochets (adds to the basic attack that launched the ricochet).
 const SIVIR_W_N_RICOCHETS: f32 = 1.0;
 
