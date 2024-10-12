@@ -1408,21 +1408,21 @@ impl Item {
         id: ItemId::EssenceReaver,
         full_name: "Essence_reaver",
         short_name: "ER",
-        cost: 3150.,
+        cost: 2900.,
         item_groups: enum_set!(),
         utils: enum_set!(ItemUtils::Special), //essence drain passive mana refund
         stats: UnitStats {
             hp: 0.,
             mana: 0.,
             base_ad: 0.,
-            bonus_ad: 65.,
+            bonus_ad: 60.,
             ap_flat: 0.,
             ap_percent: 0.,
             armor: 0.,
             mr: 0.,
             base_as: 0.,
             bonus_as: 0.,
-            ability_haste: 20.,
+            ability_haste: 15.,
             basic_haste: 0.,
             ultimate_haste: 0.,
             item_haste: 0.,
@@ -2942,11 +2942,12 @@ fn ludens_companion_fire(champ: &mut Unit, _target_stats: &UnitStats, n_targets:
 
     //if stacks loaded (previous condition), consume stacks
     champ.effects_values[EffectValueId::LudensCompanionFireLastConsumeTime] = champ.time;
+    let fire_base_dmg: f32 = 75. + 0.05 * champ.stats.ap();
     let dmg: f32 = if n_targets >= LUDENS_COMPANION_FIRE_LOADED_STACKS {
-        LUDENS_COMPANION_FIRE_LOADED_STACKS * (60. + 0.04 * champ.stats.ap())
+        LUDENS_COMPANION_FIRE_LOADED_STACKS * fire_base_dmg
     } else {
-        n_targets * (60. + 0.04 * champ.stats.ap())
-            + (LUDENS_COMPANION_FIRE_LOADED_STACKS - n_targets) * (30. + 0.02 * champ.stats.ap())
+        n_targets * fire_base_dmg
+            + (LUDENS_COMPANION_FIRE_LOADED_STACKS - n_targets) * (15. + 0.01 * champ.stats.ap())
     };
     PartDmg(0., dmg, 0.)
 }
@@ -4871,15 +4872,6 @@ fn spear_of_shojin_init(champ: &mut Unit) {
 }
 
 const SPEAR_OF_SHOJIN_FOCUSED_WILL_SPELL_COEF_PER_STACK: f32 = 0.03;
-fn spear_of_shojin_focused_will(
-    champ: &mut Unit,
-    _target_stats: &UnitStats,
-    _n_targets: f32,
-) -> PartDmg {
-    champ.add_temporary_effect(&SPEAR_OF_SHOJIN_FOCUSED_WILL, champ.stats.item_haste);
-    PartDmg(0., 0., 0.)
-}
-
 fn spear_of_shojin_focused_will_add_stack(champ: &mut Unit, _availability_coef: f32) {
     //if not fully stacked, add 1 stack and update ability dmg modifier
     if champ.effects_stacks[EffectStackId::SpearOfShojinFocusedWillStacks] < 4 {
@@ -4915,6 +4907,15 @@ const SPEAR_OF_SHOJIN_FOCUSED_WILL: TemporaryEffect = TemporaryEffect {
     duration: 6.,
     cooldown: 0.,
 };
+
+fn spear_of_shojin_focused_will(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+) -> PartDmg {
+    champ.add_temporary_effect(&SPEAR_OF_SHOJIN_FOCUSED_WILL, champ.stats.item_haste);
+    PartDmg(0., 0., 0.)
+}
 
 impl Item {
     pub const SPEAR_OF_SHOJIN: Item = Item {
@@ -5000,7 +5001,7 @@ impl Item {
             armor: 0.,
             mr: 0.,
             base_as: 0.,
-            bonus_as: 0.40,
+            bonus_as: 0.35,
             ability_haste: 0.,
             basic_haste: 0.,
             ultimate_haste: 0.,
@@ -5159,7 +5160,7 @@ fn stormsurge_stormraider(champ: &mut Unit, _target_stats: &UnitStats) -> PartDm
         );
         return PartDmg(
             0.,
-            STORMSURGE_STORMRAIDER_COEF * avalability_coef * (150. + 0.15 * champ.stats.ap()),
+            STORMSURGE_STORMRAIDER_COEF * avalability_coef * (125. + 0.10 * champ.stats.ap()),
             0.,
         );
     }
@@ -5179,7 +5180,7 @@ impl Item {
             mana: 0.,
             base_ad: 0.,
             bonus_ad: 0.,
-            ap_flat: 95.,
+            ap_flat: 90.,
             ap_percent: 0.,
             armor: 0.,
             mr: 0.,
@@ -5672,14 +5673,14 @@ impl Item {
         id: ItemId::TheCollector,
         full_name: "The_collector",
         short_name: "Collector",
-        cost: 3400.,
+        cost: 2950.,
         item_groups: enum_set!(),
         utils: enum_set!(), //taxes passive not big enough and too situationnal
         stats: UnitStats {
             hp: 0.,
             mana: 0.,
             base_ad: 0.,
-            bonus_ad: 60.,
+            bonus_ad: 50.,
             ap_flat: 0.,
             ap_percent: 0.,
             armor: 0.,
@@ -6341,7 +6342,7 @@ fn yun_tal_serrated_edge(
     n_targets: f32,
     _from_other_effect: bool,
 ) -> PartDmg {
-    PartDmg(n_targets * (champ.stats.crit_chance * 70.), 0., 0.)
+    PartDmg(n_targets * (champ.stats.crit_chance * 60.), 0., 0.)
 }
 
 impl Item {
@@ -6349,14 +6350,14 @@ impl Item {
         id: ItemId::YunTalWildarrows,
         full_name: "Yun_Tal_wildarrows",
         short_name: "Yun_Tal",
-        cost: 3200.,
+        cost: 2950.,
         item_groups: enum_set!(),
         utils: enum_set!(),
         stats: UnitStats {
             hp: 0.,
             mana: 0.,
             base_ad: 0.,
-            bonus_ad: 65.,
+            bonus_ad: 60.,
             ap_flat: 0.,
             ap_percent: 0.,
             armor: 0.,

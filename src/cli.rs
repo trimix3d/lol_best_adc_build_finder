@@ -805,7 +805,8 @@ fn handle_runes_settings(
 ) -> Result<(), UserCommand> {
     loop {
         let choice: usize = match get_user_choice(
-            "Runes settings:",
+            "Runes settings:\n\
+            (/!\\ runes shard = runes bonus stats, not the runes slots under the keystone)",
             "Select a setting to change (press enter to confirm current runes)",
             "No help message available",
             [

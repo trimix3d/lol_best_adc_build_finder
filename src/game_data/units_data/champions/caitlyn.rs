@@ -70,7 +70,7 @@ const CAITLYN_Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.25, 1.45, 1.65, 1.85, 2.05];
 fn caitlyn_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 = (1. + 0.5 * f32::max(0., CAITLYN_Q_N_TARGETS - 1.))
+    let phys_dmg: f32 = (1. + 0.6 * f32::max(0., CAITLYN_Q_N_TARGETS - 1.))
         * (CAITLYN_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
             + champ.stats.ad() * CAITLYN_Q_AD_RATIO_BY_Q_LVL[q_lvl_idx]);
 
@@ -157,7 +157,7 @@ impl Unit {
     pub const CAITLYN_PROPERTIES: UnitProperties = UnitProperties {
         name: "Caitlyn",
         as_limit: Unit::DEFAULT_AS_LIMIT,
-        as_ratio: 0.610,
+        as_ratio: 0.625,
         windup_percent: 0.17708,
         windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
         base_stats: UnitStats {

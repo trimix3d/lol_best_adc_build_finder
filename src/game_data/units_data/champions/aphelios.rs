@@ -17,7 +17,7 @@ const APHELIOS_R_N_TARGETS: f32 = 1.5;
 
 fn aphelios_on_lvl_set(champ: &mut Unit) {
     //aphelios passive (gain stats according to abilities lvl)
-    champ.lvl_stats.bonus_ad += 4.5 * f32::from(champ.q_lvl); //bonus_ad by q_lvl
+    champ.lvl_stats.bonus_ad += 5. * f32::from(champ.q_lvl); //bonus_ad by q_lvl
     champ.lvl_stats.bonus_as += 0.09 * f32::from(champ.w_lvl); //bonus_as by w_lvl
     champ.lvl_stats.lethality += 5.5 * f32::from(champ.e_lvl); //lethality by e_lvl
 }
@@ -386,7 +386,7 @@ impl Unit {
         windup_percent: 0.15333,
         windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
         base_stats: UnitStats {
-            hp: 580.,
+            hp: 600.,
             mana: 348.,
             base_ad: 55.,
             bonus_ad: 0.,
