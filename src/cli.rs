@@ -815,6 +815,7 @@ fn handle_runes_settings(
                 format!("rune shard 3: {:?}", settings.runes_page.shard3).as_str(),
                 format!("rune keystone: {:#}", settings.runes_page.keystone).as_str(),
                 "automatically find the best runes keystones",
+                "reset to default runes page",
             ],
             true,
         ) {
@@ -868,7 +869,11 @@ fn handle_runes_settings(
                     println!(" - {}: {:#} (score: {:.0})", i + 2, k.0, k.1);
                 }
 
-                get_user_raw_input("\npress enter to return to runes settings screen")?;
+                get_user_raw_input("press enter to return to runes settings screen")?;
+            }
+            6 => {
+                //reset to default runes page
+                settings.runes_page = champ_properties.defaults.runes_pages;
             }
             _ => unreachable!("Unhandled user input"),
         }
