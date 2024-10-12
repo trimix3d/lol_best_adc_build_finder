@@ -362,7 +362,7 @@ impl Unit {
         ],
         defaults: UnitDefaults {
             runes_pages: RunesPage {
-                keystone: &RuneKeystone::PRESS_THE_ATTACK, //conqueror better for long fights, press the attack better for poke (14.20) //todo: prone to change
+                keystone: &RuneKeystone::PRESS_THE_ATTACK, //conq better for long fights, PTA better for poke (14.20) //todo: prone to change
                 shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,

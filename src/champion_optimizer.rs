@@ -1277,6 +1277,7 @@ pub fn find_best_runes_keystones(
     n_items: usize,
 ) -> Result<Vec<(&'static RuneKeystone, f32)>, String> {
     //sanity check
+    #[allow(clippy::const_is_empty)]
     if runes_data::ALL_RUNES_KEYSTONES.is_empty() {
         return Err("No runes keystones available to test".to_string());
     }

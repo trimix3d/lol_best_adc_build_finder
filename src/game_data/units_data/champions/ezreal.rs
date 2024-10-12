@@ -368,7 +368,7 @@ impl Unit {
         ],
         defaults: UnitDefaults {
             runes_pages: RunesPage {
-                keystone: &RuneKeystone::CONQUEROR, //todo: prone to change
+                keystone: &RuneKeystone::PRESS_THE_ATTACK, //PTA for short fights, conq better for long fights //todo: prone to change
                 shard1: RuneShard::Left,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,

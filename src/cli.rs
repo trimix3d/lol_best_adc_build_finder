@@ -562,7 +562,7 @@ fn confirm_builds_generation_settings(
             ),
             format!(
                 "go to runes settings (current keystone: {}) ->",
-                settings.runes_page.keystone.name
+                settings.runes_page.keystone
             ),
             format!(
                 "judgment weights: DPS {}, defense {}, mobility {}",
@@ -813,7 +813,7 @@ fn handle_runes_settings(
                 format!("rune shard 1: {:?}", settings.runes_page.shard1).as_str(),
                 format!("rune shard 2: {:?}", settings.runes_page.shard2).as_str(),
                 format!("rune shard 3: {:?}", settings.runes_page.shard3).as_str(),
-                format!("rune keystone: {}", settings.runes_page.keystone.name).as_str(),
+                format!("rune keystone: {:#}", settings.runes_page.keystone).as_str(),
                 "automatically find the best runes keystones",
             ],
             true,
@@ -861,11 +861,11 @@ fn handle_runes_settings(
                 //print best runes keystone screen
                 println!("\nBest runes keystone:");
                 println!(
-                    " - 1: {} (score: {:.0}) - has replaced the previous setting",
-                    best_keystones[0].0.name, best_keystones[0].1
+                    " - 1: {:#} (score: {:.0}) - has replaced the previous setting",
+                    best_keystones[0].0, best_keystones[0].1
                 );
                 for (i, k) in best_keystones[1..].iter().enumerate() {
-                    println!(" - {}: {} (score: {:.0})", i + 2, k.0.name, k.1);
+                    println!(" - {}: {:#} (score: {:.0})", i + 2, k.0, k.1);
                 }
             }
             _ => unreachable!("Unhandled user input"),
@@ -888,7 +888,7 @@ fn change_rune_keystone(
             "Available rune keystones:",
             "Select a rune keystone",
             "No help message available.",
-            keystone_choices.iter().map(|keystone| keystone.name),
+            keystone_choices.iter().map(|keystone| keystone.full_name),
             false,
         ) {
             Ok(Some(choice)) => choice,

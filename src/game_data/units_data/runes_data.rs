@@ -1,9 +1,22 @@
 use super::*;
 
+use core::fmt;
+
 #[derive(Debug)]
 pub struct RuneKeystone {
-    pub name: &'static str,
+    pub full_name: &'static str,
+    pub short_name: &'static str,
     pub on_action_fns: OnActionFns,
+}
+
+impl fmt::Display for RuneKeystone {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if f.alternate() {
+            f.write_str(self.full_name)
+        } else {
+            f.write_str(self.short_name)
+        }
+    }
 }
 
 #[allow(dead_code)] //each shard is not always used
@@ -108,7 +121,8 @@ impl Unit {
 
 impl RuneKeystone {
     pub const EMPTY_RUNE_KEYSTONE: RuneKeystone = RuneKeystone {
-        name: "Empty keystone",
+        full_name: "Empty keystone",
+        short_name: "Empty keystone",
         on_action_fns: OnActionFns {
             on_lvl_set: None,
             on_fight_init: None,
@@ -202,7 +216,8 @@ fn press_the_attack_on_basic_attack_hit(
 
 impl RuneKeystone {
     pub const PRESS_THE_ATTACK: RuneKeystone = RuneKeystone {
-        name: "Press the attack",
+        full_name: "Press the attack",
+        short_name: "PTA",
         on_action_fns: OnActionFns {
             on_lvl_set: None,
             on_fight_init: Some(press_the_attack_init),
@@ -298,7 +313,8 @@ fn lethal_tempo_on_basic_attack_hit(
 
 impl RuneKeystone {
     pub const LETHAL_TEMPO: RuneKeystone = RuneKeystone {
-        name: "Lethal tempo",
+        full_name: "Lethal tempo",
+        short_name: "Lethal tempo",
         on_action_fns: OnActionFns {
             on_lvl_set: None,
             on_fight_init: Some(lethal_tempo_init),
@@ -395,7 +411,8 @@ const FLEET_FOOTWORK_HEAL_BY_LVL: [f32; MAX_UNIT_LVL] = [
 
 impl RuneKeystone {
     pub const FLEET_FOOTWORK: RuneKeystone = RuneKeystone {
-        name: "Fleet footwork",
+        full_name: "Fleet footwork",
+        short_name: "Fleet",
         on_action_fns: OnActionFns {
             on_lvl_set: None,
             on_fight_init: Some(fleet_footwork_init),
@@ -534,7 +551,8 @@ fn conqueror_on_any_hit(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg 
 
 impl RuneKeystone {
     pub const CONQUEROR: RuneKeystone = RuneKeystone {
-        name: "Conqueror",
+        full_name: "Conqueror",
+        short_name: "Conqueror",
         on_action_fns: OnActionFns {
             on_lvl_set: None,
             on_fight_init: Some(conqueror_init),
