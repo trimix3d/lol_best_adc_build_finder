@@ -409,7 +409,7 @@ impl Unit {
         fight_scenarios: &[(kaisa_fight_scenario, "all out")],
         defaults: UnitDefaults {
             runes_pages: RunesPage {
-                keystone: &RuneKeystone::PRESS_THE_ATTACK, //todo: prone to change
+                keystone: &RuneKeystone::LETHAL_TEMPO, //todo: prone to change
                 shard1: RuneShard::Middle,
                 shard2: RuneShard::Left,
                 shard3: RuneShard::Left,
