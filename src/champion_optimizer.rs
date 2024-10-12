@@ -1312,7 +1312,8 @@ pub fn find_best_runes_keystones(
         best_keystones.push((keystone, avg_score));
     }
     //sort in reverse order
-    best_keystones.sort_unstable_by(|k1, k2| (k2.1).partial_cmp(&k1.1).unwrap());
+    best_keystones
+        .sort_unstable_by(|k1, k2| (k2.1).partial_cmp(&k1.1).expect("Failed to compare floats"));
     Ok(best_keystones)
 }
 
