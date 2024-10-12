@@ -561,7 +561,7 @@ fn confirm_builds_generation_settings(
                 100. * settings.phys_dmg_received_percent,
             ),
             format!(
-                "go to runes settings (current keystone: {}) ->",
+                "go to runes settings (current keystone: {}) -->",
                 settings.runes_page.keystone
             ),
             format!(
@@ -571,7 +571,7 @@ fn confirm_builds_generation_settings(
                 settings.judgment_weights.2
             ),
             format!("number of items per build: {}", settings.n_items),
-            "go to items pools settings ->".to_string(),
+            "go to items pools settings -->".to_string(),
             format!("mandatory items: {}", settings.mandatory_items),
             format!(
                 "search threshold: {:.0}%{}",
@@ -1094,9 +1094,9 @@ fn handle_items_pools_settings(
                     }
                 )
                 .as_str(),
-                "change allowed legendary items ->",
-                "change allowed boots ->",
-                "change allowed support items ->",
+                "change allowed legendary items -->",
+                "change allowed boots -->",
+                "change allowed support items -->",
                 format!(
                     "allow manaflow items in first slot: {}",
                     settings.allow_manaflow_first_item
@@ -1286,12 +1286,14 @@ fn change_mandatory_items(
 ) -> Result<(), UserCommand> {
     //get item index first
     loop {
-        let greeting_msg: String =
-            format!("Current mandatory items are: {}", settings.mandatory_items);
-
-        let item_slot:usize = match get_user_usize(
-            &greeting_msg,
-            "Enter an item slot where you want to impose an item (press enter to confirm current items)",
+        let item_slot: usize = match get_user_usize(
+            "",
+            format!(
+                "Current mandatory items are: {}\n\
+                Enter an item slot where you want to impose an item (press enter to confirm current items)",
+                settings.mandatory_items
+            )
+            .as_str(),
             MANDATORY_ITEMS_HELP_MSG,
             1..=MAX_UNIT_ITEMS,
             true,
