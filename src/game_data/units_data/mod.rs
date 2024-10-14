@@ -922,7 +922,7 @@ pub enum UnitAction {
 }
 
 impl fmt::Display for UnitAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             UnitAction::BasicAttack => f.write_str("BasicAttack"),
             UnitAction::Q => f.write_str("Q"),

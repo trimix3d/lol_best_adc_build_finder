@@ -10,7 +10,7 @@ pub struct RuneKeystone {
 }
 
 impl fmt::Display for RuneKeystone {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if f.alternate() {
             f.write_str(self.full_name)
         } else {

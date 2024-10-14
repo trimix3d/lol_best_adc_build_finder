@@ -18,7 +18,7 @@ fn kaisa_init_abilities(champ: &mut Unit) {
         -(KAISA_SECOND_SKIN_DELAY + F32_TOL); //to allow for effect at time == 0
     champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] = 0.;
 
-    //Q evolve, items ad/bonus_ad? + base_ad from lvls must be >= 100
+    //Q evolve, items bonus ad + base_ad from lvls must be >= 100
     if champ.items_stats.bonus_ad + champ.lvl_stats.base_ad - champ.properties.base_stats.base_ad
         >= 100.
     {
@@ -27,7 +27,7 @@ fn kaisa_init_abilities(champ: &mut Unit) {
         champ.effects_stacks[EffectStackId::KaisaQEvolved] = 0;
     }
 
-    //W evolve, items ap must ne >= 100
+    //W evolve, items ap must be >= 100
     if champ.items_stats.ap() >= 100. {
         champ.effects_stacks[EffectStackId::KaisaWEvolved] = 1;
     } else {

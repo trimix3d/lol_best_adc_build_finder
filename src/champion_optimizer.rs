@@ -12,6 +12,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
+use core::fmt;
 use core::iter::zip;
 use core::num::NonZeroUsize;
 use core::time::Duration;
@@ -385,6 +386,23 @@ fn has_duplicates(slice: &[&'static Item]) -> Option<usize> {
     None
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ItemSlot {
+    Slot(usize),
+    Any,
+    None,
+}
+
+impl fmt::Display for ItemSlot {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Slot(number) => write!(f, "{number}"),
+            Self::Any => f.write_str("Any"),
+            Self::None => f.write_str("None"),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct BuildsGenerationSettings {
     pub target_properties: &'static UnitProperties,
@@ -392,16 +410,15 @@ pub struct BuildsGenerationSettings {
     pub fight_duration: f32,
     pub phys_dmg_received_percent: f32,
     pub runes_page: RunesPage,
-    pub judgment_weights: (f32, f32, f32),
     pub n_items: usize,
-    pub boots_slot: usize,
-    pub allow_boots_if_no_slot: bool,
-    pub support_item_slot: usize,
+    pub mandatory_items: Build,
+    pub boots_slot: ItemSlot,
+    pub support_item_slot: ItemSlot,
     pub legendary_items_pool: Vec<&'static Item>,
     pub boots_pool: Vec<&'static Item>,
     pub support_items_pool: Vec<&'static Item>,
-    pub allow_manaflow_first_item: bool, //overrides items pools, but not mandatory items
-    pub mandatory_items: Build,
+    pub allow_manaflow_first_item: bool, //only effective if manaflow items in items pool, overridden by mandatory items
+    pub judgment_weights: (f32, f32, f32),
     pub search_threshold: f32,
 }
 
@@ -414,16 +431,15 @@ impl Default for BuildsGenerationSettings {
             fight_duration: DEFAULT_FIGHT_DURATION,
             phys_dmg_received_percent: 0.60,
             runes_page: RunesPage::default(),
-            judgment_weights: (1., 0.25, 0.5),
             n_items: 4,
-            boots_slot: 2,
-            allow_boots_if_no_slot: true,
-            support_item_slot: 0,
+            mandatory_items: Build::default(),
+            boots_slot: ItemSlot::Slot(2),
+            support_item_slot: ItemSlot::None,
             legendary_items_pool: Vec::from(ALL_LEGENDARY_ITEMS),
             boots_pool: Vec::from(ALL_BOOTS),
             support_items_pool: Vec::from(ALL_SUPPORT_ITEMS),
             allow_manaflow_first_item: false, //may change this to true, idk
-            mandatory_items: Build::default(),
+            judgment_weights: (1., 0.25, 0.5),
             search_threshold: 0.20,
         }
     }
@@ -513,6 +529,7 @@ impl BuildsGenerationSettings {
                 self.fight_duration
             ));
         }
+
         if !self.phys_dmg_received_percent.is_finite()
             || !(0.0..=1.0).contains(&self.phys_dmg_received_percent)
         {
@@ -521,9 +538,154 @@ impl BuildsGenerationSettings {
                 100. * self.phys_dmg_received_percent
             ));
         }
+
         if let Err(error_msg) = self.runes_page.check_validity() {
             return Err(format!("Invalid runes page: {error_msg}"));
         }
+
+        if !(1..=MAX_UNIT_ITEMS).contains(&self.n_items) {
+            return Err(format!(
+                "Number of items per build must be between 1 and {MAX_UNIT_ITEMS} (got {})",
+                self.n_items
+            ));
+        }
+
+        if let Err(error_msg) = self.mandatory_items.check_validity() {
+            return Err(format!(
+                "{} is an invalid combination of items: {error_msg}",
+                self.mandatory_items
+            ));
+        }
+
+        let mut additional_items: usize = 0; //number of items additional to the legendary items in the generated build
+
+        if let ItemSlot::Slot(boots_slot_number) = self.boots_slot {
+            if (1..=self.n_items).contains(&boots_slot_number) {
+                additional_items += 1;
+            }
+
+            if !(1..=MAX_UNIT_ITEMS).contains(&boots_slot_number) {
+                return Err(format!(
+                    "Boots slot must be between 1 and {MAX_UNIT_ITEMS} (got {})",
+                    boots_slot_number
+                ));
+            }
+            if *self.mandatory_items[boots_slot_number - 1] != Item::NULL_ITEM {
+                return Err(format!(
+                    "Cannot have a mandatory item at the boots slot (slot {})",
+                    boots_slot_number
+                ));
+            }
+            if let ItemSlot::Slot(support_item_slot_number) = self.support_item_slot {
+                if boots_slot_number == support_item_slot_number {
+                    return Err(format!(
+                        "Cannot have boots and support item at the same slot (slot {})",
+                        boots_slot_number
+                    ));
+                }
+            }
+        }
+        if self.boots_slot == ItemSlot::Any {
+            additional_items += 1;
+        }
+        if self.boots_slot != ItemSlot::None {
+            if self
+                .mandatory_items
+                .iter()
+                .any(|item| item.item_groups.contains(ItemGroups::Boots))
+            {
+                return Err(
+                    "Cannot have boots in mandatory items if the boots slot is already set"
+                        .to_string(),
+                );
+            }
+            if self.boots_pool.is_empty() {
+                return Err("Boots pool is empty".to_string());
+            }
+        }
+
+        if let ItemSlot::Slot(support_item_slot_number) = self.support_item_slot {
+            if (1..=self.n_items).contains(&support_item_slot_number) {
+                additional_items += 1;
+            }
+
+            if !(1..=MAX_UNIT_ITEMS).contains(&support_item_slot_number) {
+                return Err(format!(
+                    "Support item slot must be between 1 and {MAX_UNIT_ITEMS} (got {})",
+                    support_item_slot_number
+                ));
+            }
+            if *self.mandatory_items[support_item_slot_number - 1] != Item::NULL_ITEM {
+                return Err(format!(
+                    "Cannot have a mandatory item at the support item slot (slot {})",
+                    support_item_slot_number
+                ));
+            }
+            if let ItemSlot::Slot(boots_slot_number) = self.boots_slot {
+                if support_item_slot_number == boots_slot_number {
+                    return Err(format!(
+                        "Cannot have boots and support item at the same slot (slot {})",
+                        support_item_slot_number
+                    ));
+                }
+            }
+        }
+        if self.support_item_slot == ItemSlot::Any {
+            additional_items += 1;
+        }
+        if self.support_item_slot != ItemSlot::None {
+            if self
+                .mandatory_items
+                .iter()
+                .any(|item| item.item_groups.contains(ItemGroups::Support))
+            {
+                return Err("Cannot have a support item in mandatory items if the support item slot is already set".to_string());
+            }
+            if self.support_items_pool.is_empty() {
+                return Err("Support items pool is empty".to_string());
+            }
+        }
+
+        //this check must be done after being sure that `boots_slot` and `support_item_slot` are different
+        if self.legendary_items_pool.len() + additional_items < self.n_items {
+            return Err(format!(
+                "Not enough legendary items in pool to fill {} items slots",
+                self.n_items
+            ));
+        }
+        if self
+            .legendary_items_pool
+            .iter()
+            .any(|&item| *item == Item::NULL_ITEM)
+            || self.boots_pool.iter().any(|&item| *item == Item::NULL_ITEM)
+            || self
+                .support_items_pool
+                .iter()
+                .any(|&item| *item == Item::NULL_ITEM)
+        {
+            return Err("Items pools cannot contain `NULL_ITEM`".to_string());
+        }
+        if let Some(idx) = has_duplicates(&self.legendary_items_pool) {
+            return Err(format!(
+                "Duplicates in legendary items pool: {:#}",
+                self.legendary_items_pool[idx]
+            ));
+        }
+
+        if let Some(idx) = has_duplicates(&self.boots_pool) {
+            return Err(format!(
+                "Duplicates in boots pool: {:#}",
+                self.legendary_items_pool[idx]
+            ));
+        }
+
+        if let Some(idx) = has_duplicates(&self.support_items_pool) {
+            return Err(format!(
+                "Duplicates in support items pool: {:#}",
+                self.legendary_items_pool[idx]
+            ));
+        }
+
         if !self.judgment_weights.0.is_finite()
             || !self.judgment_weights.1.is_finite()
             || !self.judgment_weights.2.is_finite()
@@ -542,6 +704,7 @@ impl BuildsGenerationSettings {
         {
             return Err("At least one judgment weights must be non-zero".to_string());
         }
+
         if !self.search_threshold.is_finite() || !(0.0..=1.0).contains(&self.search_threshold) {
             return Err(format!(
                 "Search threshold must be greater than 0% and under 100% (got {})",
@@ -549,113 +712,6 @@ impl BuildsGenerationSettings {
             ));
         }
 
-        if !(1..=MAX_UNIT_ITEMS).contains(&self.n_items) {
-            return Err(format!(
-                "Number of items per build must be between 1 and {MAX_UNIT_ITEMS} (got {})",
-                self.n_items
-            ));
-        }
-        if !(0..=MAX_UNIT_ITEMS).contains(&self.boots_slot) {
-            return Err(format!(
-                "Boots slot must be between 1 and {MAX_UNIT_ITEMS} (or 0 if none, got {})",
-                self.boots_slot
-            ));
-        }
-        if !(0..=MAX_UNIT_ITEMS).contains(&self.support_item_slot) {
-            return Err(format!(
-                "Support item slot must be between 1 and {MAX_UNIT_ITEMS} (or 0 if none, got {})",
-                self.support_item_slot
-            ));
-        }
-        if self.boots_slot != 0 {
-            if self.boots_slot == self.support_item_slot {
-                return Err(format!(
-                    "Cannot have boots and support item at the same slot (slot {})",
-                    self.boots_slot
-                ));
-            }
-            if self.boots_pool.is_empty() {
-                return Err("Boots pool is empty".to_string());
-            }
-            if *self.mandatory_items[self.boots_slot - 1] != Item::NULL_ITEM {
-                return Err(format!(
-                    "Cannot have a mandatory item at the boots slot (slot {})",
-                    self.boots_slot
-                ));
-            }
-            if self
-                .mandatory_items
-                .iter()
-                .any(|item| item.item_groups.contains(ItemGroups::Boots))
-            {
-                return Err("Cannot have another boots in mandatory items if the boots slot is already set to something different than none".to_string());
-            }
-        }
-        if self.support_item_slot != 0 {
-            if self.support_items_pool.is_empty() {
-                return Err("Support items pool is empty".to_string());
-            }
-            if *self.mandatory_items[self.support_item_slot - 1] != Item::NULL_ITEM {
-                return Err(format!(
-                    "Cannot have a mandatory item at the support item slot (slot {})",
-                    self.support_item_slot
-                ));
-            }
-            if self
-                .mandatory_items
-                .iter()
-                .any(|item| item.item_groups.contains(ItemGroups::Support))
-            {
-                return Err("Cannot have another support item in mandatory items if the support item slot is already set to something different than none".to_string());
-            }
-        }
-        //this check must be done after being sure that `boots_slot` and `support_item_slot` are different
-        if self.legendary_items_pool.len()
-            + usize::from((1..=self.n_items).contains(&self.boots_slot))
-            + usize::from((1..=self.n_items).contains(&self.support_item_slot))
-            < self.n_items
-        {
-            return Err(format!(
-                "Not enough legendary items in pool to fill {} items slots",
-                self.n_items
-            ));
-        }
-        if self
-            .legendary_items_pool
-            .iter()
-            .any(|&item| *item == Item::NULL_ITEM)
-            || self.boots_pool.iter().any(|&item| *item == Item::NULL_ITEM)
-            || self
-                .support_items_pool
-                .iter()
-                .any(|&item| *item == Item::NULL_ITEM)
-        {
-            return Err("Items pools cannot contain NULL_ITEM".to_string());
-        }
-        if let Some(idx) = has_duplicates(&self.legendary_items_pool) {
-            return Err(format!(
-                "Duplicates in legendary items pool: {:#}",
-                self.legendary_items_pool[idx]
-            ));
-        }
-        if let Some(idx) = has_duplicates(&self.boots_pool) {
-            return Err(format!(
-                "Duplicates in boots pool: {:#}",
-                self.legendary_items_pool[idx]
-            ));
-        }
-        if let Some(idx) = has_duplicates(&self.support_items_pool) {
-            return Err(format!(
-                "Duplicates in support items pool: {:#}",
-                self.legendary_items_pool[idx]
-            ));
-        }
-        if let Err(error_msg) = self.mandatory_items.check_validity() {
-            return Err(format!(
-                "{} is an invalid combination of items: {error_msg}",
-                self.mandatory_items
-            ));
-        }
         Ok(())
     }
 }
@@ -1133,12 +1189,22 @@ pub fn find_best_builds(
     //initialize best builds generation
     let normalized_judgment_weights: (f32, f32, f32) =
         get_normalized_judgment_weights(settings.judgment_weights);
-    let legendary_items_pool_with_boots_maybe: &[&Item] =
-        if (settings.boots_slot == 0) && (settings.allow_boots_if_no_slot) {
-            &[&settings.legendary_items_pool[..], &settings.boots_pool[..]].concat()
-        } else {
-            &settings.legendary_items_pool
-        }; //treat boots as legendary items if no slot specified
+    //treat boots/support item as legendary items if no slot specified
+    let mut legendary_items_pool_maybe_extended: &[&Item] = &settings.legendary_items_pool;
+    let mut legendary_items_pool_extended: Vec<&Item>;
+    if settings.boots_slot == ItemSlot::Any {
+        legendary_items_pool_extended =
+            [legendary_items_pool_maybe_extended, &settings.boots_pool].concat();
+        legendary_items_pool_maybe_extended = &legendary_items_pool_extended;
+    }
+    if settings.support_item_slot == ItemSlot::Any {
+        legendary_items_pool_extended = [
+            legendary_items_pool_maybe_extended,
+            &settings.support_items_pool,
+        ]
+        .concat();
+        legendary_items_pool_maybe_extended = &legendary_items_pool_extended;
+    }
     let discard_percent: f32 = 1. - settings.search_threshold;
     let mut best_builds: Vec<BuildContainer> = vec![empty_build];
     //start iterating on each item slot
@@ -1146,8 +1212,19 @@ pub fn find_best_builds(
         let item_slot: usize = item_idx + 1;
 
         //set champion & dummy lvl
-        let lvl: u8 =
-            lvl_from_number_of_items(item_slot, settings.boots_slot, settings.support_item_slot);
+        let lvl: u8 = lvl_from_number_of_items(
+            item_slot,
+            if let ItemSlot::Slot(boots_slot_number) = settings.boots_slot {
+                boots_slot_number
+            } else {
+                0
+            },
+            if let ItemSlot::Slot(support_item_slot_number) = settings.support_item_slot {
+                support_item_slot_number
+            } else {
+                0
+            },
+        );
         champ.set_lvl(lvl).expect("Failed to set lvl"); //no need to init (automatically done later when simulating fights)
         target.set_lvl(lvl).expect("Failed to set lvl");
         target.init_fight();
@@ -1156,12 +1233,20 @@ pub fn find_best_builds(
         let mut pool: &[&Item] = &[settings.mandatory_items[item_idx]]; //need to assign temporary value outside of if else brackets
         let pool_without_manaflow: Vec<&Item>;
         if *settings.mandatory_items[item_idx] == Item::NULL_ITEM {
-            pool = if item_slot == settings.boots_slot {
-                &settings.boots_pool
-            } else if item_slot == settings.support_item_slot {
-                &settings.support_items_pool
+            pool = if let ItemSlot::Slot(boots_slot_number) = settings.boots_slot {
+                if item_slot == boots_slot_number {
+                    &settings.boots_pool
+                } else {
+                    legendary_items_pool_maybe_extended
+                }
+            } else if let ItemSlot::Slot(support_item_slot_number) = settings.support_item_slot {
+                if item_slot == support_item_slot_number {
+                    &settings.support_items_pool
+                } else {
+                    legendary_items_pool_maybe_extended
+                }
             } else {
-                legendary_items_pool_with_boots_maybe
+                legendary_items_pool_maybe_extended
             };
 
             if item_slot == 1 && !settings.allow_manaflow_first_item {

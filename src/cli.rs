@@ -515,19 +515,12 @@ const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
     FIGHT_DURATION_HELP_MSG,
     "\n\n4) percentage of physical damage received: ",
     PHYS_DMG_RECEIVED_PERCENT_HELP_MSG,
-    "go to runes settings: change rune keystone and rune shards.",
-    "\n\n6) judgment weights: 3 values, one for DPS, one for defense and one for mobility.\n\
-    The DPS weight is used to measure the importance of the champion's DPS in the score given to a build.\n\
-    The defense weight is used to measure the importance of the champion's defensive stats, heals and hields in the score given to a build.\n\
-    The mobility weight is used to measure the importance of the champion's mobility in the score given to a build.\n\
-    The absolute value of these weight is not relevant, what's important is their value relative to each other.\n\
-    i.e. if the DPS weight has 2x the value of the defense weight, increasing the DPS will be 2x more important than increasing the defense in the eyes of the optimizer",
-    "\n\n7) number of items per build: ",
-    N_ITEMS_HELP_MSG,
-    "\n\n8) go to items pools settings: manage items pools rules such as at which slot must boots be purchased, which items are allowed, etc.",
-    "\n\n9) mandatory items: ",
-    MANDATORY_ITEMS_HELP_MSG,
-    "\n\n10) search threshold: ",
+    "\n\n5) go to runes settings: change rune keystone and rune shards.",
+    "\n\n6) go to items settings: manage items rules (such as when boots must be purchased, which items are allowed, etc.)",
+    "\n\n7) judgment weights: 3 values, first for DPS, second for defense and third for mobility.\n\
+    These vales are used to weight the relative importance of DPS, defense and mobility of the champion in a single score value given to a build.\n\
+    The weights are relative to each other, i.e. DPS 3, defense 2, mobility 1 is the same as DPS 1, defense 0.66, mobility 0.33",
+    "\n\n8) search threshold: ",
     SEARCH_THRESHOLD_HELP_MSG
 );
 
@@ -537,62 +530,6 @@ fn confirm_builds_generation_settings(
     champ_properties: &'static UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
-        let choices_strings: [String; 11] = [
-            format!("target: {}", settings.target_properties.name),
-            format!(
-                "fight scenario: {}",
-                champ_properties.fight_scenarios[settings.fight_scenario_number.get() - 1].1
-            ),
-            format!(
-                "fight duration: {}s{}",
-                settings.fight_duration,
-                if settings.fight_duration < LOW_FIGHT_DURATION_VALUE_WARNING {
-                    format!(
-                        " (/!\\ set to a low value (<{}s), this can lead to inaccurate results)",
-                        LOW_FIGHT_DURATION_VALUE_WARNING
-                    )
-                } else {
-                    "".to_string()
-                }
-            ),
-            format!(
-                "percentage of physical damage received (by {}): {:.0}%",
-                champ_properties.name,
-                100. * settings.phys_dmg_received_percent,
-            ),
-            format!(
-                "go to runes settings (current keystone: {}) -->",
-                settings.runes_page.keystone
-            ),
-            format!(
-                "judgment weights: DPS {}, defense {}, mobility {}",
-                settings.judgment_weights.0,
-                settings.judgment_weights.1,
-                settings.judgment_weights.2
-            ),
-            format!("number of items per build: {}", settings.n_items),
-            "go to items pools settings -->".to_string(),
-            format!("mandatory items: {}", settings.mandatory_items),
-            format!(
-                "search threshold: {:.0}%{}",
-                100. * settings.search_threshold,
-                if settings.search_threshold < LOW_SEARCH_THRESHOLD_VALUE_WARNING {
-                    format!(
-                        " (/!\\ set to a low value (<{:.0}%), this can lead to inaccurate results)",
-                        100. * LOW_SEARCH_THRESHOLD_VALUE_WARNING
-                    )
-                } else if settings.search_threshold > HIGH_SEARCH_THRESHOLD_VALUE_WARNING {
-                    format!(
-                        " (/!\\ set to a high value (>{:.0}%), this can result in long computation time)",
-                        100. * HIGH_SEARCH_THRESHOLD_VALUE_WARNING
-                    )
-                } else {
-                    "".to_string()
-                }
-            ),
-            "reset to default settings".to_string(),
-        ];
-
         let choice: usize = match get_user_choice(
             format!(
                 "Build generation for {} will be launched with these settings:",
@@ -601,7 +538,64 @@ fn confirm_builds_generation_settings(
             .as_str(),
             "Select a setting to change (press enter to confirm current settings)",
             BUILDS_GENERATION_SETTINGS_HELP_MSG,
-            choices_strings.iter().map(String::as_str),
+            [
+                format!("target: {}", settings.target_properties.name).as_str(),
+                format!(
+                    "fight scenario: {}",
+                    champ_properties.fight_scenarios[settings.fight_scenario_number.get() - 1].1
+                )
+                .as_str(),
+                format!(
+                    "fight duration: {}s{}",
+                    settings.fight_duration,
+                    if settings.fight_duration < LOW_FIGHT_DURATION_VALUE_WARNING {
+                        format!(
+                        " (/!\\ set to a low value (<{}s), this can lead to inaccurate results)",
+                        LOW_FIGHT_DURATION_VALUE_WARNING
+                    )
+                    } else {
+                        "".to_string()
+                    }
+                )
+                .as_str(),
+                format!(
+                    "percentage of physical damage received (by {}): {:.0}%",
+                    champ_properties.name,
+                    100. * settings.phys_dmg_received_percent,
+                )
+                .as_str(),
+                format!(
+                    "go to runes settings (current keystone: {}) -->",
+                    settings.runes_page.keystone
+                )
+                .as_str(),
+                "go to items settings -->",
+                format!(
+                    "judgment weights: DPS {}, defense {}, mobility {}",
+                    settings.judgment_weights.0,
+                    settings.judgment_weights.1,
+                    settings.judgment_weights.2
+                )
+                .as_str(),
+                format!(
+                    "search threshold: {:.0}%{}",
+                    100. * settings.search_threshold,
+                    if settings.search_threshold < LOW_SEARCH_THRESHOLD_VALUE_WARNING {
+                        format!(
+                        " (/!\\ set to a low value (<{:.0}%), this can lead to inaccurate results)",
+                        100. * LOW_SEARCH_THRESHOLD_VALUE_WARNING
+                    )
+                    } else if settings.search_threshold > HIGH_SEARCH_THRESHOLD_VALUE_WARNING {
+                        format!(
+                        " (/!\\ set to a high value (>{:.0}%), this can result in long computation time)",
+                        100. * HIGH_SEARCH_THRESHOLD_VALUE_WARNING
+                    )
+                    } else {
+                        "".to_string()
+                    }
+                ).as_str(),
+                "reset all settings to default",
+            ],
             true,
         )? {
             Some(choice) => choice,
@@ -630,35 +624,29 @@ fn confirm_builds_generation_settings(
                 handle_runes_settings(settings, champ_properties)?;
             }
             6 => {
+                //items settings
+                handle_items_settings(settings, champ_properties)?;
+            }
+            7 => {
                 //judgment_weights
                 change_judgment_weights(settings, champ_properties)?;
             }
-            7 => {
-                //n_items
-                change_n_items(settings, champ_properties)?;
-            }
             8 => {
-                //items pools settings
-                handle_items_pools_settings(settings, champ_properties)?;
-            }
-            9 => {
-                //mandatory_items
-                change_mandatory_items(settings, champ_properties)?;
-            }
-            10 => {
                 //search_threshold
                 change_search_threshold(settings, champ_properties)?;
             }
-            11 => {
-                //reset to default settings
+            9 => {
+                //reset all settings to default
                 *settings = BuildsGenerationSettings::default_by_champion(champ_properties);
+                println!("\nAll settings have been reset to default.");
             }
             _ => unreachable!("Unhandled user input"),
         }
     }
 }
 
-const TARGET_HELP_MSG: &str = "The selected target will be used to compute the champion's DPS.";
+const TARGET_HELP_MSG: &str =
+    "The selected target resistances will be used to compute the champion's DPS.";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_target(
@@ -674,7 +662,7 @@ fn change_target(
             false,
         ) {
             Ok(Some(choice)) => choice,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
@@ -692,7 +680,7 @@ fn change_target(
 }
 
 const FIGHT_SCENARIO_HELP_MSG: &str = "Each generated build will go through a fight simulation according to the selected scenario to evaluate its performance.\n\
-        Hence, the builds found will perform best for the selected scenario.";
+        Therefore, the builds found will perform best for the selected scenario.";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_fight_scenario_number(
@@ -714,7 +702,7 @@ fn change_fight_scenario_number(
             false,
         ) {
             Ok(Some(choice)) => choice,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
@@ -744,7 +732,7 @@ fn change_fight_duration(
         let number: f32 =
             match get_user_f32("", "Enter a fight duration", FIGHT_DURATION_HELP_MSG, false) {
                 Ok(Some(number)) => number,
-                Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
+                Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false
                 Err(UserCommand::Back) => return Ok(()),
                 Err(command) => return Err(command),
             };
@@ -782,7 +770,7 @@ fn change_phys_dmg_received_percent(
             false,
         ) {
             Ok(Some(number)) => number,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
@@ -860,13 +848,13 @@ fn handle_runes_settings(
                 settings.runes_page.keystone = best_keystones[0].0; //should never go out of bounds since `runes_data::ALL_RUNES_KEYSTONES` should never be empty
 
                 //print best runes keystone screen
-                println!("\nBest runes keystone:");
+                println!("\nBest runes keystone in order:");
                 println!(
-                    " - 1: {:#} (score: {:.0}) - has replaced the previous setting",
+                    " - {:#} (score: {:.0}) - has replaced the previous setting",
                     best_keystones[0].0, best_keystones[0].1
                 );
-                for (i, k) in best_keystones[1..].iter().enumerate() {
-                    println!(" - {}: {:#} (score: {:.0})", i + 2, k.0, k.1);
+                for k in best_keystones[1..].iter() {
+                    println!(" - {:#} (score: {:.0})", k.0, k.1);
                 }
 
                 get_user_raw_input("press enter to return to runes settings screen")?;
@@ -874,6 +862,7 @@ fn handle_runes_settings(
             6 => {
                 //reset to default runes page
                 settings.runes_page = champ_properties.defaults.runes_pages;
+                println!("\nRunes page has been reset to default.");
             }
             _ => unreachable!("Unhandled user input"),
         }
@@ -955,61 +944,104 @@ fn change_rune_shard(
     }
 }
 
-#[allow(clippy::type_complexity)]
-fn get_user_judgment_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>), UserCommand> {
-    //get dps weight
-    let dps_weight: Option<f32> = get_user_f32("",
-        "Enter the DPS weight (press enter to keep the previous value)",
-        "The DPS weight is used to measure the importance of the champion's DPS when calculating the gold value of a build.\n\
-        The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
-        true)?;
+const ITEMS_POOLS_SETTINGS_HELP_MSG: &str = concat!(
+    "Meaning of these settings:\n\
+    1) number of items per build: ",
+    N_ITEMS_HELP_MSG,
+    "\n\n2) mandatory items: ",
+    MANDATORY_ITEMS_HELP_MSG,
+    "\n\n3) boots slot: ",
+    BOOTS_SLOT_HELP_MSG,
+    "\n\n4) support item slot: ",
+    SUPPORT_ITEM_SLOT_HELP_MSG,
+    "\n\n5) change allowed legendary items",
+    "\n\n6) change allowed boots",
+    "\n\n7) change allowed support items",
+    "\n\n8) allow manaflow items in first slot: ",
+    ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG,
+);
 
-    //get defense weight
-    let defense_weight: Option<f32> = get_user_f32("",
-        "Enter the defense weight (press enter to keep the previous value)",
-        "The defense weight is used to measure the importance of the champion's defensive stats, heals and hields when calculating the gold value of a build.\n\
-        The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
-        true)?;
-
-    //get ms weight
-    let ms_weight: Option<f32> = get_user_f32("",
-        "Enter the mobility weight (press enter to keep the previous value)",
-        "The mobility weight is used to measure the importance of the champion's mobility when calculating the gold value of a build.\n\
-        The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
-        true)?;
-
-    Ok((dps_weight, defense_weight, ms_weight))
-}
-
-/// This function never returns `Err(UserCommand::back)`.
-fn change_judgment_weights(
+fn handle_items_settings(
     settings: &mut BuildsGenerationSettings,
     champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
-        let input_weights: (Option<f32>, Option<f32>, Option<f32>) =
-            match get_user_judgment_weights() {
-                Ok(input_weights) => input_weights,
-                Err(UserCommand::Back) => return Ok(()),
-                Err(command) => return Err(command),
-            };
+        let choice: usize = match get_user_choice(
+            "Item settings:",
+            "Select a setting to change (press enter to confirm current settings)",
+            ITEMS_POOLS_SETTINGS_HELP_MSG,
+            [
+                format!("number of items per build: {}", settings.n_items).as_str(),
+                format!("mandatory items: {}", settings.mandatory_items).as_str(),
+                format!("boots slot: {}", settings.boots_slot).as_str(),
+                format!("support item slot: {}", settings.support_item_slot).as_str(),
+                "change allowed legendary items -->",
+                "change allowed boots -->",
+                "change allowed support items -->",
+                format!(
+                    "allow manaflow items in first slot: {}",
+                    settings.allow_manaflow_first_item
+                )
+                .as_str(),
+                "reset to default items settings",
+            ],
+            true,
+        ) {
+            Ok(Some(choice)) => choice,
+            Ok(None) => return Ok(()),
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
 
-        let old_judgment_weights: (f32, f32, f32) = settings.judgment_weights; //backup before checking validity
-        if let Some(dps_weight) = input_weights.0 {
-            settings.judgment_weights.0 = dps_weight;
-        }
-        if let Some(defense_weight) = input_weights.1 {
-            settings.judgment_weights.1 = defense_weight;
-        }
-        if let Some(ms_weight) = input_weights.2 {
-            settings.judgment_weights.2 = ms_weight;
-        }
+        match choice {
+            1 => {
+                //n_items
+                change_n_items(settings, champ_properties)?;
+            }
+            2 => {
+                //mandatory_items
+                change_mandatory_items(settings, champ_properties)?;
+            }
+            3 => {
+                //boots_slot
+                change_boots_slot(settings, champ_properties)?;
+            }
+            4 => {
+                //support_item_slot
+                change_support_item_slot(settings, champ_properties)?;
+            }
+            5 => {
+                //change legendary items pool
+                change_items_pool(ItemPoolType::Legendary, &mut settings.legendary_items_pool)?;
+            }
+            6 => {
+                //change boots pool
+                change_items_pool(ItemPoolType::Boots, &mut settings.boots_pool)?;
+            }
+            7 => {
+                //change support items pool
+                change_items_pool(ItemPoolType::Support, &mut settings.support_items_pool)?;
+            }
+            8 => {
+                //flip allow_manaflow_first_item
+                settings.allow_manaflow_first_item = !settings.allow_manaflow_first_item;
+            }
+            9 => {
+                //reset to default items settings
+                let default: BuildsGenerationSettings =
+                    BuildsGenerationSettings::default_by_champion(champ_properties);
 
-        if let Err(error_msg) = settings.check_settings(champ_properties) {
-            println!("Failed to set judgment weights: {error_msg}");
-            settings.judgment_weights = old_judgment_weights; //restore valid value
-        } else {
-            return Ok(());
+                settings.n_items = default.n_items;
+                settings.mandatory_items = default.mandatory_items;
+                settings.boots_slot = default.boots_slot;
+                settings.support_item_slot = default.support_item_slot;
+                settings.legendary_items_pool = default.legendary_items_pool;
+                settings.boots_pool = default.boots_pool;
+                settings.support_items_pool = default.support_items_pool;
+
+                println!("\nItem settings have been reset to default.");
+            }
+            _ => unreachable!("Unhandled user input"),
         }
     }
 }
@@ -1030,7 +1062,7 @@ fn change_n_items(
             false,
         ) {
             Ok(Some(n_items)) => n_items,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
@@ -1047,101 +1079,139 @@ fn change_n_items(
     }
 }
 
-const ITEMS_POOLS_SETTINGS_HELP_MSG: &str = concat!(
-    "Meaning of these settings:\n\
-    1) boots slot: ",
-    BOOTS_SLOT_HELP_MSG,
-    "\n\n2) allow boots if slot is not specified: ",
-    ALLOW_BOOTS_IF_NO_SLOT_HELP_MSG,
-    "\n\n3) support item slot: ",
-    SUPPORT_ITEM_SLOT_HELP_MSG,
-    "\n\n4) change allowed legendary items",
-    "\n\n5) change allowed boots",
-    "\n\n6) change allowed support items",
-    "\n\n7) allow manaflow items in first slot: ",
-    ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG,
-);
+const MANDATORY_ITEMS_HELP_MSG: &str =
+    "Every generated build will have the selected items at the specified slots.";
 
-fn handle_items_pools_settings(
+/// This function never returns `Err(UserCommand::back)`.
+fn change_mandatory_items(
     settings: &mut BuildsGenerationSettings,
     champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
+    //get item index first
     loop {
-        let choice: usize = match get_user_choice(
-            "Item pools settings:",
-            "Select a setting to change (press enter to confirm current settings)",
-            ITEMS_POOLS_SETTINGS_HELP_MSG,
-            [
-                format!(
-                    "boots slot: {}",
-                    if settings.boots_slot == 0 {
-                        "not specified".to_string()
-                    } else {
-                        settings.boots_slot.to_string()
-                    }
-                )
-                .as_str(),
-                format!(
-                    "allow boots if slot is not specified: {}",
-                    settings.allow_boots_if_no_slot
-                )
-                .as_str(),
-                format!(
-                    "support item slot: {}",
-                    if settings.support_item_slot == 0 {
-                        "none".to_string()
-                    } else {
-                        settings.support_item_slot.to_string()
-                    }
-                )
-                .as_str(),
-                "change allowed legendary items -->",
-                "change allowed boots -->",
-                "change allowed support items -->",
-                format!(
-                    "allow manaflow items in first slot: {}",
-                    settings.allow_manaflow_first_item
-                )
-                .as_str(),
-            ],
+        let item_slot: usize = match get_user_usize(
+            "",
+            format!(
+                "Current mandatory items are: {}\n\
+                Enter an item slot where you want to impose an item (press enter to confirm current items)",
+                settings.mandatory_items
+            )
+            .as_str(),
+            MANDATORY_ITEMS_HELP_MSG,
+            1..=MAX_UNIT_ITEMS,
             true,
         ) {
-            Ok(Some(choice)) => choice,
+            Ok(Some(item_slot)) => item_slot,
             Ok(None) => return Ok(()),
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
+        let item_idx: usize = item_slot - 1;
 
-        match choice {
-            1 => {
-                //boots_slot
-                change_boots_slot(settings, champ_properties)?;
+        //get item and put it in mandatory items if valid
+        loop {
+            let item: &Item = match get_user_item(
+                "",
+                &format!("Enter an item to impose at slot {item_slot} (press enter for none)"),
+                EnumSet::all(),
+            ) {
+                Ok(item) => item,
+                Err(UserCommand::Back) => break,
+                Err(command) => return Err(command),
+            };
+
+            let old_item: &Item = settings.mandatory_items[item_idx]; //backup before checking validity
+            settings.mandatory_items[item_idx] = item;
+
+            if let Err(error_msg) = settings.check_settings(champ_properties) {
+                println!("Failed to set mandatory items: {error_msg}");
+                settings.mandatory_items[item_idx] = old_item; //restore valid value
+            } else {
+                break;
             }
-            2 => {
-                //flip allow_boots_if_no_slot
-                settings.allow_boots_if_no_slot = !settings.allow_boots_if_no_slot;
-            }
-            3 => {
-                //support_item_slot
-                change_support_item_slot(settings, champ_properties)?;
-            }
-            4 => {
-                //change legendary items pool
-                change_items_pool(ItemPoolType::Legendary, &mut settings.legendary_items_pool)?;
-            }
-            5 => {
-                //change boots pool
-                change_items_pool(ItemPoolType::Boots, &mut settings.boots_pool)?;
-            }
-            6 => {
-                //change support items pool
-                change_items_pool(ItemPoolType::Support, &mut settings.support_items_pool)?;
-            }
-            7 => {
-                //flip allow_manaflow_first_item
-                settings.allow_manaflow_first_item = !settings.allow_manaflow_first_item;
-            }
-            _ => unreachable!("Unhandled user input"),
+        }
+    }
+}
+
+const BOOTS_SLOT_HELP_MSG: &str = "Every generated build will have boots at the selected slot.\n\
+If set to 'Any', you let the optimizer decide which slot is best (it may even not pick any depending on your other settings).\n\
+If set to 'None', boots are disallowed.";
+
+fn get_item_slot(help_msg: &str) -> Result<ItemSlot, UserCommand> {
+    loop {
+        let input: String = get_user_input("Enter an item slot or 'any' or 'none'", help_msg)?;
+
+        if input.is_empty() {
+            println!("Please enter a valid item slot");
+        }
+        match input.as_str() {
+            "any" => return Ok(ItemSlot::Any),
+            "none" => return Ok(ItemSlot::None),
+            input => match input.parse::<usize>() {
+                Ok(number) => {
+                    if (1..=MAX_UNIT_ITEMS).contains(&number) {
+                        return Ok(ItemSlot::Slot(number));
+                    } else {
+                        println!(
+                            "Item slot must be between 1 and {MAX_UNIT_ITEMS} (got {})",
+                            number,
+                        );
+                    }
+                }
+                Err(error) => println!("'{input}' is not a valid integer: {}", error),
+            },
+        }
+    }
+}
+
+/// This function never returns `Err(UserCommand::back)`.
+fn change_boots_slot(
+    settings: &mut BuildsGenerationSettings,
+    champ_properties: &UnitProperties,
+) -> Result<(), UserCommand> {
+    loop {
+        let boots_slot: ItemSlot = match get_item_slot(BOOTS_SLOT_HELP_MSG) {
+            Ok(boots_slot) => boots_slot,
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
+
+        let old_boots_slot: ItemSlot = settings.boots_slot; //backup before checking validity
+        settings.boots_slot = boots_slot;
+
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
+            println!("Failed to set boots slot: {error_msg}");
+            settings.boots_slot = old_boots_slot; //restore valid value
+        } else {
+            return Ok(());
+        }
+    }
+}
+
+const SUPPORT_ITEM_SLOT_HELP_MSG: &str = "Every generated build will have a support item at the selected slot.\n\
+If set to 'Any', you let the optimizer decide which slot is best (it may even not pick any depending on your other settings).\n\
+If set to 'None', support items are disallowed.";
+
+/// This function never returns `Err(UserCommand::back)`.
+fn change_support_item_slot(
+    settings: &mut BuildsGenerationSettings,
+    champ_properties: &UnitProperties,
+) -> Result<(), UserCommand> {
+    loop {
+        let support_item_slot: ItemSlot = match get_item_slot(SUPPORT_ITEM_SLOT_HELP_MSG) {
+            Ok(support_item_slot) => support_item_slot,
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
+
+        let old_support_item_slot: ItemSlot = settings.support_item_slot; //backup before checking validity
+        settings.support_item_slot = support_item_slot;
+
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
+            println!("Failed to set support item slot: {error_msg}");
+            settings.support_item_slot = old_support_item_slot; //restore valid value
+        } else {
+            return Ok(());
         }
     }
 }
@@ -1203,139 +1273,74 @@ fn change_items_pool(
     }
 }
 
-const BOOTS_SLOT_HELP_MSG: &str = "Every generated build will have boots at the selected slot. If set to 0, the slot is not specified\n\
-and boots are considered like any other regular item (thus not guaranteed to be in the generated builds depending on your settings).";
-
-/// This function never returns `Err(UserCommand::back)`.
-fn change_boots_slot(
-    settings: &mut BuildsGenerationSettings,
-    champ_properties: &UnitProperties,
-) -> Result<(), UserCommand> {
-    loop {
-        let boots_slot: usize = match get_user_usize(
-            "",
-            "Enter a boots slot (or 0 if not specified)",
-            BOOTS_SLOT_HELP_MSG,
-            0..=MAX_UNIT_ITEMS,
-            false,
-        ) {
-            Ok(Some(boots_slot)) => boots_slot,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
-            Err(UserCommand::Back) => return Ok(()),
-            Err(command) => return Err(command),
-        };
-
-        let old_boots_slot: usize = settings.boots_slot; //backup before checking validity
-        settings.boots_slot = boots_slot;
-
-        if let Err(error_msg) = settings.check_settings(champ_properties) {
-            println!("Failed to set boots slot: {error_msg}");
-            settings.boots_slot = old_boots_slot; //restore valid value
-        } else {
-            return Ok(());
-        }
-    }
-}
-
-const SUPPORT_ITEM_SLOT_HELP_MSG: &str =
-    "Every generated build will have a support item at the selected slot (or no support item if 0).";
-
-/// This function never returns `Err(UserCommand::back)`.
-fn change_support_item_slot(
-    settings: &mut BuildsGenerationSettings,
-    champ_properties: &UnitProperties,
-) -> Result<(), UserCommand> {
-    loop {
-        let support_item_slot: usize = match get_user_usize(
-            "",
-            "Enter a support item slot (or 0 if none)",
-            SUPPORT_ITEM_SLOT_HELP_MSG,
-            0..=MAX_UNIT_ITEMS,
-            false,
-        ) {
-            Ok(Some(support_item_slot)) => support_item_slot,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
-            Err(UserCommand::Back) => return Ok(()),
-            Err(command) => return Err(command),
-        };
-
-        let old_support_item_slot: usize = settings.support_item_slot; //backup before checking validity
-        settings.support_item_slot = support_item_slot;
-
-        if let Err(error_msg) = settings.check_settings(champ_properties) {
-            println!("Failed to set support item slot: {error_msg}");
-            settings.support_item_slot = old_support_item_slot; //restore valid value
-        } else {
-            return Ok(());
-        }
-    }
-}
-
-const ALLOW_BOOTS_IF_NO_SLOT_HELP_MSG: &str =
-    "If boots are allowed in the build when the boots slot is not specified (set to 0)";
-
 const ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG: &str =
-    "If manaflow items are allowed in first slot (overrides items pools if set to false)";
+    "If manaflow items are allowed as first item. Only effective if there are manaflow items allowed in items pools.\n\
+    This setting is overridden by mandatory items.";
 
-const MANDATORY_ITEMS_HELP_MSG: &str =
-    "Every generated build will have the selected items at the specified slots.";
+const SEARCH_THRESHOLD_HELP_MSG: &str =
+    "Controls the percentage of builds explored among the possibilities during the generation process.\n\
+     Higher value -> a higher number of badly performing builds are explored, may find better scaling builds but increases the computation time and memory usage.\n\
+     Lower value -> a lower number of badly performing builds are explored, may find worse scaling builds but decreases the computation time and memory usage.\n\
+     A search treshold percentage between 15-25% is generally sufficient to find most of the relevant builds.";
+
+#[allow(clippy::type_complexity)]
+fn get_user_judgment_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>), UserCommand> {
+    //get dps weight
+    let dps_weight: Option<f32> = get_user_f32("",
+             "Enter the DPS weight (press enter to keep the previous value)",
+             "The DPS weight is used to measure the importance of the champion's DPS when calculating the gold value of a build.\n\
+             The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
+             true)?;
+
+    //get defense weight
+    let defense_weight: Option<f32> = get_user_f32("",
+             "Enter the defense weight (press enter to keep the previous value)",
+             "The defense weight is used to measure the importance of the champion's defensive stats, heals and hields when calculating the gold value of a build.\n\
+             The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
+             true)?;
+
+    //get ms weight
+    let ms_weight: Option<f32> = get_user_f32("",
+             "Enter the mobility weight (press enter to keep the previous value)",
+             "The mobility weight is used to measure the importance of the champion's mobility when calculating the gold value of a build.\n\
+             The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
+             true)?;
+
+    Ok((dps_weight, defense_weight, ms_weight))
+}
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_mandatory_items(
+fn change_judgment_weights(
     settings: &mut BuildsGenerationSettings,
     champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
-    //get item index first
     loop {
-        let item_slot: usize = match get_user_usize(
-            "",
-            format!(
-                "Current mandatory items are: {}\n\
-                Enter an item slot where you want to impose an item (press enter to confirm current items)",
-                settings.mandatory_items
-            )
-            .as_str(),
-            MANDATORY_ITEMS_HELP_MSG,
-            1..=MAX_UNIT_ITEMS,
-            true,
-        ) {
-            Ok(Some(item_slot)) => item_slot,
-            Ok(None) => return Ok(()),
-            Err(UserCommand::Back) => return Ok(()),
-            Err(command) => return Err(command),
-        };
-        let item_idx: usize = item_slot - 1;
-
-        //get item and put it in mandatory items if valid
-        loop {
-            let item: &Item = match get_user_item(
-                "",
-                &format!("Enter an item to impose at slot {item_slot} (press enter for none)"),
-                EnumSet::all(),
-            ) {
-                Ok(item) => item,
-                Err(UserCommand::Back) => break,
+        let input_weights: (Option<f32>, Option<f32>, Option<f32>) =
+            match get_user_judgment_weights() {
+                Ok(input_weights) => input_weights,
+                Err(UserCommand::Back) => return Ok(()),
                 Err(command) => return Err(command),
             };
 
-            let old_item: &Item = settings.mandatory_items[item_idx]; //backup before checking validity
-            settings.mandatory_items[item_idx] = item;
+        let old_judgment_weights: (f32, f32, f32) = settings.judgment_weights; //backup before checking validity
+        if let Some(dps_weight) = input_weights.0 {
+            settings.judgment_weights.0 = dps_weight;
+        }
+        if let Some(defense_weight) = input_weights.1 {
+            settings.judgment_weights.1 = defense_weight;
+        }
+        if let Some(ms_weight) = input_weights.2 {
+            settings.judgment_weights.2 = ms_weight;
+        }
 
-            if let Err(error_msg) = settings.check_settings(champ_properties) {
-                println!("Failed to set mandatory items: {error_msg}");
-                settings.mandatory_items[item_idx] = old_item; //restore valid value
-            } else {
-                break;
-            }
+        if let Err(error_msg) = settings.check_settings(champ_properties) {
+            println!("Failed to set judgment weights: {error_msg}");
+            settings.judgment_weights = old_judgment_weights; //restore valid value
+        } else {
+            return Ok(());
         }
     }
 }
-
-const SEARCH_THRESHOLD_HELP_MSG: &str =
-    "Controls the percentage of builds to explore among the possibilities during the generation process.\n\
-     Higher value -> a higher number of badly performing builds are explored, may find better scaling builds but increases the computation time.\n\
-     Lower value -> a lower number of badly performing builds are explored, may find worse scaling builds but decreases the computation time.\n\
-     A search treshold percentage between 15-25% is generally sufficient to find most of the relevant builds.";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_search_threshold(
@@ -1350,7 +1355,7 @@ fn change_search_threshold(
             false,
         ) {
             Ok(Some(number)) => number,
-            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false but
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
