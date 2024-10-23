@@ -422,7 +422,7 @@ pub struct BuildsGenerationSettings {
     pub search_threshold: f32,
 }
 
-const DEFAULT_FIGHT_DURATION: f32 = 7.5;
+const DEFAULT_FIGHT_DURATION: f32 = 6.0;
 impl Default for BuildsGenerationSettings {
     fn default() -> Self {
         BuildsGenerationSettings {
