@@ -11,8 +11,6 @@ use units_data::*;
 use constcat::concat;
 use enumset::{enum_set, EnumSet, EnumSetType};
 
-use core::fmt::Debug;
-use core::iter::Iterator;
 use core::num::NonZeroUsize;
 use core::ops::RangeBounds;
 use std::io;
@@ -65,7 +63,7 @@ pub fn launch_interface() {
             &greetings_msg,
             "Enter the champion for which you want to find the best builds",
             "Please enter a valid champion name (among those available)",
-            "No help message available.",
+            "",
             champ_names.iter().copied(),
             false, //safety of a later expect() depends on this argument to be false
         ) {
@@ -118,7 +116,14 @@ fn get_user_input(input_line: &str, help_msg: &str) -> Result<String, UserComman
         println!();
         let input: String = get_user_raw_input(input_line)?;
         match input.as_str() {
-            "help" | "?" => println!("\n---[ HELP ]---\n{help_msg}"),
+            "help" | "?" => println!(
+                "\n---[ HELP ]---\n{}",
+                if help_msg.is_empty() {
+                    "No help message available"
+                } else {
+                    help_msg
+                }
+            ),
             "back" | "b" => return Err(UserCommand::Back),
             "home" => return Err(UserCommand::Home),
             "exit" => {
@@ -485,7 +490,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
                 4 => match get_user_usize(
                     "",
                     "Enter the number of builds to show",
-                    "No help message available.",
+                    "",
                     1..,   //safety of a later unwrap depends on this range to exclude 0
                     false, //safety of a later expect() depends on this argument to be false
                 ) {
@@ -796,7 +801,7 @@ fn handle_runes_settings(
             "Runes settings:\n\
             (/!\\ runes shard = runes bonus stats, not the runes slots under the keystone)",
             "Select a setting to change (press enter to confirm current runes)",
-            "No help message available",
+            "",
             [
                 format!("rune shard 1: {:?}", settings.runes_page.shard1).as_str(),
                 format!("rune shard 2: {:?}", settings.runes_page.shard2).as_str(),
@@ -883,7 +888,7 @@ fn change_rune_keystone(
         let choice: usize = match get_user_choice(
             "Available rune keystones:",
             "Select a rune keystone",
-            "No help message available.",
+            "",
             keystone_choices.iter().map(|keystone| keystone.full_name),
             false,
         ) {
@@ -914,7 +919,7 @@ fn change_rune_shard(
         let choice: RuneShard = match get_user_choice(
             "Available rune shards:",
             "Select a rune shard",
-            "No help message available.",
+            "",
             ["Left", "Middle", "Right"],
             false,
         ) {

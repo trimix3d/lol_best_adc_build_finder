@@ -45,50 +45,51 @@ fn kaisa_init_abilities(champ: &mut Unit) {
 }
 
 const KAISA_SECOND_SKIN_BASE_MAGIC_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
-    5.,    //lvl 1
-    6.06,  //lvl 2
-    7.12,  //lvl 3
-    8.18,  //lvl 4
-    9.24,  //lvl 5
-    10.29, //lvl 6
-    11.35, //lvl 7
-    12.41, //lvl 8
-    13.47, //lvl 9
-    14.53, //lvl 10
-    15.59, //lvl 11
-    16.65, //lvl 12
-    17.71, //lvl 13
-    18.76, //lvl 14
-    19.82, //lvl 15
-    20.88, //lvl 16
-    21.94, //lvl 17
-    23.,   //lvl 18
+    4.,    //lvl 1
+    5.18,  //lvl 2
+    6.35,  //lvl 3
+    7.53,  //lvl 4
+    8.71,  //lvl 5
+    9.88,  //lvl 6
+    11.06, //lvl 7
+    12.24, //lvl 8
+    13.41, //lvl 9
+    14.59, //lvl 10
+    15.76, //lvl 11
+    16.94, //lvl 12
+    18.12, //lvl 13
+    19.29, //lvl 14
+    20.47, //lvl 15
+    21.65, //lvl 16
+    22.82, //lvl 17
+    24.,   //lvl 18
 ];
 
 const KAISA_SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
-    1.,    //lvl 1
-    1.65,  //lvl 2
-    2.29,  //lvl 3
-    2.94,  //lvl 4
-    3.59,  //lvl 5
-    4.24,  //lvl 6
-    4.88,  //lvl 7
-    5.53,  //lvl 8
-    6.18,  //lvl 9
-    6.82,  //lvl 10
-    7.47,  //lvl 11
-    8.12,  //lvl 12
-    8.76,  //lvl 13
-    9.41,  //lvl 14
-    10.06, //lvl 15
-    10.71, //lvl 16
-    11.35, //lvl 17
-    12.,   //lvl 18
+    1.,   //lvl 1
+    1.29, //lvl 2
+    1.59, //lvl 3
+    1.88, //lvl 4
+    2.18, //lvl 5
+    2.47, //lvl 6
+    2.76, //lvl 7
+    3.06, //lvl 8
+    3.35, //lvl 9
+    3.65, //lvl 10
+    3.94, //lvl 11
+    4.24, //lvl 12
+    4.53, //lvl 13
+    4.82, //lvl 14
+    5.12, //lvl 15
+    5.41, //lvl 16
+    5.71, //lvl 17
+    6.,   //lvl 18
 ];
 
 const KAISA_SECOND_SKIN_MAX_STACKS: u8 = 5;
 const KAISA_SECOND_SKIN_AP_COEF_BY_STACK: [f32; KAISA_SECOND_SKIN_MAX_STACKS as usize] =
-    [0.15, 0.175, 0.20, 0.225, 0.25];
+    [0.12, 0.15, 0.18, 0.21, 0.24];
+
 const KAISA_SECOND_SKIN_DELAY: f32 = 4.; //stack duration
 fn kaisa_second_skin(
     champ: &mut Unit,

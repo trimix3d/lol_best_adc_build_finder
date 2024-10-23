@@ -95,8 +95,7 @@ fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     tot_dmg
 }
 
-const SIVIR_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [15., 30., 45., 60., 75.];
-const SIVIR_Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.80, 0.85, 0.90, 0.95, 1.0];
+const SIVIR_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [60., 85., 110., 135., 160.];
 
 fn sivir_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&SIVIR_FLEET_OF_FOOT, 0.);
@@ -106,9 +105,7 @@ fn sivir_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let phys_dmg: f32 = SIVIR_Q_N_TARGETS
         * (1. + SIVIR_Q_RETURN_PERCENT)
         * (1. + 0.5 * champ.stats.crit_chance)
-        * (SIVIR_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
-            + champ.stats.ad() * SIVIR_Q_AD_RATIO_BY_Q_LVL[q_lvl_idx]
-            + 0.6 * champ.stats.ap());
+        * (SIVIR_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx] + champ.stats.bonus_ad + 0.6 * champ.stats.ap());
 
     champ.dmg_on_target(
         target_stats,
@@ -284,7 +281,7 @@ impl Unit {
         base_stats: UnitStats {
             hp: 600.,
             mana: 340.,
-            base_ad: 58.,
+            base_ad: 60.,
             bonus_ad: 0.,
             ap_flat: 0.,
             ap_percent: 0.,

@@ -98,7 +98,7 @@ const XAYAH_W_BONUS_AS_BY_W_LVL: [f32; 5] = [0.35, 0.40, 0.45, 0.50, 0.55];
 
 fn xayah_deadly_plumage_as_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::XayahDeadlyPlumageBonusAS] == 0. {
-        champ.effects_values[EffectValueId::XayahWBasicAttackCoef] = 1.2; //empower basic attacks
+        champ.effects_values[EffectValueId::XayahWBasicAttackCoef] = 1.25; //empower basic attacks
         let bonus_as_buff: f32 = XAYAH_W_BONUS_AS_BY_W_LVL[usize::from(champ.w_lvl - 1)];
         champ.stats.bonus_as += bonus_as_buff;
         champ.effects_values[EffectValueId::XayahDeadlyPlumageBonusAS] = bonus_as_buff;

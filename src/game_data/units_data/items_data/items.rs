@@ -702,7 +702,7 @@ fn blade_of_the_ruined_king_mists_edge(
     }
     PartDmg(
         n_targets
-            * (BLADE_OF_THE_RUINED_KING_MISTS_EDGE_AVG_TARGET_HP_PERCENT * 0.06 * target_stats.hp),
+            * (BLADE_OF_THE_RUINED_KING_MISTS_EDGE_AVG_TARGET_HP_PERCENT * 0.05 * target_stats.hp),
         0.,
         0.,
     ) //value for ranged champions
@@ -6816,7 +6816,7 @@ impl Item {
             ms_percent: 0.,
             lethality: 0.,
             armor_pen_percent: 0.,
-            magic_pen_flat: 15.,
+            magic_pen_flat: 12.,
             magic_pen_percent: 0.,
             armor_red_flat: 0.,
             armor_red_percent: 0.,
