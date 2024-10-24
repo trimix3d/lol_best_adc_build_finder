@@ -512,24 +512,24 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
 
 const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
     "Meaning of these settings:\n\
-    - 1) target:\n",
+    -1) target:\n",
     TARGET_HELP_MSG,
-    "\n\n- 2) fight scenario:\n",
+    "\n\n-2) fight scenario:\n",
     FIGHT_SCENARIO_HELP_MSG,
-    "\n\n- 3) fight duration:\n",
+    "\n\n-3) fight duration:\n",
     FIGHT_DURATION_HELP_MSG,
-    "\n\n- 4) percentage of physical damage received:\n",
+    "\n\n-4) percentage of physical damage received:\n",
     PHYS_DMG_RECEIVED_PERCENT_HELP_MSG,
-    "\n\n- 5) go to runes settings:\n\
+    "\n\n-5) go to runes settings:\n\
          change rune keystone and rune shards.",
-    "\n\n- 6) go to items settings:\n\
+    "\n\n-6) go to items settings:\n\
          manage items rules (such as when boots must be purchased, which items are allowed, etc.)",
-    "\n\n- 7) judgment weights:\n\
+    "\n\n-7) judgment weights:\n\
          3 values, first for DPS, second for defense and third for mobility. These vales are\n\
          used to weight the relative importance of DPS, defense and mobility of the champion\n\
          in a single score value given to a build. The weights are relative to each other,\n\
          i.e. DPS 3, defense 2, mobility 1 is the same as DPS 1, defense 0.66, mobility 0.33",
-    "\n\n- 8) search threshold:\n",
+    "\n\n-8) search threshold:\n",
     SEARCH_THRESHOLD_HELP_MSG
 );
 
@@ -953,18 +953,18 @@ fn change_rune_shard(
 
 const ITEMS_POOLS_SETTINGS_HELP_MSG: &str = concat!(
     "Meaning of these settings:\n\
-    - 1) number of items per build:\n",
+    -1) number of items per build:\n",
     N_ITEMS_HELP_MSG,
-    "\n\n- 2) mandatory items:\n",
+    "\n\n-2) mandatory items:\n",
     MANDATORY_ITEMS_HELP_MSG,
-    "\n\n- 3) boots slot:\n",
+    "\n\n-3) boots slot:\n",
     BOOTS_SLOT_HELP_MSG,
-    "\n\n- 4) support item slot:\n",
+    "\n\n-4) support item slot:\n",
     SUPPORT_ITEM_SLOT_HELP_MSG,
-    "\n\n- 5) change allowed legendary items",
-    "\n\n- 6) change allowed boots",
-    "\n\n- 7) change allowed support items",
-    "\n\n- 8) allow manaflow items in first slot:\n",
+    "\n\n-5) change allowed legendary items",
+    "\n\n-6) change allowed boots",
+    "\n\n-7) change allowed support items",
+    "\n\n-8) allow manaflow items in first slot:\n",
     ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG,
 );
 
