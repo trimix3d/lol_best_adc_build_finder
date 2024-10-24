@@ -26,6 +26,12 @@ const DEFAULT_N_PRINTED_BUILDS: usize = 18;
 /// Number of items used when automatically finding the best runes.
 const N_ITEMS_WHEN_FINDING_BEST_RUNES: usize = 2;
 
+const WELCOME_HELP_MSG: &str = "At any time, you can enter:\n\
+                                -back/b: to go back to the previous menu.\n\
+                                -help: to show help info on the current menu.\n\
+                                -home: to return to the champion selection page (this page).\n\
+                                -exit: to exit the program.";
+
 pub fn launch_interface() {
     println!(
         "---------------------------------------------------\n\
@@ -38,13 +44,7 @@ pub fn launch_interface() {
         Unit::ALL_CHAMPIONS.len(),
         ALL_LEGENDARY_ITEMS.len() + ALL_BOOTS.len() + ALL_SUPPORT_ITEMS.len()
     );
-    println!(
-        "At any time, you can enter:\n\
-         -back/b: to go back to the previous menu.\n\
-         -help: to show help info on the current menu.\n\
-         -home: to return to this page.\n\
-         -exit: to exit the program."
-    );
+    println!("{WELCOME_HELP_MSG}");
 
     let champ_names: Vec<&str> = Unit::ALL_CHAMPIONS
         .iter()
@@ -63,7 +63,7 @@ pub fn launch_interface() {
             &greetings_msg,
             "Enter the champion for which you want to find the best builds",
             "Please enter a valid champion name (among those available)",
-            "",
+            WELCOME_HELP_MSG,
             champ_names.iter().copied(),
             false, //safety of a later expect() depends on this argument to be false
         ) {
