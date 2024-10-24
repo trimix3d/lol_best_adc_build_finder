@@ -512,20 +512,24 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
 
 const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
     "Meaning of these settings:\n\
-    1) target: ",
+    - 1) target:\n",
     TARGET_HELP_MSG,
-    "\n\n2) fight scenario: ",
+    "\n\n- 2) fight scenario:\n",
     FIGHT_SCENARIO_HELP_MSG,
-    "\n\n3) fight duration: ",
+    "\n\n- 3) fight duration:\n",
     FIGHT_DURATION_HELP_MSG,
-    "\n\n4) percentage of physical damage received: ",
+    "\n\n- 4) percentage of physical damage received:\n",
     PHYS_DMG_RECEIVED_PERCENT_HELP_MSG,
-    "\n\n5) go to runes settings: change rune keystone and rune shards.",
-    "\n\n6) go to items settings: manage items rules (such as when boots must be purchased, which items are allowed, etc.)",
-    "\n\n7) judgment weights: 3 values, first for DPS, second for defense and third for mobility.\n\
-    These vales are used to weight the relative importance of DPS, defense and mobility of the champion in a single score value given to a build.\n\
-    The weights are relative to each other, i.e. DPS 3, defense 2, mobility 1 is the same as DPS 1, defense 0.66, mobility 0.33",
-    "\n\n8) search threshold: ",
+    "\n\n- 5) go to runes settings:\n\
+         change rune keystone and rune shards.",
+    "\n\n- 6) go to items settings:\n\
+         manage items rules (such as when boots must be purchased, which items are allowed, etc.)",
+    "\n\n- 7) judgment weights:\n\
+         3 values, first for DPS, second for defense and third for mobility. These vales are\n\
+         used to weight the relative importance of DPS, defense and mobility of the champion\n\
+         in a single score value given to a build. The weights are relative to each other,\n\
+         i.e. DPS 3, defense 2, mobility 1 is the same as DPS 1, defense 0.66, mobility 0.33",
+    "\n\n- 8) search threshold:\n",
     SEARCH_THRESHOLD_HELP_MSG
 );
 
@@ -684,8 +688,8 @@ fn change_target(
     }
 }
 
-const FIGHT_SCENARIO_HELP_MSG: &str = "Each generated build will go through a fight simulation according to the selected scenario to evaluate its performance.\n\
-        Therefore, the builds found will perform best for the selected scenario.";
+const FIGHT_SCENARIO_HELP_MSG: &str = "Each generated build will go through a fight simulation according to the selected scenario in order\n\
+                                       to evaluate its performance. Therefore, the builds found will perform best for the selected scenario.";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_fight_scenario_number(
@@ -725,8 +729,7 @@ fn change_fight_scenario_number(
     }
 }
 
-const FIGHT_DURATION_HELP_MSG: &str =
-    "Every build will be evaluated based on a fight simulation of the selected duration (in seconds).";
+const FIGHT_DURATION_HELP_MSG: &str = "Every build will be evaluated based on a fight simulation of the selected duration (in seconds).";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_fight_duration(
@@ -754,9 +757,8 @@ fn change_fight_duration(
     }
 }
 
-const PHYS_DMG_RECEIVED_PERCENT_HELP_MSG: &str =
-    "The selected percentage of physical dmg received will be considered when evaluating the defensive value of different builds.\n\
-     The percentage of magic dmg received is deducted from this (assuming no true dmg received).";
+const PHYS_DMG_RECEIVED_PERCENT_HELP_MSG: &str = "The selected percentage of physical dmg received will be considered when evaluating the defensive value\n\
+                                                  of different builds. The percentage of magic dmg received is deducted from this (assuming no true dmg received).";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_phys_dmg_received_percent(
@@ -951,18 +953,18 @@ fn change_rune_shard(
 
 const ITEMS_POOLS_SETTINGS_HELP_MSG: &str = concat!(
     "Meaning of these settings:\n\
-    1) number of items per build: ",
+    - 1) number of items per build:\n",
     N_ITEMS_HELP_MSG,
-    "\n\n2) mandatory items: ",
+    "\n\n- 2) mandatory items:\n",
     MANDATORY_ITEMS_HELP_MSG,
-    "\n\n3) boots slot: ",
+    "\n\n- 3) boots slot:\n",
     BOOTS_SLOT_HELP_MSG,
-    "\n\n4) support item slot: ",
+    "\n\n- 4) support item slot:\n",
     SUPPORT_ITEM_SLOT_HELP_MSG,
-    "\n\n5) change allowed legendary items",
-    "\n\n6) change allowed boots",
-    "\n\n7) change allowed support items",
-    "\n\n8) allow manaflow items in first slot: ",
+    "\n\n- 5) change allowed legendary items",
+    "\n\n- 6) change allowed boots",
+    "\n\n- 7) change allowed support items",
+    "\n\n- 8) allow manaflow items in first slot:\n",
     ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG,
 );
 
@@ -1139,8 +1141,9 @@ fn change_mandatory_items(
 }
 
 const BOOTS_SLOT_HELP_MSG: &str = "Every generated build will have boots at the selected slot.\n\
-If set to 'Any', you let the optimizer decide which slot is best (it may even not pick any depending on your other settings).\n\
-If set to 'None', boots are disallowed.";
+                                   If set to 'Any', you let the optimizer decide which slot is best\n\
+                                   (it may even not pick any depending on your other settings).\n\
+                                   If set to 'None', boots are disallowed.";
 
 fn get_item_slot(help_msg: &str) -> Result<ItemSlot, UserCommand> {
     loop {
@@ -1193,9 +1196,11 @@ fn change_boots_slot(
     }
 }
 
-const SUPPORT_ITEM_SLOT_HELP_MSG: &str = "Every generated build will have a support item at the selected slot.\n\
-If set to 'Any', you let the optimizer decide which slot is best (it may even not pick any depending on your other settings).\n\
-If set to 'None', support items are disallowed.";
+const SUPPORT_ITEM_SLOT_HELP_MSG: &str =
+    "Every generated build will have a support item at the selected slot.\n\
+     If set to 'Any', you let the optimizer decide which slot is best\n\
+     (it may even not pick any depending on your other settings).\n\
+     If set to 'None', support items are disallowed.";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_support_item_slot(
@@ -1278,14 +1283,16 @@ fn change_items_pool(
     }
 }
 
-const ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG: &str =
-    "If manaflow items are allowed as first item. Only effective if there are manaflow items allowed in items pools.\n\
-    This setting is overridden by mandatory items.";
+const ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG: &str = "If manaflow items are allowed as first item.\n\
+                                                  Only effective if there are manaflow items allowed in items pools.\n\
+                                                  This setting is overridden by mandatory items.";
 
 const SEARCH_THRESHOLD_HELP_MSG: &str =
     "Controls the percentage of builds explored among the possibilities during the generation process.\n\
-     Higher value -> a higher number of badly performing builds are explored, may find better scaling builds but increases the computation time and memory usage.\n\
-     Lower value -> a lower number of badly performing builds are explored, may find worse scaling builds but decreases the computation time and memory usage.\n\
+     Higher value -> a higher number of badly performing builds are explored,\n\
+     may find better scaling builds but increases the computation time and memory usage.\n\
+     Lower value -> a lower number of badly performing builds are explored,\n\
+     may find worse scaling builds but decreases the computation time and memory usage.\n\
      A search treshold percentage between 15-25% is generally sufficient to find most of the relevant builds.";
 
 #[allow(clippy::type_complexity)]
