@@ -39,11 +39,11 @@ pub fn launch_interface() {
         ALL_LEGENDARY_ITEMS.len() + ALL_BOOTS.len() + ALL_SUPPORT_ITEMS.len()
     );
     println!(
-        "At any time, you can type:\n\
-         - help/? to show help info on the current context.\n\
-         - back/b to go back.\n\
-         - home to return to this page.\n\
-         - exit to exit the program."
+        "At any time, you can enter:\n\
+         -back/b: to go back to the previous menu.\n\
+         -help: to show help info on the current menu.\n\
+         -home: to return to this page.\n\
+         -exit: to exit the program."
     );
 
     let champ_names: Vec<&str> = Unit::ALL_CHAMPIONS
