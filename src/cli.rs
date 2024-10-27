@@ -113,7 +113,7 @@ fn get_user_raw_input(input_line: &str) -> Result<String, UserCommand> {
 /// Catches user commands (go back, exit, etc) and may return an Err with the specific variant to handle.
 fn get_user_input(input_line: &str, help_msg: &str) -> Result<String, UserCommand> {
     let mut line: String = String::from(input_line);
-    line.push_str(":");
+    line.push(':');
     loop {
         println!();
         let input: String = get_user_raw_input(&line)?;
