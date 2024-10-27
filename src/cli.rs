@@ -27,10 +27,10 @@ const DEFAULT_N_PRINTED_BUILDS: usize = 18;
 const N_ITEMS_WHEN_FINDING_BEST_RUNES: usize = 2;
 
 const WELCOME_HELP_MSG: &str = "At any time, you can enter:\n\
-                                -back/b: to go back to the previous menu.\n\
-                                -help: to show help info on the current menu.\n\
-                                -home: to return to the champion selection page (this page).\n\
-                                -exit: to exit the program.";
+                                -back/b : to go back to the previous menu.\n\
+                                -help   : to show help info on the current menu.\n\
+                                -home   : to return to the champion selection page (this page).\n\
+                                -exit   : to exit the program.";
 
 pub fn launch_interface() {
     println!(
@@ -38,13 +38,13 @@ pub fn launch_interface() {
          ---\\ LoL best ADC build finder - patch {:2}.{:2} \\-----\n\
          ----\\ Champions implemented: {:3}              \\----\n\
          -----\\ Items in database: {:3}                  \\---\n\
-         ---------------------------------------------------",
+         ---------------------------------------------------\n\
+         {WELCOME_HELP_MSG}",
         PATCH_NUMBER_MAJOR,
         PATCH_NUMBER_MINOR,
         Unit::ALL_CHAMPIONS.len(),
-        ALL_LEGENDARY_ITEMS.len() + ALL_BOOTS.len() + ALL_SUPPORT_ITEMS.len()
+        ALL_LEGENDARY_ITEMS.len() + ALL_BOOTS.len() + ALL_SUPPORT_ITEMS.len(),
     );
-    println!("{WELCOME_HELP_MSG}");
 
     let champ_names: Vec<&str> = Unit::ALL_CHAMPIONS
         .iter()
@@ -95,7 +95,7 @@ enum UserCommand {
 /// doesn't catch user commands (go back, exit, etc) and returns the String directly
 /// (can still returns `Err(UserCommand::Exit)`, but only when stdin is closed).
 fn get_user_raw_input(input_line: &str) -> Result<String, UserCommand> {
-    print!("{input_line}: ");
+    print!("{input_line} ");
     io::stdout().flush().expect("Failed to flush stdout");
 
     let mut buffer: String = String::new();
@@ -112,12 +112,15 @@ fn get_user_raw_input(input_line: &str) -> Result<String, UserCommand> {
 /// Get the user input, returns it in a lowercase String.
 /// Catches user commands (go back, exit, etc) and may return an Err with the specific variant to handle.
 fn get_user_input(input_line: &str, help_msg: &str) -> Result<String, UserCommand> {
+    let mut line: String = String::from(input_line);
+    line.push_str(":");
     loop {
         println!();
-        let input: String = get_user_raw_input(input_line)?;
+        let input: String = get_user_raw_input(&line)?;
         match input.as_str() {
             "help" | "?" => println!(
-                "\n---[ HELP ]---\n{}",
+                "\n---[ HELP ]---\n\
+                   {}",
                 if help_msg.is_empty() {
                     "No help message available"
                 } else {
@@ -140,7 +143,7 @@ fn get_user_input(input_line: &str, help_msg: &str) -> Result<String, UserComman
 /// Returns `Err(UserCommand::Exit)` if stdin is closed.
 fn confirm_exit() -> Result<bool, UserCommand> {
     loop {
-        let input: String = get_user_raw_input("Confirm exit? (y/n)")?;
+        let input: String = get_user_raw_input("Confirm exit? (y/n):")?;
         match input.as_str() {
             "yes" | "y" | "" => return Ok(true),
             "no" | "n" => return Ok(false),
@@ -258,6 +261,7 @@ fn get_user_usize(
                 return Ok(None);
             } else {
                 println!("Please enter a valid integer");
+                continue;
             }
         }
         match input.parse::<usize>() {
@@ -298,6 +302,7 @@ fn get_user_f32(
                 return Ok(None);
             } else {
                 println!("Please enter a valid number");
+                continue;
             }
         }
         match input.parse::<f32>() {
@@ -376,13 +381,9 @@ fn get_user_item(
 
         if sanitized_input.is_empty() {
             return Ok(&Item::NULL_ITEM);
-        } else if let Some(item) =
-            available_items
-                .iter()
-                .find(|(_item_ref, full_name, short_name)| {
-                    *full_name == sanitized_input || *short_name == sanitized_input
-                })
-        {
+        } else if let Some(item) = available_items.iter().find(|(_, full_name, short_name)| {
+            (sanitized_input == *full_name) || (sanitized_input == *short_name)
+        }) {
             return Ok(item.0);
         } else if sanitized_input == "list" {
             //print list of items
@@ -1151,6 +1152,7 @@ fn get_item_slot(help_msg: &str) -> Result<ItemSlot, UserCommand> {
 
         if input.is_empty() {
             println!("Please enter a valid item slot");
+            continue;
         }
         match input.as_str() {
             "any" => return Ok(ItemSlot::Any),
