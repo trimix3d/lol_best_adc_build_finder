@@ -59,7 +59,7 @@ pub fn launch_interface() {
     }
 
     loop {
-        match get_user_matching_input(
+        let properties: &UnitProperties = match get_user_matching_input(
             &greetings_msg,
             "Enter the champion for which you want to find the best builds",
             "Please enter a valid champion name (among those available)",
@@ -68,16 +68,19 @@ pub fn launch_interface() {
             false, //safety of a later expect() depends on this argument to be false
         ) {
             Ok(index) => {
-                if let Err(UserCommand::Exit) = handle_builds_generation(
-                    Unit::ALL_CHAMPIONS
-                        [index.expect("Expected an input from user, but received none")],
-                ) {
-                    break;
-                }
+                Unit::ALL_CHAMPIONS[index.expect("Expected an input from user, but received none")]
             }
-            Err(UserCommand::Back) => println!("Cannot go further back"),
-            Err(UserCommand::Home) => (), //already home
+
+            Err(UserCommand::Back) => {
+                println!("Cannot go further back");
+                continue;
+            }
+            Err(UserCommand::Home) => continue, //already home
             Err(UserCommand::Exit) => break,
+        };
+
+        if let Err(UserCommand::Exit) = handle_builds_generation(properties) {
+            break;
         }
     }
 }
