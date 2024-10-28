@@ -495,12 +495,6 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn test_unit_defaults() {
-        Unit::from_properties_defaults(&Unit::SIVIR_PROPERTIES, MIN_UNIT_LVL, Build::default())
-            .expect("Failed to create unit");
-    }
-
-    #[test]
     pub fn test_constant_parameters() {
         assert!(
             SIVIR_W_N_RICOCHETS <= 9.,

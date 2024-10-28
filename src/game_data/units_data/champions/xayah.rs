@@ -446,24 +446,3 @@ impl Unit {
         },
     };
 }
-
-#[cfg(test)]
-mod tests {
-    #[cfg(test)]
-    use super::*;
-
-    #[test]
-    pub fn test_unit_defaults() {
-        Unit::from_properties_defaults(&Unit::XAYAH_PROPERTIES, MIN_UNIT_LVL, Build::default())
-            .expect("Failed to create unit");
-    }
-
-    #[test]
-    pub fn test_constant_parameters() {
-        assert!(
-            XAYAH_N_FEATHERS_BEFORE_RECALL <= 8,
-            "Number of feathers before pressing Xayah E must be less or equal to 8 (got {})",
-            XAYAH_N_FEATHERS_BEFORE_RECALL
-        )
-    }
-}

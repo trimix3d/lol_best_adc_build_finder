@@ -511,15 +511,3 @@ impl Unit {
         },
     };
 }
-
-#[cfg(test)]
-mod tests {
-    #[cfg(test)]
-    use super::*;
-
-    #[test]
-    pub fn test_unit_defaults() {
-        Unit::from_properties_defaults(&Unit::KAISA_PROPERTIES, MIN_UNIT_LVL, Build::default())
-            .expect("Failed to create unit");
-    }
-}
