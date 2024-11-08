@@ -70,6 +70,7 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //add passive stack
     champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
 
+    champ.all_on_basic_attack_cast(); //q hit also triggers on basic attack cast effects
     w_mark_dmg
         + champ.dmg_on_target(
             target_stats,
@@ -454,7 +455,7 @@ impl Unit {
                 &Item::VOLTAIC_CYCLOSWORD,
                 &Item::WITS_END,
                 &Item::YOUMUUS_GHOSTBLADE,
-                //&Item::YUN_TAL_WILDARROWS, //q doesn't proc passive because cannot crit
+                &Item::YUN_TAL_WILDARROWS,
                 &Item::ZHONYAS_HOURGLASS,
             ],
             boots_pool: &[

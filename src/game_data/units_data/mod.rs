@@ -53,14 +53,18 @@ const ENERGIZED_ATTACKS_TRAVEL_REQUIRED: f32 = 100. * 24.;
 const ENERGIZED_STACKS_PER_BASIC_ATTACK: f32 = 6.;
 
 /// Reference area used to compute the average number of targets hit by basic attacks aoe effects.
-/// Should have a value so that an aoe basic attack effect with this range hits on average the same number of targets than runaans bolts.
-const AOE_BASIC_ATTACK_REFERENCE_RADIUS: f32 = 450.;
+/// Should have a value so that an aoe basic attack effect with this range hits on average
+/// `AOE_BASIC_ATTACK_REFERENCE_AVG_ADDITIONNAL_TARGETS` additionnal targets.
+const AOE_BASIC_ATTACK_REFERENCE_RADIUS: f32 = 500.;
+/// Reference number of additionnal targets hit by an aoe basic attack effect
+/// with a range of `AOE_BASIC_ATTACK_REFERENCE_RADIUS`.
+const AOE_BASIC_ATTACK_REFERENCE_AVG_ADDITIONNAL_TARGETS: f32 = 0.30;
 
 /// From the radius of the aoe basic attack effect, gives the number of targets hit
 /// (additionnal to the target that was originally hit by the basic attack).
 macro_rules! basic_attack_aoe_effect_avg_additionnal_targets {
     ($radius:expr) => {
-        crate::game_data::units_data::items_data::items::RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS
+        crate::game_data::units_data::AOE_BASIC_ATTACK_REFERENCE_AVG_ADDITIONNAL_TARGETS
             * $radius
             * $radius
             / (crate::game_data::units_data::AOE_BASIC_ATTACK_REFERENCE_RADIUS
@@ -1350,7 +1354,12 @@ impl Unit {
         self.clear_items_on_action_fns();
 
         //add items on-action-fns
-        for &item in self.build.iter().filter(|&&item| *item != Item::NULL_ITEM) {
+        for item in self
+            .build
+            .iter()
+            .copied()
+            .filter(|&item| *item != Item::NULL_ITEM)
+        {
             self.on_action_fns_holder.extend(&item.on_action_fns);
         }
     }
@@ -1375,7 +1384,11 @@ impl Unit {
         self.clear_items_on_action_fns();
 
         //add items one by one to unit
-        for &item in build.iter().filter(|&&item| *item != Item::NULL_ITEM) {
+        for item in build
+            .iter()
+            .copied()
+            .filter(|&item| *item != Item::NULL_ITEM)
+        {
             self.items_stats.add(&item.stats);
             self.on_action_fns_holder.extend(&item.on_action_fns);
         }
@@ -1590,7 +1603,7 @@ impl Unit {
 
     /// Wait immobile for the given amount of time. Removes effects if they expire.
     pub fn wait(&mut self, dt: f32) {
-        //sanity check
+        //sanity check, can be removed
         assert!(
             dt > 0.,
             "Cannot wait for a negative or null amount of time (got {dt})"

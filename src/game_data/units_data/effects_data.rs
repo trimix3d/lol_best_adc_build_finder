@@ -34,6 +34,7 @@ pub(crate) enum EffectId {
     SivirOnTheHuntMS,
     SivirRicochet,
     SpearOfShojinFocusedWill,
+    StatikkShivElectrospark,
     StormsurgeStormraiderMS,
     StridebreakerBreakingShockwaveMS,
     StridebreakerTemper,
@@ -46,6 +47,7 @@ pub(crate) enum EffectId {
     XayahDeadlyPlumageAS,
     XayahDeadlyPlumageMS,
     YoumuusGhostbladeWraithStep,
+    YunTalWildarrowsFlurry,
 }
 
 //If you have the choice, prefer using EffectfStackId over EffectValueId, as working with integers is more reliable than floats
@@ -82,6 +84,7 @@ pub(crate) enum EffectStackId {
     PressTheAttackStacks,
     SpearOfShojinFocusedWillStacks,
     SpellbladeEmpowered,
+    StatikkShivElectrosparkRemainingStacks,
     StormsurgeStormraiderTriggered,
     TerminusJuxtapositionMode,
     TerminusJuxtapositionLightStacks,
@@ -159,6 +162,7 @@ pub(crate) enum EffectValueId {
     XayahDeadlyPlumageMsPercent,
     XayahWBasicAttackCoef,
     YoumuusGhostbladeWraithStepMsPercent,
+    YunTalWildarrowsFlurryBonusAS,
 }
 
 #[derive(Debug)]

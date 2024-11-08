@@ -28,7 +28,11 @@ const HORIZON_FOCUS_HYPERSHOT_ABILITIES_TRIGGER_PERCENT: f32 = 0.60;
 /// Actual duration of Malignance hatefog curse on the ennemy
 const MALIGNANCE_HATEFOG_CURSE_TIME: f32 = 0.8;
 /// Number of bolts fired by Runaan's hurricane wind's fury on average (adding to the primary basic attack).
-pub(crate) const RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS: f32 = 0.25;
+pub(crate) const RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS: f32 =
+    basic_attack_aoe_effect_avg_additionnal_targets!(550.);
+/// Number of targets hit by statikk shiv electrospark (must be at least 1).
+const STATIKK_SHIV_ELECTROSPARK_AVG_TARGETS: f32 =
+    1. + basic_attack_aoe_effect_avg_additionnal_targets!(500.); //use statikk electrospark range
 /// Number of targets hit by titanic hydra cleave aoe on average
 const TITANIC_HYDRA_CLEAVE_AVG_TARGETS: f32 = 0.25;
 /// Number of targets hit by profane hydra cleave aoe on average
@@ -3625,7 +3629,7 @@ fn opportunity_init(champ: &mut Unit) {
 
 fn opportunity_preparation_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::OpportunityPreparationLethality] == 0. {
-        let lethality_buff: f32 = 6.; //ranged value
+        let lethality_buff: f32 = 7.; //ranged value
         champ.stats.lethality += lethality_buff;
         champ.effects_values[EffectValueId::OpportunityPreparationLethality] = lethality_buff;
     }
@@ -3656,7 +3660,7 @@ impl Item {
             hp: 0.,
             mana: 0.,
             base_ad: 0.,
-            bonus_ad: 50.,
+            bonus_ad: 55.,
             ap_flat: 0.,
             ap_percent: 0.,
             armor: 0.,
@@ -3670,7 +3674,7 @@ impl Item {
             crit_chance: 0.,
             crit_dmg: 0.,
             ms_flat: 0.,
-            ms_percent: 0.04,
+            ms_percent: 0.,
             lethality: 15.,
             armor_pen_percent: 0.,
             magic_pen_flat: 0.,
@@ -4983,25 +4987,90 @@ impl Item {
 //Staff of flowing water (useless?) (need to add Unit::heal_shield_on_ally fct and heals_shields power)
 
 //Statikk shiv (electroshock passive not implemented because too situationnal)
+fn statikk_shiv_init(champ: &mut Unit) {
+    champ.effects_stacks[EffectStackId::StatikkShivElectrosparkRemainingStacks] = 0;
+}
+
+fn statikk_shiv_electrospark_enable(champ: &mut Unit, _availability_coef: f32) {
+    champ.effects_stacks[EffectStackId::StatikkShivElectrosparkRemainingStacks] = 3;
+
+    //cooldown based on lvl
+    let current_cooldown: &mut f32 = champ
+        .temporary_effects_cooldowns
+        .get_mut(&STATIKK_SHIV_ELECTROSPARK)
+        .expect("Failed to get value from IndexMap"); //effect should always be active here since champ.add_temporary_effect() should have been called before
+
+    *current_cooldown *= STATIKK_SHIV_ELECTROSPARK_COOLDOWN_BY_LVL
+        [usize::from(champ.lvl.get() - 1)]
+        / STATIKK_SHIV_ELECTROSPARK_COOLDOWN_BY_LVL[0]; //multiply by ratio (don't replace directly) in case champ has item haste
+}
+
+fn statikk_shiv_electrospark_disable(champ: &mut Unit) {
+    champ.effects_stacks[EffectStackId::StatikkShivElectrosparkRemainingStacks] = 0;
+}
+
+const STATIKK_SHIV_ELECTROSPARK_COOLDOWN_BY_LVL: [f32; MAX_UNIT_LVL] = [
+    25., //lvl 1
+    25., //lvl 2
+    25., //lvl 3
+    25., //lvl 4
+    25., //lvl 5
+    25., //lvl 6
+    25., //lvl 7
+    22., //lvl 8
+    19., //lvl 9
+    16., //lvl 10
+    13., //lvl 11
+    10., //lvl 12
+    10., //lvl 13
+    10., //lvl 14
+    10., //lvl 15
+    10., //lvl 16
+    10., //lvl 17
+    10., //lvl 18
+];
+const STATIKK_SHIV_ELECTROSPARK: TemporaryEffect = TemporaryEffect {
+    id: EffectId::StatikkShivElectrospark,
+    add_stack: statikk_shiv_electrospark_enable,
+    remove_every_stack: statikk_shiv_electrospark_disable,
+    duration: 8.,
+    cooldown: STATIKK_SHIV_ELECTROSPARK_COOLDOWN_BY_LVL[0],
+};
+
+fn statikk_shiv_electrospark(
+    champ: &mut Unit,
+    _target_stats: &UnitStats,
+    _n_targets: f32,
+    _from_other_effect: bool,
+) -> PartDmg {
+    champ.add_temporary_effect(&STATIKK_SHIV_ELECTROSPARK, champ.stats.item_haste);
+
+    if champ.effects_stacks[EffectStackId::StatikkShivElectrosparkRemainingStacks] > 0 {
+        champ.effects_stacks[EffectStackId::StatikkShivElectrosparkRemainingStacks] -= 1;
+        return PartDmg(0., STATIKK_SHIV_ELECTROSPARK_AVG_TARGETS * 60., 0.);
+    }
+    PartDmg(0., 0., 0.)
+}
+
 impl Item {
     pub const STATIKK_SHIV: Item = Item {
         id: ItemId::StatikkShiv,
         full_name: "Statikk_shiv",
         short_name: "Statikk",
-        cost: 2900.,
+        cost: 2700.,
         item_groups: enum_set!(),
         utils: enum_set!(ItemUtils::Special), //electrospark wave clear
         stats: UnitStats {
             hp: 0.,
             mana: 0.,
             base_ad: 0.,
-            bonus_ad: 50.,
+            bonus_ad: 45.,
             ap_flat: 0.,
             ap_percent: 0.,
             armor: 0.,
             mr: 0.,
             base_as: 0.,
-            bonus_as: 0.35,
+            bonus_as: 0.30,
             ability_haste: 0.,
             basic_haste: 0.,
             ultimate_haste: 0.,
@@ -5028,14 +5097,14 @@ impl Item {
         },
         on_action_fns: OnActionFns {
             on_lvl_set: None,
-            on_fight_init: None,
+            on_fight_init: Some(statikk_shiv_init),
             special_active: None,
             on_ability_cast: None,
             on_ultimate_cast: None,
             on_ability_hit: None,
             on_ultimate_hit: None,
             on_basic_attack_cast: None,
-            on_basic_attack_hit: None,
+            on_basic_attack_hit: Some(statikk_shiv_electrospark),
             on_phys_hit: None,
             on_magic_hit: None,
             on_true_dmg_hit: None,
@@ -6286,7 +6355,7 @@ impl Item {
             hp: 0.,
             mana: 0.,
             base_ad: 0.,
-            bonus_ad: 60.,
+            bonus_ad: 55.,
             ap_flat: 0.,
             ap_percent: 0.,
             armor: 0.,
@@ -6300,7 +6369,7 @@ impl Item {
             crit_chance: 0.,
             crit_dmg: 0.,
             ms_flat: 0.,
-            ms_percent: 0.,
+            ms_percent: 0.04,
             lethality: 18.,
             armor_pen_percent: 0.,
             magic_pen_flat: 0.,
@@ -6336,13 +6405,65 @@ impl Item {
 }
 
 //Yun Tal Wildarrows
-fn yun_tal_serrated_edge(
+fn yun_tal_wildarrows_init(champ: &mut Unit) {
+    champ.effects_values[EffectValueId::YunTalWildarrowsFlurryBonusAS] = 0.;
+
+    //practise makes lethal passive (gives crit chance only if not the last item bought)
+    let yun_tal_idx: usize = champ
+        .build
+        .iter()
+        .copied()
+        .position(|item| *item == Item::YUN_TAL_WILDARROWS)
+        .unwrap(); //will never panic as this function is only called when yun tal is in build
+    if (yun_tal_idx + 1 < MAX_UNIT_ITEMS) && *champ.build[yun_tal_idx + 1] != Item::NULL_ITEM {
+        champ.stats.crit_chance = f32::min(1., champ.stats.crit_chance + 0.25);
+    }
+}
+
+fn yun_tal_wildarrows_flurry_enable(champ: &mut Unit, availability_coef: f32) {
+    if champ.effects_values[EffectValueId::YunTalWildarrowsFlurryBonusAS] == 0. {
+        let bonus_as_buff: f32 = availability_coef * 0.30;
+        champ.stats.bonus_as += bonus_as_buff;
+        champ.effects_values[EffectValueId::YunTalWildarrowsFlurryBonusAS] = bonus_as_buff;
+    }
+}
+
+fn yun_tal_wildarrows_flurry_disable(champ: &mut Unit) {
+    champ.stats.bonus_as -= champ.effects_values[EffectValueId::YunTalWildarrowsFlurryBonusAS];
+    champ.effects_values[EffectValueId::YunTalWildarrowsFlurryBonusAS] = 0.;
+}
+
+const YUN_TAL_WILDARROWS_FLURRY: TemporaryEffect = TemporaryEffect {
+    id: EffectId::YunTalWildarrowsFlurry,
+    add_stack: yun_tal_wildarrows_flurry_enable,
+    remove_every_stack: yun_tal_wildarrows_flurry_disable,
+    duration: 4.,
+    cooldown: 40.,
+};
+
+fn yun_tal_flurry_on_basic_attack_cast(champ: &mut Unit) {
+    champ.add_temporary_effect(&YUN_TAL_WILDARROWS_FLURRY, champ.stats.item_haste);
+}
+
+fn yun_tal_flurry_on_basic_attack_hit(
     champ: &mut Unit,
     _target_stats: &UnitStats,
-    n_targets: f32,
-    _from_other_effect: bool,
+    _n_targets: f32,
+    from_other_effect: bool,
 ) -> PartDmg {
-    PartDmg(n_targets * (champ.stats.crit_chance * 60.), 0., 0.)
+    if from_other_effect {
+        return PartDmg(0., 0., 0.);
+    }
+
+    //effect should always be active here since basic attack cast should have been called before
+    if let Some(cooldown) = champ
+        .temporary_effects_cooldowns
+        .get_mut(&YUN_TAL_WILDARROWS_FLURRY)
+    {
+        *cooldown = f32::max(0., *cooldown - (1. + champ.stats.crit_chance)); //average: 2sec if crit, 1sec if not crit
+    }
+
+    PartDmg(0., 0., 0.)
 }
 
 impl Item {
@@ -6350,25 +6471,25 @@ impl Item {
         id: ItemId::YunTalWildarrows,
         full_name: "Yun_Tal_wildarrows",
         short_name: "Yun_Tal",
-        cost: 2950.,
+        cost: 3000.,
         item_groups: enum_set!(),
         utils: enum_set!(),
         stats: UnitStats {
             hp: 0.,
             mana: 0.,
             base_ad: 0.,
-            bonus_ad: 60.,
+            bonus_ad: 50.,
             ap_flat: 0.,
             ap_percent: 0.,
             armor: 0.,
             mr: 0.,
             base_as: 0.,
-            bonus_as: 0.,
+            bonus_as: 0.25,
             ability_haste: 0.,
             basic_haste: 0.,
             ultimate_haste: 0.,
             item_haste: 0.,
-            crit_chance: 0.25,
+            crit_chance: 0.,
             crit_dmg: 0.,
             ms_flat: 0.,
             ms_percent: 0.,
@@ -6390,14 +6511,14 @@ impl Item {
         },
         on_action_fns: OnActionFns {
             on_lvl_set: None,
-            on_fight_init: None,
+            on_fight_init: Some(yun_tal_wildarrows_init),
             special_active: None,
             on_ability_cast: None,
             on_ultimate_cast: None,
             on_ability_hit: None,
             on_ultimate_hit: None,
-            on_basic_attack_cast: None,
-            on_basic_attack_hit: Some(yun_tal_serrated_edge),
+            on_basic_attack_cast: Some(yun_tal_flurry_on_basic_attack_cast),
+            on_basic_attack_hit: Some(yun_tal_flurry_on_basic_attack_hit),
             on_phys_hit: None,
             on_magic_hit: None,
             on_true_dmg_hit: None,

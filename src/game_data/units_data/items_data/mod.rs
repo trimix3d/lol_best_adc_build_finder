@@ -281,7 +281,7 @@ pub const ALL_BOOTS: [&Item; 6] = [
 pub const ALL_SUPPORT_ITEMS: [&Item; 0] = [];
 
 //set manually because f32 calcs are forbidden in constants :)))
-pub const AVG_LEGENDARY_ITEM_COST: f32 = 2981.;
+pub const AVG_LEGENDARY_ITEM_COST: f32 = 2979.;
 pub const AVG_BOOTS_COST: f32 = 1100.;
 pub const AVG_SUPPORT_ITEM_COST: f32 = 0.;
 

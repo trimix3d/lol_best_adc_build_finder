@@ -342,7 +342,7 @@ fn get_user_item(
     let mut available_items: Vec<(&Item, String, String)> = Vec::new();
     if item_pool_types.contains(ItemPoolType::Legendary) {
         //ensure to match lowercase inputs with lowercase strings
-        available_items.extend(items_data::ALL_LEGENDARY_ITEMS.iter().map(|&item| {
+        available_items.extend(items_data::ALL_LEGENDARY_ITEMS.iter().copied().map(|item| {
             (
                 item,
                 sanitize_item_name(item.full_name),
@@ -352,7 +352,7 @@ fn get_user_item(
     }
     if item_pool_types.contains(ItemPoolType::Boots) {
         //ensure to match lowercase inputs with lowercase strings
-        available_items.extend(items_data::ALL_BOOTS.iter().map(|&item| {
+        available_items.extend(items_data::ALL_BOOTS.iter().copied().map(|item| {
             (
                 item,
                 sanitize_item_name(item.full_name),
@@ -362,7 +362,7 @@ fn get_user_item(
     }
     if item_pool_types.contains(ItemPoolType::Support) {
         //ensure to match lowercase inputs with lowercase strings
-        available_items.extend(items_data::ALL_SUPPORT_ITEMS.iter().map(|&item| {
+        available_items.extend(items_data::ALL_SUPPORT_ITEMS.iter().copied().map(|item| {
             (
                 item,
                 sanitize_item_name(item.full_name),
@@ -578,11 +578,11 @@ fn confirm_builds_generation_settings(
                 )
                 .as_str(),
                 format!(
-                    "go to runes settings (current keystone: {}) -->",
+                    "go to runes settings (current keystone: {}) ->",
                     settings.runes_page.keystone
                 )
                 .as_str(),
-                "go to items settings -->",
+                "go to items settings ->",
                 format!(
                     "judgment weights: DPS {}, defense {}, mobility {}",
                     settings.judgment_weights.0,
@@ -986,9 +986,9 @@ fn handle_items_settings(
                 format!("mandatory items: {}", settings.mandatory_items).as_str(),
                 format!("boots slot: {}", settings.boots_slot).as_str(),
                 format!("support item slot: {}", settings.support_item_slot).as_str(),
-                "change allowed legendary items -->",
-                "change allowed boots -->",
-                "change allowed support items -->",
+                "change allowed legendary items ->",
+                "change allowed boots ->",
+                "change allowed support items ->",
                 format!(
                     "allow manaflow items in first slot: {}",
                     settings.allow_manaflow_first_item
@@ -1280,7 +1280,7 @@ fn change_items_pool(
         }
 
         //switch allowance status
-        if let Some(index) = pool.iter().position(|&x| *x == *item) {
+        if let Some(index) = pool.iter().copied().position(|x| *x == *item) {
             pool.swap_remove(index);
         } else {
             pool.push(item);

@@ -109,7 +109,7 @@ fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
 }
 
 const VARUS_MAX_BLIGHT_STACKS: u8 = 3;
-const VARUS_BLIGHT_ON_HIT_MAGIC_DMG_BY_W_LVL: [f32; 5] = [5., 10., 15., 20., 25.];
+const VARUS_BLIGHT_ON_HIT_MAGIC_DMG_BY_W_LVL: [f32; 5] = [8., 13., 18., 23., 28.];
 
 const VARUS_W_TARGET_MISSING_HP_COEF_BY_W_LVL: [f32; 5] = [0.06, 0.08, 0.10, 0.12, 0.14];
 
