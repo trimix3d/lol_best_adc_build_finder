@@ -42,16 +42,14 @@ Generating every possible combinations of n-items gives an absurd number of buil
 
 After selecting a champion, the builds generation process works as the following, starting with a list containing one empty build at the beginning:
 
-1. Select the first free item slot (first slot for an empty build, second slot for a build with 1 item, etc).
-
-2. For every build in the list, create copies with 1 additionnal item (from a predetermined pool of items for the champion) at the free slot for each.
+1. Select the first build of the current list. Loop through a predetermined pool of items available for the champion. For each of these items, add them to a copy of the build and store this copy in a new list. Repeat for every build of the list.
     For exemple, if the current list of builds is:
     ```
     [{kraken_slayer}, //build containing 1 item: kraken_slayer
      {statikk_shyv }] //build containing 1 item: statikk_shyv
     ```
-    And the items in the pool are `bloodthirster` and `infinity_edge`.
-    The list of builds will become:
+    And the items available for the champion are `bloodthirster` and `infinity_edge`.
+    The new list of builds will be:
     ```
     [{kraken_slayer, bloodthirster},
      {kraken_slayer, infinity_edge},
@@ -59,7 +57,7 @@ After selecting a champion, the builds generation process works as the following
      {statikk_shyv , infinity_edge}]
     ```
 
-2. Simulate a fight with every build in the list and save the corresponding results.
+2. Simulate a fight with every build in the new list and save the corresponding results.
 
     The results saved are:
     - price of the build
@@ -68,14 +66,14 @@ After selecting a champion, the builds generation process works as the following
     - average effective move speed during the simulation (this is just `units_travelled/sim_duration`, so for exemple, dashes count as an increase in effective move speed)
     - some other stuff (special items utility, etc). A single score number is also calculated for each build from the price, dps, tankiness and average move speed.
 
-3. Filter the builds from the list to keep only the better ones (within a certain configurable margin).
+3. Filter the builds from the new list to keep only the better ones (within a certain configurable margin).
 
     The filtering is made of two parts:
 
     1. Keep builds that have a score within a predefined margin of the best score found.
     2. Keep builds that are part of the [pareto front](https://en.wikipedia.org/wiki/Pareto_front), the quantities to optimize being the build price, dps, tankiness, average move speed and utility of the build.
 
-4. Repeat the process, building on top of the current build list until reaching the requested number of items.
+4. Repeat the process, building on top of each subsequent build list until reaching the requested number of items.
 
 I have simplified some things so it's easier to get the global picture. You can see how it works in detail in the code.
 
