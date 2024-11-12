@@ -76,7 +76,7 @@ After selecting a champion, the builds generation process works as the following
 
 4. Repeat the process, building on top of each subsequent build list until reaching the requested number of items.
 
-This description has been simplified so it's easier to get the global picture. Feel free to see how it works in detail in the code.
+This description has been simplified to get the global picture more easily. Feel free to see how it works in detail in the code.
 
 
 # About the results
