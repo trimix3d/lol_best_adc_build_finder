@@ -782,7 +782,7 @@ impl BuildContainer {
     /// Returns the build score at the given item count.
     /// `Judgment_weights` must be >= 0 and normalized (their sum must be 3.0) for the formula to be correct.
     #[inline]
-    pub(crate) fn _get_score_item_slot_with_normalized_weights(
+    pub(crate) fn _get_item_slot_score_with_normalized_weights(
         &self,
         item_count: usize,
         normalized_judgment_weights: (f32, f32, f32),
@@ -827,7 +827,7 @@ impl BuildContainer {
         let mut scores: Vec<f32> = Vec::with_capacity(len);
         for i in 0..len {
             scores.push(
-                self._get_score_item_slot_with_normalized_weights(i, normalized_judgment_weights),
+                self._get_item_slot_score_with_normalized_weights(i, normalized_judgment_weights),
             );
         }
         gold_weighted_average(&scores, &self.golds[0..len], max_golds)

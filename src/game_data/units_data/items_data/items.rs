@@ -29,7 +29,7 @@ const HORIZON_FOCUS_HYPERSHOT_ABILITIES_TRIGGER_PERCENT: f32 = 0.60;
 const MALIGNANCE_HATEFOG_CURSE_TIME: f32 = 0.8;
 /// Number of bolts fired by Runaan's hurricane wind's fury on average (adding to the primary basic attack).
 pub(crate) const RUNAANS_HURRICANE_WINDS_FURY_AVG_BOLTS: f32 =
-    basic_attack_aoe_effect_avg_additionnal_targets!(550.);
+    basic_attack_aoe_effect_avg_additionnal_targets!(550.); //todo: should use champion attack range
 /// Number of targets hit by statikk shiv electrospark (must be at least 1).
 const STATIKK_SHIV_ELECTROSPARK_AVG_TARGETS: f32 =
     1. + basic_attack_aoe_effect_avg_additionnal_targets!(500.); //use statikk electrospark range

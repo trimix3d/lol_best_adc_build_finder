@@ -120,7 +120,7 @@ pub fn print_builds_scores(
                 "{}-{} ({:.0}), ",
                 item_idx + 1,
                 container.build[item_idx],
-                container._get_score_item_slot_with_normalized_weights(
+                container._get_item_slot_score_with_normalized_weights(
                     item_idx + 1,
                     normalized_judgement_weights
                 )
@@ -130,7 +130,7 @@ pub fn print_builds_scores(
             "{}-{} ({:.0})",
             n_items,
             container.build[n_items - 1],
-            container._get_score_item_slot_with_normalized_weights(
+            container._get_item_slot_score_with_normalized_weights(
                 n_items,
                 normalized_judgement_weights
             )

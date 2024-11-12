@@ -10,8 +10,6 @@ Displaying the list of generated builds takes some space and can look weird if y
 
 I tried to make the interface as comprehensive as possible and if i've done my work correctly, you should be able to use it by yourself without further explanations. If at any point you are lost in the interface, type `help` to show help info on the current context. You can also navigate to the previous menu by typing `back` and go to the home page at any point by typing `home`. Type `exit` to exit the program.
 
-I tried to get champions and items stats automatically but Riot's data dragon is ass (often has wrong values in it) so I entered them manually from the [LoL Wiki](https://wiki.leagueoflegends.com/en-us/) (god bless them) and will update them at each patch. For simplicity, the version number of each release is the same as the corresponding League of Legends patch number. If you have a reliable solution to automatically retrieve champions and items stats and put it in constants in the code, please let me know (I will be working to automate this in the near future).
-
 This is a project i do during my free time. I try to document the code to the maximum, but it gets tedious (>﹏<). Also, no guarantees that i will update it forever.
 
 
@@ -84,8 +82,18 @@ I have simplified some things so it's easier to get the global picture. You can 
 
 # About the results
 
-It gives good results overall, even if in some cases you need to play around and fine tune the settings to avoid getting questionable builds.
-It is really good at finding builds that gives the best pure damage output, a bit less good at finding builds with more utility that may be better in practice. That's why you need to analyze to results with common sense and experiment a bit.
+It gives solid results overall. With the default settings, it finds most of the time the correct, well established builds you can see on sites like [LoLalytics](https://lolalytics.com/) or [op.gg](https://www.op.gg/) for most of the champions.
+But the power of this tool is not in finding those 'common' builds, it's in its ability to tweak the settings to explore builds that perform best in a specific use case/find builds that have not yet been discovered when there isn't enought data gathered after a patch.
+Depending on your settings, you may get questionable builds though, so always analyze the results with common sense. This tool is made to be experimented with!
+
+
+# Todo list
+
+[x] add every relevent ADC items
+[-] add every ADC - in progress
+[-] add runes keystones - in progress
+[ ] retrieve champions and items data automatically from community dragon (instead of updating values manually each patch)
+[ ] make an UI
 
 If you have ideas about improving the program, feel free to share them :)
-You can add me "trimix3d" on discord if you want to discuss about the project.
+Feel free to add "trimix3d" on discord if you want to discuss about the project.
