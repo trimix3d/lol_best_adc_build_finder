@@ -83,7 +83,7 @@ I have simplified some things so it's easier to get the global picture. You can 
 # About the results
 
 It gives solid results overall. With the default settings, it finds most of the time the correct, well established builds you can see on sites like [LoLalytics](https://lolalytics.com/) or [op.gg](https://www.op.gg/) for most of the champions.
-But the power of this tool is not in finding those "common" builds, it's in its ability to tweak the settings to explore builds that perform best in a specific use case/find builds that have not yet been discovered when there isn't enought data gathered after a patch.
+But the power of this tool is not in finding those "common" builds, it's in its ability to tweak the settings to explore builds that perform best in a specific use case / find builds that have not yet been discovered when there isn't enought data gathered after a patch.
 Depending on your settings, you may get questionable builds though, so always analyze the results with common sense. This tool is made to be experimented with!
 
 
