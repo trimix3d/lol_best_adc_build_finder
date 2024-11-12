@@ -88,7 +88,7 @@ Depending on your settings, you may get questionable builds though, so always an
 
 # Todo list
 
-- [x] add every relevent S14 ADC items - DONE
+- [x] add every relevant S14 ADC items - DONE
 - [ ] add every ADC - in progress
 - [ ] add every runes keystones - in progress
 - [ ] retrieve champions and items data automatically from community dragon (instead of updating values manually each patch) - to do
