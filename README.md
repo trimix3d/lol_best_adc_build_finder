@@ -93,7 +93,7 @@ Depending on your settings, you may get questionable builds though, so always an
 - [ ] add every ADC - in progress
 - [ ] add every runes keystones - in progress
 - [ ] retrieve champions and items data automatically from community dragon (instead of updating values manually each patch)
-- [ ] make an UI
+- [ ] make an GUI
 
 If you have ideas about improving the program, feel free to share them :)
 Feel free to add `trimix3d` on discord if you want to discuss about the project.
