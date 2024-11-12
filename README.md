@@ -90,8 +90,8 @@ Depending on your settings, you may get questionable builds though, so always an
 # Todo list
 
 - [x] add every relevent ADC items
-- [-] add every ADC - in progress
-- [-] add runes keystones - in progress
+- [ ] add every ADC - in progress
+- [ ] add runes keystones - in progress
 - [ ] retrieve champions and items data automatically from community dragon (instead of updating values manually each patch)
 - [ ] make an UI
 
