@@ -43,6 +43,7 @@ Generating every possible combinations of n-items gives an absurd number of buil
 After selecting a champion, the builds generation process works as the following, starting with a list containing one empty build at the beginning:
 
 1. Select the first build of the current list. Loop through a predetermined pool of items available for the champion. For each of these items, add them to a copy of the build and store this copy in a new list. Repeat for every build of the list.
+
     For exemple, if the current list of builds is:
     ```
     [{kraken_slayer}, //build containing 1 item: kraken_slayer
