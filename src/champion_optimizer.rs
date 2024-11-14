@@ -904,7 +904,7 @@ fn generate_build_layer(
 
 /// Get the size of the chunks needed to process a given amount of elements in parallel with the specified amount of workers.
 /// The number of elements per chunk will be the most evenly distributed possible.
-fn chunksize_from_thread_count(n_elements: usize, thread_count: NonZeroUsize) -> usize {
+fn compute_chunk_size(n_elements: usize, thread_count: NonZeroUsize) -> usize {
     usize::max(
         1,
         (n_elements + (thread_count.get() - 1)) / thread_count.get(),
@@ -1061,7 +1061,7 @@ fn pareto_front_multithread(
         let current_point: &ParetoSpacePoint = &points[idx];
 
         //update pareto mask, divide points into chunks to process them in parralel
-        let chunk_size: usize = chunksize_from_thread_count(points.len(), n_threads);
+        let chunk_size: usize = compute_chunk_size(points.len(), n_threads);
         pareto_mask.clear();
         pareto_mask = points
             .par_chunks(chunk_size)
@@ -1093,6 +1093,61 @@ fn pareto_front_multithread(
         pareto_mask[pareto_idx] = true;
     }
     pareto_mask
+}
+
+/// From number of items, returns the associated unit lvl.
+#[must_use]
+fn lvl_from_number_of_items(
+    n_items: usize,
+    boots_slot: ItemSlot,
+    support_item_slot: ItemSlot,
+) -> u8 {
+    let xp_per_non_special_item: f32 = match (boots_slot, support_item_slot) {
+        (ItemSlot::Any, ItemSlot::Any) => {
+            XP_PER_LEGENDARY_ITEM * ((MAX_UNIT_ITEMS - 2) as f32) / (MAX_UNIT_ITEMS as f32)
+                + XP_PER_BOOTS_ITEM / (MAX_UNIT_ITEMS as f32)
+                + XP_PER_SUPPORT_ITEM / (MAX_UNIT_ITEMS as f32)
+        }
+        (ItemSlot::Any, _) => {
+            XP_PER_LEGENDARY_ITEM * ((MAX_UNIT_ITEMS - 1) as f32) / (MAX_UNIT_ITEMS as f32)
+                + XP_PER_BOOTS_ITEM / (MAX_UNIT_ITEMS as f32)
+        }
+        (_, ItemSlot::Any) => {
+            XP_PER_LEGENDARY_ITEM * ((MAX_UNIT_ITEMS - 1) as f32) / (MAX_UNIT_ITEMS as f32)
+                + XP_PER_SUPPORT_ITEM / (MAX_UNIT_ITEMS as f32)
+        }
+        (_, _) => XP_PER_LEGENDARY_ITEM,
+    };
+
+    let boots_slot: usize = if let ItemSlot::Slot(slot) = boots_slot {
+        slot
+    } else {
+        0
+    };
+    let support_item_slot: usize = if let ItemSlot::Slot(slot) = support_item_slot {
+        slot
+    } else {
+        0
+    };
+
+    let mut cum_xp: f32 = 0.;
+    for i in 1..=n_items {
+        if i == boots_slot {
+            cum_xp += XP_PER_BOOTS_ITEM;
+        } else if i == support_item_slot {
+            cum_xp += XP_PER_SUPPORT_ITEM;
+        } else {
+            cum_xp += xp_per_non_special_item;
+        }
+    }
+
+    let mut lvl: u8 = MIN_UNIT_LVL; //lvl cannot be below MIN_UNIT_LVL, so start at this value
+    while usize::from(lvl - 1) < MAX_UNIT_LVL - 1
+        && cum_xp >= CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL[usize::from(lvl - 1)]
+    {
+        lvl += 1;
+    }
+    lvl
 }
 
 /// Returns a Vec containing the best builds generated for the given champion.
@@ -1193,19 +1248,8 @@ pub fn find_best_builds(
         let item_slot: usize = item_idx + 1;
 
         //set champion & dummy lvl
-        let lvl: u8 = lvl_from_number_of_items(
-            item_slot,
-            if let ItemSlot::Slot(boots_slot_number) = settings.boots_slot {
-                boots_slot_number
-            } else {
-                0
-            },
-            if let ItemSlot::Slot(support_item_slot_number) = settings.support_item_slot {
-                support_item_slot_number
-            } else {
-                0
-            },
-        );
+        let lvl: u8 =
+            lvl_from_number_of_items(item_slot, settings.boots_slot, settings.support_item_slot);
         champ.set_lvl(lvl).expect("Failed to set lvl"); //no need to init (automatically done later when simulating fights)
         target.set_lvl(lvl).expect("Failed to set lvl");
         target.init_fight();
@@ -1250,7 +1294,7 @@ pub fn find_best_builds(
         }
 
         //divide builds into chunks to process them in parralel
-        let chunk_size: usize = chunksize_from_thread_count(best_builds.len(), n_threads);
+        let chunk_size: usize = compute_chunk_size(best_builds.len(), n_threads);
         let mut pareto_space_points: Vec<ParetoSpacePoint> = best_builds
             .par_chunks(chunk_size)
             .flat_map_iter(|chunk| {

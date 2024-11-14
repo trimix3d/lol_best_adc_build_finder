@@ -285,6 +285,18 @@ pub const AVG_LEGENDARY_ITEM_COST: f32 = 2979.;
 pub const AVG_BOOTS_COST: f32 = 1100.;
 pub const AVG_SUPPORT_ITEM_COST: f32 = 0.;
 
+/// Amount of experience gained farming for the average legendary item.
+/// We approximate that the gold income is only from cs golds and passive golds generation.
+pub const XP_PER_LEGENDARY_ITEM: f32 =
+    AVG_XP_PER_CS * CS_PER_MIN * AVG_LEGENDARY_ITEM_COST / TOT_GOLDS_PER_MIN;
+/// Amount of experience gained farming for the average boots item.
+/// We approximate that the gold income is only from cs golds and passive golds generation.
+pub const XP_PER_BOOTS_ITEM: f32 = AVG_XP_PER_CS * CS_PER_MIN * AVG_BOOTS_COST / TOT_GOLDS_PER_MIN;
+/// Amount of experience gained farming for the average support item.
+/// We approximate that the gold income is only from cs golds and passive golds generation.
+pub const XP_PER_SUPPORT_ITEM: f32 =
+    AVG_XP_PER_CS * CS_PER_MIN * AVG_SUPPORT_ITEM_COST / TOT_GOLDS_PER_MIN;
+
 #[allow(clippy::cast_precision_loss)]
 const MAX_UNIT_ITEMS_F32: f32 = MAX_UNIT_ITEMS as f32; //`MAX_UNIT_ITEMS` is well whithin f32's range to avoid precision loss
 
@@ -464,8 +476,8 @@ mod tests {
 
     #[test]
     pub fn test_average_support_item_cost() {
-        let true_support_avg: f32 =
-            ALL_SUPPORT_ITEMS.iter().map(|item| item.cost).sum::<f32>() / (ALL_BOOTS.len() as f32);
+        let true_support_avg: f32 = ALL_SUPPORT_ITEMS.iter().map(|item| item.cost).sum::<f32>()
+            / (ALL_SUPPORT_ITEMS.len() as f32);
 
         assert!(((AVG_SUPPORT_ITEM_COST) - true_support_avg).abs() < 1.,
             "Constant `AVG_SUPPORT_ITEM_COST` of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",

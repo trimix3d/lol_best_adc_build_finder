@@ -25,7 +25,7 @@ pub const MIN_UNIT_LVL: u8 = 6;
 pub(crate) const MAX_UNIT_ITEMS: usize = 6;
 
 /// Amount of cumulative xp required to reach the given lvl.
-const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [
+pub const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [
     280.,   //needed to reach lvl 2
     660.,   //needed to reach lvl 3
     1140.,  //needed to reach lvl 4
@@ -147,33 +147,6 @@ pub const TARGET_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         support_items_pool: &items_data::ALL_SUPPORT_ITEMS,
     },
 };
-
-/// From number of items, returns the associated unit lvl.
-#[must_use]
-pub fn lvl_from_number_of_items(
-    item_slot: usize,
-    boots_slot: usize,
-    support_item_slot: usize,
-) -> u8 {
-    let mut cum_xp: f32 = 0.;
-    for i in 1..=item_slot {
-        if i == boots_slot {
-            cum_xp += XP_PER_BOOTS_ITEM;
-        } else if i == support_item_slot {
-            cum_xp += XP_PER_SUPPORT_ITEM;
-        } else {
-            cum_xp += XP_PER_LEGENDARY_ITEM;
-        }
-    }
-
-    let mut lvl: u8 = MIN_UNIT_LVL; //lvl cannot be below MIN_UNIT_LVL, so start at this value
-    while usize::from(lvl - 1) < MAX_UNIT_LVL - 1
-        && cum_xp >= CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL[usize::from(lvl - 1)]
-    {
-        lvl += 1;
-    }
-    lvl
-}
 
 /// From base and growth stat, returns final stat value at the given lvl.
 /// <https://leagueoflegends.fandom.com/wiki/Champion_statistic#Growth_statistic_per_level>

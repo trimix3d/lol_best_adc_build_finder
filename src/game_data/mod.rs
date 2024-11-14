@@ -60,17 +60,6 @@ pub const AVG_XP_PER_CS: f32 = 15. / 30.
     + 10. / 30. * (3. * XP_PER_MELEE_CS + 3. * XP_PER_CASTER_CS + 1. / 2. * XP_PER_SIEGE_CS)
         / (6. + 1. / 2.)
     + 5. / 30. * (3. * XP_PER_MELEE_CS + 3. * XP_PER_CASTER_CS + 1. * XP_PER_SIEGE_CS) / 7.;
-/// Amount of experience gained farming for the average legendary item.
-/// We approximate that the gold income is only from cs golds and passive golds generation.
-const XP_PER_LEGENDARY_ITEM: f32 =
-    AVG_XP_PER_CS * CS_PER_MIN * AVG_LEGENDARY_ITEM_COST / TOT_GOLDS_PER_MIN;
-/// Amount of experience gained farming for the average boots item.
-/// We approximate that the gold income is only from cs golds and passive golds generation.
-const XP_PER_BOOTS_ITEM: f32 = AVG_XP_PER_CS * CS_PER_MIN * AVG_BOOTS_COST / TOT_GOLDS_PER_MIN;
-/// Amount of experience gained farming for the average support item.
-/// We approximate that the gold income is only from cs golds and passive golds generation.
-const XP_PER_SUPPORT_ITEM: f32 =
-    AVG_XP_PER_CS * CS_PER_MIN * AVG_SUPPORT_ITEM_COST / TOT_GOLDS_PER_MIN;
 
 //fights simulation parameters:
 /// Average time in seconds we consider between fights (used to weight items actives with different cooldowns).

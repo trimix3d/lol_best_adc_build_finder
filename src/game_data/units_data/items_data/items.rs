@@ -4375,12 +4375,7 @@ fn rod_of_ages_timeless_init(champ: &mut Unit) {
     //get time elapsed since bought (assuming items are in purchase order)
     let mut take_item: bool = false;
     let mut cost_since_bought: f32 = 0.;
-    for item in champ
-        .build
-        .iter()
-        .copied()
-        .filter(|&item| *item != Item::NULL_ITEM)
-    {
+    for item in champ.build.iter().copied() {
         if take_item {
             cost_since_bought += item.cost;
         }
