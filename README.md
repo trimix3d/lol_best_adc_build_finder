@@ -72,7 +72,7 @@ After selecting a champion, the builds generation process starts with a list con
 
     The filtering is made of two parts:
 
-    1. Keep builds that have a score (based on its price, dps, tankiness and mobility) within a predefined margin of the best score found.
+    1. Keep builds that have a score/gold value within a predefined margin of the best score/gold value found (score being based on dps, tankiness and mobility).
     2. Keep builds that are part of the [pareto front](https://en.wikipedia.org/wiki/Pareto_front), the quantities to optimize being the build price, dps, tankiness, average move speed and utility of the build.
 
 4. Repeat the process from step 1. with the new list until reaching the requested number of items.

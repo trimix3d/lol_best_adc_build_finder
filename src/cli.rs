@@ -1310,7 +1310,7 @@ fn get_user_judgment_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>)
              true)?;
 
     //get defense weight
-    let defense_weight: Option<f32> = get_user_f32("",
+    let def_weight: Option<f32> = get_user_f32("",
              "Enter the defense weight (press enter to keep the previous value)",
              "The defense weight is used to measure the importance of the champion's defensive stats, heals and hields when calculating the gold value of a build.\n\
              The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
@@ -1323,7 +1323,7 @@ fn get_user_judgment_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>)
              The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
              true)?;
 
-    Ok((dps_weight, defense_weight, ms_weight))
+    Ok((dps_weight, def_weight, ms_weight))
 }
 
 /// This function never returns `Err(UserCommand::back)`.
@@ -1343,8 +1343,8 @@ fn change_judgment_weights(
         if let Some(dps_weight) = input_weights.0 {
             settings.judgment_weights.0 = dps_weight;
         }
-        if let Some(defense_weight) = input_weights.1 {
-            settings.judgment_weights.1 = defense_weight;
+        if let Some(def_weight) = input_weights.1 {
+            settings.judgment_weights.1 = def_weight;
         }
         if let Some(ms_weight) = input_weights.2 {
             settings.judgment_weights.2 = ms_weight;

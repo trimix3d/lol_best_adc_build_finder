@@ -707,7 +707,7 @@ pub struct BuildContainer {
     pub cum_utils: EnumSet<ItemUtils>,
     pub golds: [f32; MAX_UNIT_ITEMS + 1], //starting golds + 1 value per item
     pub dps: [f32; MAX_UNIT_ITEMS + 1],   //starting dps + 1 value per item
-    pub defense: [f32; MAX_UNIT_ITEMS + 1], //starting defense + 1 value per item
+    pub def: [f32; MAX_UNIT_ITEMS + 1],   //starting defense + 1 value per item
     pub ms: [f32; MAX_UNIT_ITEMS + 1],    //starting ms + 1 value per item
 }
 
@@ -750,16 +750,15 @@ impl BuildContainer {
         let normalized_judgment_weights: (f32, f32, f32) =
             get_normalized_judgment_weights(judgment_weights);
         score_formula_with_normalized_weights(
-            self.golds[item_slot],
             self.dps[item_slot],
-            self.defense[item_slot],
+            self.def[item_slot],
             self.ms[item_slot],
             normalized_judgment_weights,
         )
     }
 
     /// Returns the build score at the given item count.
-    /// `Judgment_weights` must be >= 0 and normalized (their sum must be 3.0) for the formula to be correct.
+    /// `Judgment_weights` must be >= 0 and normalized (their sum must be 1.0) for the formula to be correct.
     #[inline]
     pub(crate) fn _get_item_slot_score_with_normalized_weights(
         &self,
@@ -767,9 +766,8 @@ impl BuildContainer {
         normalized_judgment_weights: (f32, f32, f32),
     ) -> f32 {
         score_formula_with_normalized_weights(
-            self.golds[item_slot],
             self.dps[item_slot],
-            self.defense[item_slot],
+            self.def[item_slot],
             self.ms[item_slot],
             normalized_judgment_weights,
         )
@@ -791,7 +789,7 @@ impl BuildContainer {
     }
 
     /// Returns the build average score over the requested item slots.
-    /// `Judgment_weights` must be >= 0 and normalized (their sum must be 3.0) for the formula to be correct.
+    /// `Judgment_weights` must be >= 0 and normalized (their sum must be 1.0) for the formula to be correct.
     pub(crate) fn _get_avg_score_with_normalized_weights(
         &self,
         n_items: usize,
@@ -816,30 +814,23 @@ impl BuildContainer {
 
 #[inline]
 pub fn get_normalized_judgment_weights(
-    (dps_value_weight, defense_weight, ms_weight): (f32, f32, f32),
+    (dps_value_weight, def_weight, ms_weight): (f32, f32, f32),
 ) -> (f32, f32, f32) {
-    let sum: f32 = dps_value_weight + defense_weight + ms_weight;
-    (
-        dps_value_weight / sum,
-        defense_weight / sum,
-        ms_weight / sum,
-    )
+    let sum: f32 = dps_value_weight + def_weight + ms_weight;
+    (dps_value_weight / sum, def_weight / sum, ms_weight / sum)
 }
 
 /// Formula for the the score of a build.
-/// `Judgment_weights` must be >= 0 and normalized (their sum must be 3.0) for the formula to be correct
+/// `Judgment_weights` must be >= 0 and normalized (their sum must be 1.0) for the formula to be correct
 /// (these requirements are not checked when calling this function for performance reasons).
 #[inline]
 fn score_formula_with_normalized_weights(
-    golds: f32,
     dps: f32,
-    defense: f32,
+    def: f32,
     ms: f32,
-    (norm_dps_value_weight, norm_defense_weight, norm_ms_weight): (f32, f32, f32),
+    (norm_dps_value_weight, norm_def_weight, norm_ms_weight): (f32, f32, f32),
 ) -> f32 {
-    (AVG_ITEM_COST_WITH_BOOTS * dps / golds).powf(norm_dps_value_weight) //divide by the number of 'equivalent' items instead of golds so that the 'dps value' obtained is not a too small number
-        * defense.powf(norm_defense_weight)
-        * ms.powf(norm_ms_weight)
+    dps.powf(norm_dps_value_weight) * def.powf(norm_def_weight) * ms.powf(norm_ms_weight)
 }
 
 /// Generate the next 'layer' of builds from current builds, returns None if next layer is empty (never returns an empty Vec).
@@ -935,7 +926,7 @@ struct ParetoSpacePoint {
     utils: EnumSet<ItemUtils>, //represents 3 scores
     golds: f32,
     dps: f32,
-    defense: f32,
+    def: f32,
     ms: f32,
 }
 
@@ -949,7 +940,7 @@ impl ParetoSpacePoint {
         !((self.utils & !other.utils).is_empty())
             || self.golds < other.golds
             || self.dps > discard_percent * other.dps
-            || self.defense > discard_percent * other.defense
+            || self.def > discard_percent * other.def
             || self.ms > discard_percent * other.ms
     }
 
@@ -961,7 +952,7 @@ impl ParetoSpacePoint {
     ) -> Self {
         champ.set_build_unchecked(*build); //assumes builds have been cheched prior (when generating combinations)
         let mut avg_dps: f32 = 0.;
-        let mut avg_defense: f32 = 0.;
+        let mut avg_def: f32 = 0.;
         let mut avg_ms: f32 = 0.;
 
         //to avoid combinations of items that are local optimums for the given fight_duration,
@@ -975,10 +966,10 @@ impl ParetoSpacePoint {
             settings.fight_scenario_number.get() - 1,
             settings.fight_duration - 1.25 * std_dev,
         );
-        let (dps, defense, ms): (f32, f32, f32) =
+        let (dps, def, ms): (f32, f32, f32) =
             get_scores_from_sim_results(champ, settings.phys_dmg_received_percent);
         avg_dps += 0.25 * dps;
-        avg_defense += 0.25 * defense;
+        avg_def += 0.25 * def;
         avg_ms += 0.25 * ms;
 
         //weights for a value at the mean
@@ -987,10 +978,10 @@ impl ParetoSpacePoint {
             settings.fight_scenario_number.get() - 1,
             settings.fight_duration,
         );
-        let (dps, defense, ms): (f32, f32, f32) =
+        let (dps, def, ms): (f32, f32, f32) =
             get_scores_from_sim_results(champ, settings.phys_dmg_received_percent);
         avg_dps += 0.50 * dps;
-        avg_defense += 0.50 * defense;
+        avg_def += 0.50 * def;
         avg_ms += 0.50 * ms;
 
         //weights for a value at 1.25 std_dev from the mean
@@ -999,10 +990,10 @@ impl ParetoSpacePoint {
             settings.fight_scenario_number.get() - 1,
             settings.fight_duration + 1.25 * std_dev,
         );
-        let (dps, defense, ms): (f32, f32, f32) =
+        let (dps, def, ms): (f32, f32, f32) =
             get_scores_from_sim_results(champ, settings.phys_dmg_received_percent);
         avg_dps += 0.25 * dps;
-        avg_defense += 0.25 * defense;
+        avg_def += 0.25 * def;
         avg_ms += 0.25 * ms;
 
         Self {
@@ -1011,7 +1002,7 @@ impl ParetoSpacePoint {
                 .fold(build[0].utils, |acc, item| acc | item.utils),
             golds: champ.get_build().cost(),
             dps: avg_dps,
-            defense: avg_defense,
+            def: avg_def,
             ms: avg_ms,
         }
     }
@@ -1206,7 +1197,7 @@ pub fn find_best_builds(
         cum_utils: enum_set!(),
         golds: [STARTING_GOLDS; MAX_UNIT_ITEMS + 1],
         dps: [0.; MAX_UNIT_ITEMS + 1],
-        defense: [0.; MAX_UNIT_ITEMS + 1],
+        def: [0.; MAX_UNIT_ITEMS + 1],
         ms: [0.; MAX_UNIT_ITEMS + 1],
     };
     let empty_build_point: ParetoSpacePoint = ParetoSpacePoint::from_fight_simulation(
@@ -1216,7 +1207,7 @@ pub fn find_best_builds(
         settings,
     );
     empty_build.dps[0] = empty_build_point.dps;
-    empty_build.defense[0] = empty_build_point.defense;
+    empty_build.def[0] = empty_build_point.def;
     empty_build.ms[0] = empty_build_point.ms;
     //no need to change other fields
 
@@ -1286,6 +1277,8 @@ pub fn find_best_builds(
             return Err(format!("Can't reach requested item slot (stopped at slot {item_slot} because not enough items in pool/too much items incompatible with each other)"));
         }
 
+        //todo: set first scores value (for 0 items) at 0 and see results
+        //todo: remove non-items part from score?
         //divide builds into chunks and simulate them in parralel
         let chunk_size: usize = compute_chunk_size(best_builds.len(), n_threads);
         let mut pareto_space_points: Vec<ParetoSpacePoint> = best_builds
@@ -1295,17 +1288,16 @@ pub fn find_best_builds(
             })
             .collect();
 
-        //remove low value builds
-        let max_score: f32 = pareto_space_points
+        //remove low gold value builds
+        let max_gold_value: f32 = pareto_space_points
             .iter()
             .map(|scores| {
                 score_formula_with_normalized_weights(
-                    scores.golds,
-                    scores.dps,
-                    scores.defense,
+                    scores.dps / scores.golds,
+                    scores.def,
                     scores.ms,
                     normalized_judgment_weights,
-                )
+                ) //we divide dps by golds because if dps is perfectly correlated with golds, we want def and ms to be the only deciding factors
             })
             .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
             .unwrap(); //points will never be empty (generate_build_layer will return an Err first)
@@ -1313,12 +1305,11 @@ pub fn find_best_builds(
         while idx < pareto_space_points.len() {
             let scores: &ParetoSpacePoint = &pareto_space_points[idx];
             if score_formula_with_normalized_weights(
-                scores.golds,
-                scores.dps,
-                scores.defense,
+                scores.dps / scores.golds,
+                scores.def,
                 scores.ms,
                 normalized_judgment_weights,
-            ) < discard_percent * max_score
+            ) < discard_percent * max_gold_value
             {
                 pareto_space_points.swap_remove(idx);
                 best_builds.swap_remove(idx);
@@ -1345,7 +1336,7 @@ pub fn find_best_builds(
             container.cum_utils = scores.utils;
             container.golds[item_slot] = scores.golds;
             container.dps[item_slot] = scores.dps;
-            container.defense[item_slot] = scores.defense;
+            container.def[item_slot] = scores.def;
             container.ms[item_slot] = scores.ms;
         }
 
