@@ -81,7 +81,7 @@ fn jinx_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     )
 }
 
-fn jinx_fight_scenario_use_w(champ: &mut Unit, target_stats: &UnitStats, fight_duration: f32) {
+fn jinx_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_duration: f32) {
     while champ.time < fight_duration {
         //priority order: w, basic attack
         if champ.w_cd == 0. {
@@ -106,7 +106,7 @@ fn jinx_fight_scenario_use_w(champ: &mut Unit, target_stats: &UnitStats, fight_d
     champ.weighted_r(target_stats);
 }
 
-fn jinx_fight_scenario_only_basic_attacks(
+fn jinx_fight_scenario_basic_attacks_only(
     champ: &mut Unit,
     target_stats: &UnitStats,
     fight_duration: f32,
@@ -250,13 +250,10 @@ impl Unit {
             on_any_hit: None,
         },
         fight_scenarios: &[
+            (jinx_fight_scenario, "all out (rocket launcher)"),
             (
-                jinx_fight_scenario_use_w,
-                "basic attacks with rocket launcher, use w when available",
-            ),
-            (
-                jinx_fight_scenario_only_basic_attacks,
-                "basic attacks with rocket launcher only",
+                jinx_fight_scenario_basic_attacks_only,
+                "basic attacks only (rocket launcher)",
             ),
         ],
         defaults: UnitDefaults {

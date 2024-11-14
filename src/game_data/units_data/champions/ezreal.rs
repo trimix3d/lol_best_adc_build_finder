@@ -174,17 +174,13 @@ fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         )
 }
 
-fn ezreal_fight_scenario_basic_attack_in_between_abilities(
-    champ: &mut Unit,
-    target_stats: &UnitStats,
-    fight_duration: f32,
-) {
+fn ezreal_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_duration: f32) {
     //w and e at the beggining
     champ.w(target_stats);
     champ.e(target_stats);
 
     while champ.time < fight_duration {
-        //priority order: w, q, basic attack
+        //priority order: w, q, basic attack (no e)
         if champ.w_cd == 0. {
             champ.w(target_stats);
         } else if champ.q_cd == 0. {
@@ -210,7 +206,7 @@ fn ezreal_fight_scenario_basic_attack_in_between_abilities(
     champ.weighted_r(target_stats);
 }
 
-fn ezreal_fight_scenario_only_abilities(
+fn ezreal_fight_scenario_abilities_only(
     champ: &mut Unit,
     target_stats: &UnitStats,
     fight_duration: f32,
@@ -220,7 +216,7 @@ fn ezreal_fight_scenario_only_abilities(
     champ.e(target_stats);
 
     while champ.time < fight_duration {
-        //priority order: w, q (no basic attack)
+        //priority order: w, q (no basic attack, no e)
         if champ.w_cd == 0. {
             champ.w(target_stats);
         } else if champ.q_cd == 0. {
@@ -358,14 +354,8 @@ impl Unit {
             on_any_hit: None,
         },
         fight_scenarios: &[
-            (
-                ezreal_fight_scenario_basic_attack_in_between_abilities,
-                "basic attack in between abilities",
-            ),
-            (
-                ezreal_fight_scenario_only_abilities,
-                "only launch abilities",
-            ),
+            (ezreal_fight_scenario, "all out"),
+            (ezreal_fight_scenario_abilities_only, "abilities only"),
         ],
         defaults: UnitDefaults {
             runes_pages: RunesPage {
