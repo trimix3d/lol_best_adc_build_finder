@@ -476,16 +476,16 @@ mod tests {
         );
     }
 
-    #[test]
-    pub fn test_average_supp_item_cost() {
-        let true_supp_avg: f32 = ALL_SUPP_ITEMS.iter().map(|item| item.cost).sum::<f32>()
-            / (ALL_SUPP_ITEMS.len() as f32);
-
-        assert!(((AVG_SUPP_ITEM_COST) - true_supp_avg).abs() < ITEMS_AVG_COST_TOL,
-            "Constant `AVG_SUPP_ITEM_COST` of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
-            AVG_SUPP_ITEM_COST,
-            true_supp_avg,
-            true_supp_avg
-        );
-    }
+    //#[test] //todo: enable this test once support items are added (currently divides by len of `ALL_SUPP_ITEMS` which is 0)
+    //pub fn test_average_supp_item_cost() {
+    //    let true_supp_avg: f32 = ALL_SUPP_ITEMS.iter().map(|item| item.cost).sum::<f32>()
+    //        / (ALL_SUPP_ITEMS.len() as f32);
+    //
+    //    assert!(((AVG_SUPP_ITEM_COST) - true_supp_avg).abs() < ITEMS_AVG_COST_TOL,
+    //        "Constant `AVG_SUPP_ITEM_COST` of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
+    //        AVG_SUPP_ITEM_COST,
+    //        true_supp_avg,
+    //        true_supp_avg
+    //    );
+    //}
 }
