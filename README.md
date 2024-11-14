@@ -75,7 +75,7 @@ After selecting a champion, the builds generation process starts with a list con
     1. Keep builds that have a score (based on its price, dps, tankiness and mobility) within a predefined margin of the best score found.
     2. Keep builds that are part of the [pareto front](https://en.wikipedia.org/wiki/Pareto_front), the quantities to optimize being the build price, dps, tankiness, average move speed and utility of the build.
 
-4. Repeat the process from step 1 with the new list, building on top of each subsequent build list until reaching the requested number of items.
+4. Repeat the process from step 1 with the new list until reaching the requested number of items.
 
 This description has been simplified to get the global picture more easily. Feel free to see how it works in detail in the code.
 
