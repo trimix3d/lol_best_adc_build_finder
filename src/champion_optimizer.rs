@@ -405,7 +405,7 @@ pub struct BuildsGenerationSettings {
     pub boots_pool: Vec<&'static Item>,
     pub supp_items_pool: Vec<&'static Item>,
     pub allow_manaflow_first_item: bool, //only effective if manaflow items in items pool, overridden by mandatory items
-    pub judgment_weights: (f32, f32, f32),
+    pub weights: (f32, f32, f32),
     pub search_threshold: f32,
 }
 
@@ -426,7 +426,7 @@ impl Default for BuildsGenerationSettings {
             boots_pool: Vec::from(ALL_BOOTS),
             supp_items_pool: Vec::from(ALL_SUPP_ITEMS),
             allow_manaflow_first_item: false, //may change this to true, idk
-            judgment_weights: (1., 0.25, 0.5),
+            weights: (1., 0.25, 0.5),
             search_threshold: 0.20,
         }
     }
@@ -671,23 +671,20 @@ impl BuildsGenerationSettings {
             return Err(format!("Duplicates in support items pool: {:#}", item));
         }
 
-        if !self.judgment_weights.0.is_finite()
-            || !self.judgment_weights.1.is_finite()
-            || !self.judgment_weights.2.is_finite()
-            || self.judgment_weights.0 < 0.
-            || self.judgment_weights.1 < 0.
-            || self.judgment_weights.2 < 0.
+        if !self.weights.0.is_finite()
+            || !self.weights.1.is_finite()
+            || !self.weights.2.is_finite()
+            || self.weights.0 < 0.
+            || self.weights.1 < 0.
+            || self.weights.2 < 0.
         {
             return Err(format!(
-                "Judgment weights must be finite and positive (got 'DPS {}, defense {}, mobility {}')",
-                self.judgment_weights.0, self.judgment_weights.1, self.judgment_weights.2,
+                "Weights must be finite and positive (got 'DPS {}, defense {}, mobility {}')",
+                self.weights.0, self.weights.1, self.weights.2,
             ));
         }
-        if (self.judgment_weights.0 == 0.)
-            && (self.judgment_weights.1 == 0.)
-            && (self.judgment_weights.2 == 0.)
-        {
-            return Err("At least one judgment weights must be non-zero".to_string());
+        if (self.weights.0 == 0.) && (self.weights.1 == 0.) && (self.weights.2 == 0.) {
+            return Err("At least one weight must be non-zero".to_string());
         }
 
         if !self.search_threshold.is_finite() || !(0.0..=1.0).contains(&self.search_threshold) {
@@ -746,55 +743,49 @@ fn gold_weighted_average(values: &[f32], golds: &[f32], max_golds: f32) -> f32 {
 impl BuildContainer {
     /// Returns the build score at the given item count.
     #[allow(dead_code)]
-    pub fn get_item_slot_score(&self, item_slot: usize, judgment_weights: (f32, f32, f32)) -> f32 {
-        let normalized_judgment_weights: (f32, f32, f32) =
-            get_normalized_judgment_weights(judgment_weights);
+    pub fn get_item_slot_score(&self, item_slot: usize, weights: (f32, f32, f32)) -> f32 {
+        let normalized_weights: (f32, f32, f32) = get_normalized_weights(weights);
         score_formula_with_normalized_weights(
             self.dps[item_slot],
             self.def[item_slot],
             self.ms[item_slot],
-            normalized_judgment_weights,
+            normalized_weights,
         )
     }
 
     /// Returns the build score at the given item count.
-    /// `Judgment_weights` must be >= 0 and normalized (their sum must be 1.0) for the formula to be correct.
+    /// `weights` must be >= 0 and normalized (their sum must be 1.0) for the formula to be correct.
     #[inline]
     pub(crate) fn _get_item_slot_score_with_normalized_weights(
         &self,
         item_slot: usize,
-        normalized_judgment_weights: (f32, f32, f32),
+        normalized_weights: (f32, f32, f32),
     ) -> f32 {
         score_formula_with_normalized_weights(
             self.dps[item_slot],
             self.def[item_slot],
             self.ms[item_slot],
-            normalized_judgment_weights,
+            normalized_weights,
         )
     }
 
     /// Returns the build average score over the requested item slots.
     #[allow(dead_code)]
-    pub fn get_avg_score(
-        &self,
-        n_items: usize,
-        max_golds: f32,
-        judgment_weights: (f32, f32, f32),
-    ) -> f32 {
+    pub fn get_avg_score(&self, n_items: usize, max_golds: f32, weights: (f32, f32, f32)) -> f32 {
         self._get_avg_score_with_normalized_weights(
             n_items,
             max_golds,
-            get_normalized_judgment_weights(judgment_weights),
+            get_normalized_weights(weights),
         )
     }
 
     /// Returns the build average score over the requested item slots.
-    /// `Judgment_weights` must be >= 0 and normalized (their sum must be 1.0) for the formula to be correct.
+    /// `weights` must be >= 0 and normalized (their sum must be 1.0) for the formula to be correct.
     pub(crate) fn _get_avg_score_with_normalized_weights(
         &self,
         n_items: usize,
         max_golds: f32,
-        normalized_judgment_weights: (f32, f32, f32),
+        normalized_weights: (f32, f32, f32),
     ) -> f32 {
         //sanity check
         assert!(
@@ -804,16 +795,14 @@ impl BuildContainer {
         let len: usize = n_items + 1;
         let mut scores: Vec<f32> = Vec::with_capacity(len);
         for i in 0..len {
-            scores.push(
-                self._get_item_slot_score_with_normalized_weights(i, normalized_judgment_weights),
-            );
+            scores.push(self._get_item_slot_score_with_normalized_weights(i, normalized_weights));
         }
         gold_weighted_average(&scores, &self.golds[0..len], max_golds)
     }
 }
 
 #[inline]
-pub fn get_normalized_judgment_weights(
+pub fn get_normalized_weights(
     (dps_value_weight, def_weight, ms_weight): (f32, f32, f32),
 ) -> (f32, f32, f32) {
     let sum: f32 = dps_value_weight + def_weight + ms_weight;
@@ -821,7 +810,7 @@ pub fn get_normalized_judgment_weights(
 }
 
 /// Formula for the the score of a build.
-/// `Judgment_weights` must be >= 0 and normalized (their sum must be 1.0) for the formula to be correct
+/// `weights` must be >= 0 and normalized (their sum must be 1.0) for the formula to be correct
 /// (these requirements are not checked when calling this function for performance reasons).
 #[inline]
 fn score_formula_with_normalized_weights(
@@ -838,7 +827,7 @@ fn generate_build_layer(
     current_builds: Vec<BuildContainer>,
     pool: &[&'static Item],
     layer_to_fill_idx: usize,
-    normalized_judgment_weights: (f32, f32, f32),
+    normalized_weights: (f32, f32, f32),
 ) -> Option<Vec<BuildContainer>> {
     let mut new_builds: Vec<BuildContainer> = Vec::with_capacity(current_builds.len()); //new_builds will probably have at least this size
     let mut hashes: FxHashMap<BuildHash, usize> =
@@ -871,11 +860,11 @@ fn generate_build_layer(
                 if candidate._get_avg_score_with_normalized_weights(
                     layer_to_fill_idx,
                     max_golds,
-                    normalized_judgment_weights,
+                    normalized_weights,
                 ) > other._get_avg_score_with_normalized_weights(
                     layer_to_fill_idx,
                     max_golds,
-                    normalized_judgment_weights,
+                    normalized_weights,
                 ) {
                     //if candidate path is better than other path, replace other build with candidate
                     new_builds[other_idx] = candidate;
@@ -1192,7 +1181,7 @@ pub fn find_best_builds(
 
     //create empty build base scores
     champ.set_lvl(lvl).expect("Failed to set lvl");
-    let mut empty_build: BuildContainer = BuildContainer {
+    let mut init_build: BuildContainer = BuildContainer {
         build: Build::default(),
         cum_utils: enum_set!(),
         golds: [STARTING_GOLDS; MAX_UNIT_ITEMS + 1],
@@ -1200,20 +1189,19 @@ pub fn find_best_builds(
         def: [0.; MAX_UNIT_ITEMS + 1],
         ms: [0.; MAX_UNIT_ITEMS + 1],
     };
-    let empty_build_point: ParetoSpacePoint = ParetoSpacePoint::from_fight_simulation(
-        &empty_build.build,
+    let init_point: ParetoSpacePoint = ParetoSpacePoint::from_fight_simulation(
+        &init_build.build,
         &mut champ,
         target.get_stats(),
         settings,
     );
-    empty_build.dps[0] = empty_build_point.dps;
-    empty_build.def[0] = empty_build_point.def;
-    empty_build.ms[0] = empty_build_point.ms;
+    init_build.dps[0] = init_point.dps;
+    init_build.def[0] = init_point.def;
+    init_build.ms[0] = init_point.ms;
     //no need to change other fields
 
     //initialize best builds generation
-    let normalized_judgment_weights: (f32, f32, f32) =
-        get_normalized_judgment_weights(settings.judgment_weights);
+    let normalized_weights: (f32, f32, f32) = get_normalized_weights(settings.weights);
     //treat boots/support item as legendary items if no slot specified
     let mut legendary_items: &[&Item] = &settings.legendary_items_pool;
     let mut extended_legendary_items_buffer: Vec<&Item>;
@@ -1226,7 +1214,7 @@ pub fn find_best_builds(
         legendary_items = &extended_legendary_items_buffer;
     }
     let discard_percent: f32 = 1. - settings.search_threshold;
-    let mut best_builds: Vec<BuildContainer> = vec![empty_build];
+    let mut best_builds: Vec<BuildContainer> = vec![init_build];
     //start iterating on each item slot
     for item_idx in 0..settings.n_items {
         let item_slot: usize = item_idx + 1;
@@ -1270,15 +1258,13 @@ pub fn find_best_builds(
 
         //generate next builds layer from pool
         if let Some(new_builds) =
-            generate_build_layer(best_builds, pool, item_idx, normalized_judgment_weights)
+            generate_build_layer(best_builds, pool, item_idx, normalized_weights)
         {
             best_builds = new_builds;
         } else {
             return Err(format!("Can't reach requested item slot (stopped at slot {item_slot} because not enough items in pool/too much items incompatible with each other)"));
         }
 
-        //todo: set first scores value (for 0 items) at 0 and see results
-        //todo: remove non-items part from score?
         //divide builds into chunks and simulate them in parralel
         let chunk_size: usize = compute_chunk_size(best_builds.len(), n_threads);
         let mut pareto_space_points: Vec<ParetoSpacePoint> = best_builds
@@ -1296,7 +1282,7 @@ pub fn find_best_builds(
                     scores.dps / scores.golds,
                     scores.def,
                     scores.ms,
-                    normalized_judgment_weights,
+                    normalized_weights,
                 ) //we divide dps by golds because if dps is perfectly correlated with golds, we want def and ms to be the only deciding factors
             })
             .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
@@ -1308,7 +1294,7 @@ pub fn find_best_builds(
                 scores.dps / scores.golds,
                 scores.def,
                 scores.ms,
-                normalized_judgment_weights,
+                normalized_weights,
             ) < discard_percent * max_gold_value
             {
                 pareto_space_points.swap_remove(idx);
@@ -1372,15 +1358,14 @@ pub fn find_best_runes_keystones(
 
     let mut test_settings: BuildsGenerationSettings = settings.clone();
     test_settings.n_items = n_items;
-    test_settings.judgment_weights =
-        get_normalized_judgment_weights(test_settings.judgment_weights);
+    test_settings.weights = get_normalized_weights(test_settings.weights);
 
     let mut best_keystones: Vec<(&'static RuneKeystone, f32)> = Vec::new();
     for &keystone in runes_data::ALL_RUNES_KEYSTONES.iter() {
         test_settings.runes_page.keystone = keystone;
         let mut best_builds: Vec<BuildContainer> =
             find_best_builds(champ_properties, &test_settings, true)?;
-        sort_builds_by_score(&mut best_builds, test_settings.judgment_weights);
+        sort_builds_by_score(&mut best_builds, test_settings.weights);
 
         let max_golds: f32 = best_builds
             .iter()
@@ -1397,7 +1382,7 @@ pub fn find_best_runes_keystones(
                 container._get_avg_score_with_normalized_weights(
                     n_items,
                     max_golds,
-                    test_settings.judgment_weights,
+                    test_settings.weights,
                 )
             })
             .sum::<f32>())

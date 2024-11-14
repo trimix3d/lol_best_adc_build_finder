@@ -446,7 +446,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
                 continue;
             }
         };
-        sort_builds_by_score(&mut pareto_builds, settings.judgment_weights);
+        sort_builds_by_score(&mut pareto_builds, settings.weights);
 
         //results screen
         let mut n_to_print: NonZeroUsize = NonZeroUsize::new(DEFAULT_N_PRINTED_BUILDS)
@@ -457,7 +457,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
             print_builds_scores(
                 &pareto_builds,
                 champ_properties.name,
-                settings.judgment_weights,
+                settings.weights,
                 n_to_print,
                 must_have_utils,
             );
@@ -528,7 +528,7 @@ const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
          change rune keystone and rune shards.",
     "\n\n-6) go to items settings:\n\
          manage items rules (such as when boots must be purchased, which items are allowed, etc.)",
-    "\n\n-7) judgment weights:\n\
+    "\n\n-7) weights:\n\
          3 values, first for DPS, second for defense and third for mobility. These vales are\n\
          used to weight the relative importance of DPS, defense and mobility of the champion\n\
          in a single score value given to a build. The weights are relative to each other,\n\
@@ -584,10 +584,10 @@ fn confirm_builds_generation_settings(
                 .as_str(),
                 "go to items settings ->",
                 format!(
-                    "judgment weights: DPS {}, defense {}, mobility {}",
-                    settings.judgment_weights.0,
-                    settings.judgment_weights.1,
-                    settings.judgment_weights.2
+                    "weights: DPS {}, defense {}, mobility {}",
+                    settings.weights.0,
+                    settings.weights.1,
+                    settings.weights.2
                 )
                 .as_str(),
                 format!(
@@ -641,8 +641,8 @@ fn confirm_builds_generation_settings(
                 handle_items_settings(settings, champ_properties)?;
             }
             7 => {
-                //judgment_weights
-                change_judgment_weights(settings, champ_properties)?;
+                //weights
+                change_weights(settings, champ_properties)?;
             }
             8 => {
                 //search_threshold
@@ -1301,7 +1301,7 @@ const SEARCH_THRESHOLD_HELP_MSG: &str =
      A search treshold percentage between 15-25% is generally sufficient to find most of the relevant builds.";
 
 #[allow(clippy::type_complexity)]
-fn get_user_judgment_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>), UserCommand> {
+fn get_user_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>), UserCommand> {
     //get dps weight
     let dps_weight: Option<f32> = get_user_f32("",
              "Enter the DPS weight (press enter to keep the previous value)",
@@ -1327,32 +1327,31 @@ fn get_user_judgment_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>)
 }
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_judgment_weights(
+fn change_weights(
     settings: &mut BuildsGenerationSettings,
     champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
-        let input_weights: (Option<f32>, Option<f32>, Option<f32>) =
-            match get_user_judgment_weights() {
-                Ok(input_weights) => input_weights,
-                Err(UserCommand::Back) => return Ok(()),
-                Err(command) => return Err(command),
-            };
+        let input_weights: (Option<f32>, Option<f32>, Option<f32>) = match get_user_weights() {
+            Ok(input_weights) => input_weights,
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
 
-        let old_judgment_weights: (f32, f32, f32) = settings.judgment_weights; //backup before checking validity
+        let old_weights: (f32, f32, f32) = settings.weights; //backup before checking validity
         if let Some(dps_weight) = input_weights.0 {
-            settings.judgment_weights.0 = dps_weight;
+            settings.weights.0 = dps_weight;
         }
         if let Some(def_weight) = input_weights.1 {
-            settings.judgment_weights.1 = def_weight;
+            settings.weights.1 = def_weight;
         }
         if let Some(ms_weight) = input_weights.2 {
-            settings.judgment_weights.2 = ms_weight;
+            settings.weights.2 = ms_weight;
         }
 
         if let Err(error_msg) = settings.check_settings(champ_properties) {
-            println!("Failed to set judgment weights: {error_msg}");
-            settings.judgment_weights = old_judgment_weights; //restore valid value
+            println!("Failed to set weights: {error_msg}");
+            settings.weights = old_weights; //restore valid value
         } else {
             return Ok(());
         }

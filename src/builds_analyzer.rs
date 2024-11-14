@@ -1,5 +1,5 @@
 use super::{
-    champion_optimizer::{get_normalized_judgment_weights, BuildContainer},
+    champion_optimizer::{get_normalized_weights, BuildContainer},
     cli::{CHECK_MARK_CHAR, UNCHECKED_MARK_CHAR},
     game_data::{
         units_data::items_data::{BuildHash, ItemUtils},
@@ -15,7 +15,7 @@ use core::num::NonZeroUsize;
 //todo: tier list and save it in file
 
 /// Sort the provided pareto builds by their average score.
-pub fn sort_builds_by_score(builds: &mut [BuildContainer], judgment_weights: (f32, f32, f32)) {
+pub fn sort_builds_by_score(builds: &mut [BuildContainer], weights: (f32, f32, f32)) {
     //sanity check
     if builds.is_empty() {
         return;
@@ -27,8 +27,7 @@ pub fn sort_builds_by_score(builds: &mut [BuildContainer], judgment_weights: (f3
         .map(|build| build.golds[n_items])
         .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
         .unwrap_or(STARTING_GOLDS);
-    let normalized_judgment_weights: (f32, f32, f32) =
-        get_normalized_judgment_weights(judgment_weights);
+    let normalized_weights: (f32, f32, f32) = get_normalized_weights(weights);
 
     //maybe using a hashmap is overkill to store average scores (but it allows to sanity check duplicates)
     let mut average_scores: FxHashMap<BuildHash, f32> =
@@ -39,7 +38,7 @@ pub fn sort_builds_by_score(builds: &mut [BuildContainer], judgment_weights: (f3
             container._get_avg_score_with_normalized_weights(
                 n_items,
                 max_golds,
-                normalized_judgment_weights,
+                normalized_weights,
             ),
         );
         //sanity check
@@ -61,7 +60,7 @@ pub fn sort_builds_by_score(builds: &mut [BuildContainer], judgment_weights: (f3
 pub fn print_builds_scores(
     builds: &[BuildContainer],
     champ_name: &str,
-    judgment_weights: (f32, f32, f32),
+    weights: (f32, f32, f32),
     n_to_print: NonZeroUsize,
     must_have_utils: EnumSet<ItemUtils>,
 ) {
@@ -89,8 +88,7 @@ pub fn print_builds_scores(
         .map(|build| build.golds[n_items])
         .max_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
         .unwrap_or(STARTING_GOLDS);
-    let normalized_judgement_weights: (f32, f32, f32) =
-        get_normalized_judgment_weights(judgment_weights);
+    let normalized_judgement_weights: (f32, f32, f32) = get_normalized_weights(weights);
     for container in filtered_builds.take(n_to_print) {
         print!(
             "{:5.0} | {:^4} | {:^4} | {:^4} | ",
