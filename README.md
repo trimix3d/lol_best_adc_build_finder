@@ -38,7 +38,7 @@ The project is separated in different modules:
 - `builds_analyzer`: tools for analyzing and displaying the output of `champion_optimizer`. In the future i have plans to expand this module (making a tier list of differents champions based on their best builds performance?, ...).
 - `cli`: command line interface to let the user interact with all of this.
 
-Generating every possible combinations of n-items gives an absurd number of builds to try and this is impossible to process in reasonable time. That's why in `champion_optimizer` I use another approach, based on the assumption that a good build made of n items must also be a good build at n-1 items, and so on. This allows to drastically reduce the number of combinations because builds can now be explored like a tree where we only keep the best branches.
+Generating every possible combinations of n items gives an absurd number of builds to try and this is impossible to process in reasonable time. That's why in `champion_optimizer` I use another approach, based on the assumption that a good build made of n items must also be a good build at n-1 items, and so on. This allows to drastically reduce the number of combinations because builds can now be explored like a tree where we only keep the best branches.
 
 The builds generation process works as the following: after selecting a champion, it starts with a list containing one empty build at the beginning:
 
