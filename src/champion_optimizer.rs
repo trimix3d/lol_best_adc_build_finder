@@ -373,19 +373,6 @@ pub(crate) const TARGET_OPTIONS: [&UnitProperties; 3] = [
     &TANKY_OPTIMIZER_DUMMY_PROPERTIES,
 ];
 
-/// Sorts a clone of the slice and compares adjacent elements to find if there is duplicates.
-/// Return the index of the first duplicate found, if any.
-fn has_duplicates(slice: &[&'static Item]) -> Option<usize> {
-    let mut data: Vec<&Item> = Vec::from(slice);
-    data.sort_unstable();
-    for (idx, window) in data.windows(2).enumerate() {
-        if *window[0] == *window[1] {
-            return Some(idx);
-        }
-    }
-    None
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ItemSlot {
     Slot(usize),
@@ -506,7 +493,8 @@ impl BuildsGenerationSettings {
     pub fn check_settings(&self, champ_properties: &UnitProperties) -> Result<(), String> {
         if !TARGET_OPTIONS
             .iter()
-            .any(|properties| self.target_properties == *properties)
+            .copied()
+            .any(|properties| *self.target_properties == *properties)
         {
             return Err(format!(
                 "'{}' is not a recognized target",
@@ -671,25 +659,16 @@ impl BuildsGenerationSettings {
         {
             return Err("Items pools cannot contain `NULL_ITEM`".to_string());
         }
-        if let Some(idx) = has_duplicates(&self.legendary_items_pool) {
-            return Err(format!(
-                "Duplicates in legendary items pool: {:#}",
-                self.legendary_items_pool[idx]
-            ));
+        if let Some(item) = crate::find_dupes_in_slice(&mut self.legendary_items_pool.clone()) {
+            return Err(format!("Duplicates in legendary items pool: {:#}", item));
         }
 
-        if let Some(idx) = has_duplicates(&self.boots_pool) {
-            return Err(format!(
-                "Duplicates in boots pool: {:#}",
-                self.legendary_items_pool[idx]
-            ));
+        if let Some(item) = crate::find_dupes_in_slice(&mut self.boots_pool.clone()) {
+            return Err(format!("Duplicates in boots pool: {:#}", item));
         }
 
-        if let Some(idx) = has_duplicates(&self.support_items_pool) {
-            return Err(format!(
-                "Duplicates in support items pool: {:#}",
-                self.legendary_items_pool[idx]
-            ));
+        if let Some(item) = crate::find_dupes_in_slice(&mut self.support_items_pool.clone()) {
+            return Err(format!("Duplicates in support items pool: {:#}", item));
         }
 
         if !self.judgment_weights.0.is_finite()
@@ -924,8 +903,8 @@ fn generate_build_layer(
 }
 
 /// Get the size of the chunks needed to process a given amount of elements in parallel with the specified amount of workers.
-/// The chunk size will be choosen so that the number of elements per chunk is the most evenly distributed possible.
-fn get_chunksize_from_thread_count(n_elements: usize, thread_count: NonZeroUsize) -> usize {
+/// The number of elements per chunk will be the most evenly distributed possible.
+fn chunksize_from_thread_count(n_elements: usize, thread_count: NonZeroUsize) -> usize {
     usize::max(
         1,
         (n_elements + (thread_count.get() - 1)) / thread_count.get(),
@@ -960,18 +939,20 @@ struct ParetoSpacePoint {
 }
 
 impl ParetoSpacePoint {
-    /// Returns true if self has reasons to be kept against a reference point, false otherwise.
-    /// We do not use the usual definition of pareto efficiency but a variation to keep points
+    /// Returns true if self has reasons to be kept against another point, false otherwise.
+    /// This doesn't use the usual definition of pareto efficiency but a variation to keep points
     /// that are close to the pareto front as well (up to a given limit, `discard_percent`).
-    fn is_pareto_efficient(&self, ref_point: &Self, discard_percent: f32) -> bool {
-        !((self.utils & !ref_point.utils).is_empty())
-            || self.golds < ref_point.golds
-            || self.dps > discard_percent * ref_point.dps
-            || self.defense > discard_percent * ref_point.defense
-            || self.ms > discard_percent * ref_point.ms
+    fn is_pareto_efficient(&self, other: &Self, discard_percent: f32) -> bool {
+        //Points with dps, defense and ms close to the pareto front are kept because they
+        //can be subject to some little variance between different simulations and scenarios.
+        !((self.utils & !other.utils).is_empty())
+            || self.golds < other.golds
+            || self.dps > discard_percent * other.dps
+            || self.defense > discard_percent * other.defense
+            || self.ms > discard_percent * other.ms
     }
 
-    fn from_build_fight_simulation(
+    fn from_fight_simulation(
         container: &BuildContainer,
         item_idx: usize,
         champ: &mut Unit,
@@ -1044,7 +1025,7 @@ fn simulate_chunk_of_builds(
     chunk
         .iter()
         .map(|container| {
-            ParetoSpacePoint::from_build_fight_simulation(
+            ParetoSpacePoint::from_fight_simulation(
                 container,
                 item_idx,
                 champ,
@@ -1056,15 +1037,15 @@ fn simulate_chunk_of_builds(
 }
 
 /// returns a Vec<bool> indicating if each point at the corresponding index
-/// is pareto efficient compared to the `reference_point`.
-fn pareto_compare_chunk_to_ref_point(
+/// is pareto efficient compared to the reference point.
+fn pareto_compare_chunk_to_point(
     chunk: &[ParetoSpacePoint],
     ref_point: &ParetoSpacePoint,
     discard_percent: f32,
 ) -> Vec<bool> {
     chunk
         .iter()
-        .map(|other_point| other_point.is_pareto_efficient(ref_point, discard_percent))
+        .map(|chunk_point| chunk_point.is_pareto_efficient(ref_point, discard_percent))
         .collect()
 }
 
@@ -1086,23 +1067,23 @@ fn pareto_front_multithread(
         let current_point: &ParetoSpacePoint = &points[idx];
 
         //update pareto mask, divide points into chunks to process them in parralel
-        let chunk_size: usize = get_chunksize_from_thread_count(points.len(), n_threads);
+        let chunk_size: usize = chunksize_from_thread_count(points.len(), n_threads);
         pareto_mask.clear();
         pareto_mask = points
             .par_chunks(chunk_size)
             .flat_map_iter(|chunk| {
-                pareto_compare_chunk_to_ref_point(chunk, current_point, discard_percent)
+                pareto_compare_chunk_to_point(chunk, current_point, discard_percent)
             })
             .collect();
         pareto_mask[idx] = true; //keep self
 
         //pareto_mask.shrink_to_fit(); //useless because we will re-use the full capacity later
 
-        let mut to_keep1 = pareto_mask.iter();
+        let mut to_keep1 = pareto_mask.iter().copied();
         let mut to_keep2 = to_keep1.clone();
         //i think this can be faster if done in parallel, todo: try scoped threads? (tradeoff might be worth it)
-        points.retain(|_| *to_keep1.next().unwrap()); //will never panic as to_keep1 has the same length
-        pareto_indices.retain(|_| *to_keep2.next().unwrap()); //same
+        points.retain(|_| to_keep1.next().unwrap()); //will never panic as to_keep1 has the same length
+        pareto_indices.retain(|_| to_keep2.next().unwrap()); //same
 
         idx = pareto_mask[0..idx]
             .iter()
@@ -1181,7 +1162,7 @@ pub fn find_best_builds(
         defense: [0.; MAX_UNIT_ITEMS + 1],
         ms: [0.; MAX_UNIT_ITEMS + 1],
     };
-    let empty_build_point: ParetoSpacePoint = ParetoSpacePoint::from_build_fight_simulation(
+    let empty_build_point: ParetoSpacePoint = ParetoSpacePoint::from_fight_simulation(
         &empty_build,
         0,
         &mut champ,
@@ -1276,7 +1257,7 @@ pub fn find_best_builds(
         }
 
         //divide builds into chunks to process them in parralel
-        let chunk_size: usize = get_chunksize_from_thread_count(best_builds.len(), n_threads);
+        let chunk_size: usize = chunksize_from_thread_count(best_builds.len(), n_threads);
         let mut pareto_space_points: Vec<ParetoSpacePoint> = best_builds
             .par_chunks(chunk_size)
             .flat_map_iter(|chunk| {

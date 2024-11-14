@@ -27,22 +27,22 @@ If your OS/CPU architecture is not included in the release or if you want to com
 
 1. You need [Rust](https://www.rust-lang.org/tools/install) installed.
 2. Download and extract the source code of the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) / git clone the repository.
-3. Go in the directory containing the source code (on the same level as the `src` folder and `cargo.toml` file) and build the executable with the command ```cargo build --release```. The executable will be located in a newly created folder `target\release\`.
+3. Navigate in the directory containing the source code (on the same level as the `src` folder and `cargo.toml` file) and build the executable with the command ```cargo build --release```. The executable will be located in a newly created folder `target\release\`.
 
 
 # How it works in more details
 
 The project is separated in different modules:
 - `game_data`: provides functions to manage champions, simulate fights against a target dummy and record the results.
-- `champion_optimizer`: find the best build/runes for a champion by using the `game_data` module to simulate them.
+- `champion_optimizer`: finds the best build/runes for a champion by using the `game_data` module to simulate them.
 - `builds_analyzer`: tools for analyzing and displaying the output of `champion_optimizer`. In the future i have plans to expand this module (making a tier list of differents champions based on their best builds performance?, ...).
 - `cli`: command line interface to let the user interact with all of this.
 
-Generating every possible combinations of n-items gives an absurd number of builds to try and this is impossible to process in reasonable time. That's why in `champion_optimizer` I use another approach, based on the assumption that a good build made of n-items must also be a good build at n-1 items, and so on. This allows to drastically reduce the number of combinations because builds can now be explored like a tree and only the best "branches" are kept before choosing the next item, and so on.
+Generating every possible combinations of n-items gives an absurd number of builds to try and this is impossible to process in reasonable time. That's why in `champion_optimizer` I use another approach, based on the assumption that a good build made of n items must also be a good build at n-1 items, and so on. This allows to drastically reduce the number of combinations because builds can now be explored like a tree where we only keep the best branches.
 
-After selecting a champion, the builds generation process works as the following, starting with a list containing one empty build at the beginning:
+The builds generation process works as the following: after selecting a champion, it starts with a list containing one empty build at the beginning:
 
-1. Select the first build of the current list. Loop through a predetermined pool of items available for the champion. For each of these items, add them to a copy of the build and store this copy in a new list. Repeat for every build of the list.
+1. Select the first build of the current list. Loop through a predetermined pool of items available for the champion. For each of these items, add them to a copy of the selected build and store this copy in a new list. Repeat for every build of the list.
 
     For exemple, if the current list of builds is:
     ```
@@ -58,6 +58,8 @@ After selecting a champion, the builds generation process works as the following
      {statikk_shyv , infinity_edge}]
     ```
 
+At the end of this step, the new list contains all the possible builds combination with one additionnal item to the builds of the old list. The old list is discarded.
+
 2. Simulate a fight with every build in the new list and save the corresponding results.
 
     The results saved are:
@@ -65,13 +67,13 @@ After selecting a champion, the builds generation process works as the following
     - dps on the target
     - tankiness of the build (including heals and shields)
     - average effective move speed during the simulation (this is just `units_travelled/sim_duration`, so for exemple, dashes count as an increase in effective move speed)
-    - some other stuff (special items utility, etc). A single score number is also calculated for each build from the price, dps, tankiness and average move speed.
+    - some other stuff (special items utility, etc).
 
 3. Filter the builds from the new list to keep only the better ones (within a certain configurable margin).
 
     The filtering is made of two parts:
 
-    1. Keep builds that have a score within a predefined margin of the best score found.
+    1. Keep builds that have a score (based on its price, dps, tankiness and mobility) within a predefined margin of the best score found.
     2. Keep builds that are part of the [pareto front](https://en.wikipedia.org/wiki/Pareto_front), the quantities to optimize being the build price, dps, tankiness, average move speed and utility of the build.
 
 4. Repeat the process, building on top of each subsequent build list until reaching the requested number of items.
@@ -92,7 +94,7 @@ Depending on your settings, you may get questionable builds though, so always an
 - [ ] add every ADC - in progress
 - [ ] add every runes keystones - in progress
 - [ ] retrieve champions and items data automatically from community dragon (instead of updating values manually each patch) - to do
-- [ ] make an GUI - to do
+- [ ] make a GUI - to do
 
-If you have ideas about improving the program, feel free to share them :)
+If you have ideas about improving the program, I'm open to suggestions and pull requests :)
 Feel free to add `trimix3d` on discord if you want to discuss about the project.

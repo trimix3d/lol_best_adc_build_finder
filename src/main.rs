@@ -8,6 +8,19 @@ use game_data::units_data::*;
 use items_data::*;
 use runes_data::*;
 
+/// Sorts the slice and compares adjacent elements to find if there are duplicates.
+/// Return a reference to the first duplicate found, if any.
+/// The slice given to this function will be modified, if you don't want to modify the given slice, pass a clone.
+fn find_dupes_in_slice<T: Ord>(slice: &mut [T]) -> Option<&T> {
+    slice.sort_unstable();
+    for window in slice.windows(2) {
+        if window[0] == window[1] {
+            return Some(&window[0]);
+        }
+    }
+    None
+}
+
 /// Debug function for validating champions implementations.
 #[allow(dead_code)]
 fn champion_test_ground() {

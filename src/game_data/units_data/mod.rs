@@ -1332,10 +1332,10 @@ impl Unit {
     /// This leads to redundant work when setting these in chain, but it's not a big deal.
     fn update_abilities_lvls(&mut self) {
         let lvl: usize = usize::from(self.lvl.get());
-        self.q_lvl = self.skill_order.q[..lvl].iter().sum();
-        self.w_lvl = self.skill_order.w[..lvl].iter().sum();
-        self.e_lvl = self.skill_order.e[..lvl].iter().sum();
-        self.r_lvl = self.skill_order.r[..lvl].iter().sum();
+        self.q_lvl = self.skill_order.q[..lvl].iter().copied().sum();
+        self.w_lvl = self.skill_order.w[..lvl].iter().copied().sum();
+        self.e_lvl = self.skill_order.e[..lvl].iter().copied().sum();
+        self.r_lvl = self.skill_order.r[..lvl].iter().copied().sum();
     }
 
     /// Clears the items on-action-fns from the unit, leaving only on-action-fns from the unit properties and runes.
@@ -1421,7 +1421,8 @@ impl Unit {
             .q
             .base_cooldown_by_ability_lvl
             .iter()
-            .any(|cooldown| *cooldown < F32_TOL)
+            .copied()
+            .any(|cooldown| cooldown < F32_TOL)
         {
             return Err(format!(
                 "{} abilities cast time should be >= F32_TOL",
@@ -1432,7 +1433,8 @@ impl Unit {
             .w
             .base_cooldown_by_ability_lvl
             .iter()
-            .any(|cooldown| *cooldown < F32_TOL)
+            .copied()
+            .any(|cooldown| cooldown < F32_TOL)
         {
             return Err(format!(
                 "{} W ability cooldown should be >= F32_TOL",
@@ -1443,7 +1445,8 @@ impl Unit {
             .e
             .base_cooldown_by_ability_lvl
             .iter()
-            .any(|cooldown| *cooldown < F32_TOL)
+            .copied()
+            .any(|cooldown| cooldown < F32_TOL)
         {
             return Err(format!(
                 "{} E ability cooldown should be >= F32_TOL",
@@ -1454,7 +1457,8 @@ impl Unit {
             .r
             .base_cooldown_by_ability_lvl
             .iter()
-            .any(|cooldown| *cooldown < F32_TOL)
+            .copied()
+            .any(|cooldown| cooldown < F32_TOL)
         {
             return Err(format!(
                 "{} R ability cooldown should be >= F32_TOL",

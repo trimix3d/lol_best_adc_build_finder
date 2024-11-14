@@ -7,7 +7,7 @@ use units_data::*;
 use enumset::enum_set;
 
 //champion parameters (constants):
-const JINX_W_HIT_PERCENT: f32 = 0.8;
+const JINX_W_HIT_PERCENT: f32 = 0.75;
 const JINX_R_TARGET_MISSING_HP_PERCENT: f32 = 0.67;
 const JINX_R_AVG_TARGETS: f32 = 1.2;
 const JINX_R_HIT_PERCENT: f32 = 0.85;
@@ -81,14 +81,55 @@ fn jinx_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     )
 }
 
-fn jinx_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_duration: f32) {
-    //w once at the beggining
+fn jinx_fight_scenario_use_w(champ: &mut Unit, target_stats: &UnitStats, fight_duration: f32) {
+    while champ.time < fight_duration {
+        //priority order: w, basic attack
+        if champ.w_cd == 0. {
+            champ.w(target_stats);
+        } else if champ.basic_attack_cd == 0. {
+            champ.basic_attack(target_stats);
+        } else {
+            champ.walk(
+                F32_TOL
+                    + [
+                        champ.w_cd,
+                        champ.basic_attack_cd,
+                        f32::max(0., fight_duration - champ.time),
+                    ]
+                    .into_iter()
+                    .min_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
+                    .unwrap(),
+            );
+        }
+    }
+    //add weighted r dmg at the end
+    champ.weighted_r(target_stats);
+}
+
+fn jinx_fight_scenario_only_basic_attacks(
+    champ: &mut Unit,
+    target_stats: &UnitStats,
+    fight_duration: f32,
+) {
+    //w once at the beginning
     champ.w(target_stats);
 
     while champ.time < fight_duration {
-        //only basic attacks
-        champ.basic_attack(target_stats);
-        champ.walk(champ.basic_attack_cd + F32_TOL);
+        //priority order: w, basic attack
+        if champ.basic_attack_cd == 0. {
+            champ.basic_attack(target_stats);
+        } else {
+            champ.walk(
+                F32_TOL
+                    + [
+                        champ.basic_attack_cd,
+                        f32::max(0., fight_duration - champ.time),
+                    ]
+                    .into_iter()
+                    .min_by(|a, b| a.partial_cmp(b).expect("Failed to compare floats"))
+                    .unwrap(),
+            );
+        }
     }
     //add weighted r dmg at the end
     champ.weighted_r(target_stats);
@@ -208,10 +249,16 @@ impl Unit {
             on_true_dmg_hit: None,
             on_any_hit: None,
         },
-        fight_scenarios: &[(
-            jinx_fight_scenario,
-            "all out (basic attacks with rocket launcher only)",
-        )],
+        fight_scenarios: &[
+            (
+                jinx_fight_scenario_use_w,
+                "basic attacks with rocket launcher, use w when available",
+            ),
+            (
+                jinx_fight_scenario_only_basic_attacks,
+                "basic attacks with rocket launcher only",
+            ),
+        ],
         defaults: UnitDefaults {
             runes_pages: RunesPage {
                 keystone: &RuneKeystone::PRESS_THE_ATTACK, //todo: prone to change

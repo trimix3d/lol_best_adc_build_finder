@@ -68,15 +68,9 @@ mod tests {
             .iter()
             .map(|properties| properties.name)
             .collect();
-        names.sort_unstable();
 
-        //compare adjacent elements of sorted vec to find names collisions
-        for window in names.windows(2) {
-            assert!(
-                window[0] != window[1],
-                "Champion name collision encountered: {:?}",
-                window[0]
-            )
+        if let Some(name) = crate::find_dupes_in_slice(&mut names) {
+            panic!("Champion name collision encountered: {}", name)
         }
     }
 }

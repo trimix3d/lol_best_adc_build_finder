@@ -298,6 +298,7 @@ pub const AVG_ITEM_COST_WITH_BOOTS: f32 =
 
 #[derive(Debug, Clone, Copy)]
 pub struct Build(pub [&'static Item; MAX_UNIT_ITEMS]);
+pub(crate) type BuildHash = [ItemId; MAX_UNIT_ITEMS];
 
 impl Deref for Build {
     type Target = [&'static Item; MAX_UNIT_ITEMS];
@@ -331,14 +332,12 @@ impl fmt::Display for Build {
     }
 }
 
-pub(crate) type BuildHash = [ItemId; MAX_UNIT_ITEMS];
-
 impl Build {
     /// Returns the item count in the build (ignoring `NULL_ITEMs`).
     #[must_use]
     pub fn item_count(&self) -> usize {
         let mut item_count: usize = 0;
-        for &item in self.iter() {
+        for item in self.iter().copied() {
             if *item != Item::NULL_ITEM {
                 item_count += 1;
             }
@@ -349,12 +348,11 @@ impl Build {
     /// Returns the build cost
     #[must_use]
     pub fn cost(&self) -> f32 {
-        self.iter().fold(0., |acc, &item| acc + item.cost)
+        self.iter().fold(0., |acc, item| acc + item.cost)
     }
 
     /// Returns the build hash. Builds with same items but in different item order will produce the same hash.
     /// If there is no id collision between items, this function doesn't produces collisions either
-    /// (except for the case above which is intended).
     #[must_use]
     pub(crate) fn get_hash(&self) -> BuildHash {
         let mut ids: [ItemId; MAX_UNIT_ITEMS] = [
@@ -365,6 +363,7 @@ impl Build {
     }
 
     pub fn check_validity(&self) -> Result<(), String> {
+        //ids being the same as the build hash is a coincidence, the method to compute the hash may change in the future
         let mut ids: [ItemId; MAX_UNIT_ITEMS] = [
             self[0].id, self[1].id, self[2].id, self[3].id, self[4].id, self[5].id,
         ];
@@ -412,20 +411,26 @@ mod tests {
     /// Panics if a collision is encountered.
     /// The program won't run correctly if there are collisions between item ids.
     #[test]
-    pub fn test_items_ids_collisions() {
+    pub fn test_items_dupes_and_id_collisions() {
         //get ids and sort them
         let mut items_ids: Vec<ItemId> = ALL_ITEMS_PLUS_NULL_ITEM
             .iter()
             .map(|item| item.id)
             .collect();
-        items_ids.sort_unstable();
 
-        //compare adjacent elements of sorted vec to find id collisions
-        for window in items_ids.windows(2) {
-            if window[0] == window[1] {
-                panic!("Item id collision encountered: {:?}", window[0])
-            }
+        if let Some(id) = crate::find_dupes_in_slice(&mut items_ids) {
+            panic!("Item id collision encountered: {:?}", id)
         }
+    }
+
+    #[test]
+    pub fn test_all_items_are_correctly_listed() {
+        assert!(
+            ALL_ITEMS_PLUS_NULL_ITEM.len() == ItemId::COUNT,
+            "Number of items in `ALL_ITEMS` ({}) is different that the number of variants in `ItemId` enum ({})",
+            ALL_ITEMS_PLUS_NULL_ITEM.len(),
+            ItemId::COUNT
+        );
     }
 
     #[test]
@@ -467,16 +472,6 @@ mod tests {
             AVG_SUPPORT_ITEM_COST,
             true_support_avg,
             true_support_avg
-        );
-    }
-
-    #[test]
-    pub fn test_all_items_are_correctly_listed() {
-        assert!(
-            ALL_ITEMS_PLUS_NULL_ITEM.len() == ItemId::COUNT,
-            "Number of items in `ALL_ITEMS` ({}) is different that the number of variants in `ItemId` enum ({})",
-            ALL_ITEMS_PLUS_NULL_ITEM.len(),
-            ItemId::COUNT
         );
     }
 }
