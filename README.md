@@ -40,7 +40,7 @@ The project is separated in different modules:
 
 Generating every possible combinations of n items gives an absurd number of builds to try and this is impossible to process in reasonable time. That's why in `champion_optimizer` I use another approach, based on the assumption that a good build made of n items must also be a good build at n-1 items, and so on. This allows to drastically reduce the number of combinations because builds can now be explored like a tree where we only keep the best branches.
 
-After selecting a champion, the builds generation process starts with a list containing one empty build and works as the following:
+After selecting a champion, the builds generation process starts with a list containing one empty build and works as the following :
 
 1. Select the first build of the current list. Loop through a predetermined pool of items available for the champion. For each of these items, add them to a copy of the selected build and store this copy in a new list. Repeat for every build of the list.
 
