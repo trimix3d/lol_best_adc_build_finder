@@ -953,13 +953,12 @@ impl ParetoSpacePoint {
     }
 
     fn from_fight_simulation(
-        container: &BuildContainer,
-        item_idx: usize,
+        build: &Build,
         champ: &mut Unit,
         target_stats: &UnitStats,
         settings: &BuildsGenerationSettings,
     ) -> Self {
-        champ.set_build_unchecked(container.build); //assumes builds have been cheched prior (when generating combinations)
+        champ.set_build_unchecked(*build); //assumes builds have been cheched prior (when generating combinations)
         let mut avg_dps: f32 = 0.;
         let mut avg_defense: f32 = 0.;
         let mut avg_ms: f32 = 0.;
@@ -1006,7 +1005,9 @@ impl ParetoSpacePoint {
         avg_ms += 0.25 * ms;
 
         Self {
-            utils: container.cum_utils | container.build[item_idx].utils, //only check current item, as containers should records items utils cumulatively from previous items
+            utils: build[1..]
+                .iter()
+                .fold(build[0].utils, |acc, item| acc | item.utils),
             golds: champ.get_build().cost(),
             dps: avg_dps,
             defense: avg_defense,
@@ -1020,18 +1021,11 @@ fn simulate_chunk_of_builds(
     champ: &mut Unit,
     target_stats: &UnitStats,
     settings: &BuildsGenerationSettings,
-    item_idx: usize,
 ) -> Vec<ParetoSpacePoint> {
     chunk
         .iter()
         .map(|container| {
-            ParetoSpacePoint::from_fight_simulation(
-                container,
-                item_idx,
-                champ,
-                target_stats,
-                settings,
-            )
+            ParetoSpacePoint::from_fight_simulation(&container.build, champ, target_stats, settings)
         })
         .collect()
 }
@@ -1163,8 +1157,7 @@ pub fn find_best_builds(
         ms: [0.; MAX_UNIT_ITEMS + 1],
     };
     let empty_build_point: ParetoSpacePoint = ParetoSpacePoint::from_fight_simulation(
-        &empty_build,
-        0,
+        &empty_build.build,
         &mut champ,
         target.get_stats(),
         settings,
@@ -1261,13 +1254,7 @@ pub fn find_best_builds(
         let mut pareto_space_points: Vec<ParetoSpacePoint> = best_builds
             .par_chunks(chunk_size)
             .flat_map_iter(|chunk| {
-                simulate_chunk_of_builds(
-                    chunk,
-                    &mut champ.clone(),
-                    target.get_stats(),
-                    settings,
-                    item_idx,
-                )
+                simulate_chunk_of_builds(chunk, &mut champ.clone(), target.get_stats(), settings)
             })
             .collect();
 
