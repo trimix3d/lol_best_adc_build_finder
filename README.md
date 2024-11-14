@@ -57,7 +57,6 @@ The builds generation process works as the following: after selecting a champion
      {statikk_shyv , bloodthirster},
      {statikk_shyv , infinity_edge}]
     ```
-
 At the end of this step, the new list contains all the possible builds combination with one additionnal item to the builds of the old list. The old list is discarded.
 
 2. Simulate a fight with every build in the new list and save the corresponding results.
