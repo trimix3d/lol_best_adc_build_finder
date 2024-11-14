@@ -33,7 +33,7 @@ const OPTIMIZER_DUMMY_RUNES_PAGE: RunesPage = RunesPage::const_default();
 const OPTIMIZER_DUMMY_SKILL_ORDER: SkillOrder = SkillOrder::const_default(); //does nothing since dummy has no ability
 
 #[allow(clippy::cast_precision_loss)]
-const MAX_UNIT_LVL_F32: f32 = MAX_UNIT_LVL as f32; //`MAX_UNIT_LVL` is well whithin f32's range to avoid precision loss
+const MAX_UNIT_LVL_F32: f32 = MAX_UNIT_LVL as f32; //`MAX_UNIT_LVL_F32` is well within f32 precision range
 
 /// Using Ahri stats for squishy dummy.
 pub const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
@@ -138,7 +138,7 @@ pub const SQUISHY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         skill_order: OPTIMIZER_DUMMY_SKILL_ORDER,
         legendary_items_pool: &ALL_LEGENDARY_ITEMS,
         boots_pool: &ALL_BOOTS,
-        support_items_pool: &ALL_SUPPORT_ITEMS,
+        supp_items_pool: &ALL_SUPP_ITEMS,
     },
 };
 
@@ -249,7 +249,7 @@ pub const BRUISER_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         skill_order: OPTIMIZER_DUMMY_SKILL_ORDER,
         legendary_items_pool: &ALL_LEGENDARY_ITEMS,
         boots_pool: &ALL_BOOTS,
-        support_items_pool: &ALL_SUPPORT_ITEMS,
+        supp_items_pool: &ALL_SUPP_ITEMS,
     },
 };
 
@@ -363,7 +363,7 @@ pub const TANKY_OPTIMIZER_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         skill_order: OPTIMIZER_DUMMY_SKILL_ORDER,
         legendary_items_pool: &ALL_LEGENDARY_ITEMS,
         boots_pool: &ALL_BOOTS,
-        support_items_pool: &ALL_SUPPORT_ITEMS,
+        supp_items_pool: &ALL_SUPP_ITEMS,
     },
 };
 
@@ -383,7 +383,7 @@ pub enum ItemSlot {
 impl fmt::Display for ItemSlot {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Slot(number) => write!(f, "{number}"),
+            Self::Slot(slot) => write!(f, "{slot}"),
             Self::Any => f.write_str("Any"),
             Self::None => f.write_str("None"),
         }
@@ -400,10 +400,10 @@ pub struct BuildsGenerationSettings {
     pub n_items: usize,
     pub mandatory_items: Build,
     pub boots_slot: ItemSlot,
-    pub support_item_slot: ItemSlot,
+    pub supp_item_slot: ItemSlot,
     pub legendary_items_pool: Vec<&'static Item>,
     pub boots_pool: Vec<&'static Item>,
-    pub support_items_pool: Vec<&'static Item>,
+    pub supp_items_pool: Vec<&'static Item>,
     pub allow_manaflow_first_item: bool, //only effective if manaflow items in items pool, overridden by mandatory items
     pub judgment_weights: (f32, f32, f32),
     pub search_threshold: f32,
@@ -421,10 +421,10 @@ impl Default for BuildsGenerationSettings {
             n_items: 4,
             mandatory_items: Build::default(),
             boots_slot: ItemSlot::Slot(2),
-            support_item_slot: ItemSlot::None,
+            supp_item_slot: ItemSlot::None,
             legendary_items_pool: Vec::from(ALL_LEGENDARY_ITEMS),
             boots_pool: Vec::from(ALL_BOOTS),
-            support_items_pool: Vec::from(ALL_SUPPORT_ITEMS),
+            supp_items_pool: Vec::from(ALL_SUPP_ITEMS),
             allow_manaflow_first_item: false, //may change this to true, idk
             judgment_weights: (1., 0.25, 0.5),
             search_threshold: 0.20,
@@ -457,7 +457,7 @@ impl BuildsGenerationSettings {
                 runes_page: properties.defaults.runes_pages,
                 legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties.defaults.boots_pool),
-                support_items_pool: Vec::from(properties.defaults.support_items_pool),
+                supp_items_pool: Vec::from(properties.defaults.supp_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
@@ -466,7 +466,7 @@ impl BuildsGenerationSettings {
                 runes_page: properties.defaults.runes_pages,
                 legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties.defaults.boots_pool),
-                support_items_pool: Vec::from(properties.defaults.support_items_pool),
+                supp_items_pool: Vec::from(properties.defaults.supp_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
@@ -475,7 +475,7 @@ impl BuildsGenerationSettings {
                 runes_page: properties.defaults.runes_pages,
                 legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties.defaults.boots_pool),
-                support_items_pool: Vec::from(properties.defaults.support_items_pool),
+                supp_items_pool: Vec::from(properties.defaults.supp_items_pool),
                 search_threshold: 0.15,
                 ..Default::default()
             }
@@ -484,7 +484,7 @@ impl BuildsGenerationSettings {
                 runes_page: properties.defaults.runes_pages,
                 legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
                 boots_pool: Vec::from(properties.defaults.boots_pool),
-                support_items_pool: Vec::from(properties.defaults.support_items_pool),
+                supp_items_pool: Vec::from(properties.defaults.supp_items_pool),
                 ..Default::default()
             }
         }
@@ -564,8 +564,8 @@ impl BuildsGenerationSettings {
                     boots_slot_number
                 ));
             }
-            if let ItemSlot::Slot(support_item_slot_number) = self.support_item_slot {
-                if boots_slot_number == support_item_slot_number {
+            if let ItemSlot::Slot(supp_item_slot_number) = self.supp_item_slot {
+                if boots_slot_number == supp_item_slot_number {
                     return Err(format!(
                         "Cannot have boots and support item at the same slot (slot {})",
                         boots_slot_number
@@ -592,36 +592,36 @@ impl BuildsGenerationSettings {
             }
         }
 
-        if let ItemSlot::Slot(support_item_slot_number) = self.support_item_slot {
-            if (1..=self.n_items).contains(&support_item_slot_number) {
+        if let ItemSlot::Slot(supp_item_slot_number) = self.supp_item_slot {
+            if (1..=self.n_items).contains(&supp_item_slot_number) {
                 additional_items += 1;
             }
 
-            if !(1..=MAX_UNIT_ITEMS).contains(&support_item_slot_number) {
+            if !(1..=MAX_UNIT_ITEMS).contains(&supp_item_slot_number) {
                 return Err(format!(
                     "Support item slot must be between 1 and {MAX_UNIT_ITEMS} (got {})",
-                    support_item_slot_number
+                    supp_item_slot_number
                 ));
             }
-            if *self.mandatory_items[support_item_slot_number - 1] != Item::NULL_ITEM {
+            if *self.mandatory_items[supp_item_slot_number - 1] != Item::NULL_ITEM {
                 return Err(format!(
                     "Cannot have a mandatory item at the support item slot (slot {})",
-                    support_item_slot_number
+                    supp_item_slot_number
                 ));
             }
             if let ItemSlot::Slot(boots_slot_number) = self.boots_slot {
-                if support_item_slot_number == boots_slot_number {
+                if supp_item_slot_number == boots_slot_number {
                     return Err(format!(
                         "Cannot have boots and support item at the same slot (slot {})",
-                        support_item_slot_number
+                        supp_item_slot_number
                     ));
                 }
             }
         }
-        if self.support_item_slot == ItemSlot::Any {
+        if self.supp_item_slot == ItemSlot::Any {
             additional_items += 1;
         }
-        if self.support_item_slot != ItemSlot::None {
+        if self.supp_item_slot != ItemSlot::None {
             if self
                 .mandatory_items
                 .iter()
@@ -629,12 +629,12 @@ impl BuildsGenerationSettings {
             {
                 return Err("Cannot have a support item in mandatory items if the support item slot is already set".to_string());
             }
-            if self.support_items_pool.is_empty() {
+            if self.supp_items_pool.is_empty() {
                 return Err("Support items pool is empty".to_string());
             }
         }
 
-        //this check must be done after being sure that `boots_slot` and `support_item_slot` are different
+        //this check must be done after being sure that `boots_slot` and `supp_item_slot` are different
         if self.legendary_items_pool.len() + additional_items < self.n_items {
             return Err(format!(
                 "Not enough legendary items in pool to fill {} items slots",
@@ -652,7 +652,7 @@ impl BuildsGenerationSettings {
                 .copied()
                 .any(|item| *item == Item::NULL_ITEM)
             || self
-                .support_items_pool
+                .supp_items_pool
                 .iter()
                 .copied()
                 .any(|item| *item == Item::NULL_ITEM)
@@ -667,7 +667,7 @@ impl BuildsGenerationSettings {
             return Err(format!("Duplicates in boots pool: {:#}", item));
         }
 
-        if let Some(item) = crate::find_dupes_in_slice(&mut self.support_items_pool.clone()) {
+        if let Some(item) = crate::find_dupes_in_slice(&mut self.supp_items_pool.clone()) {
             return Err(format!("Duplicates in support items pool: {:#}", item));
         }
 
@@ -1097,16 +1097,13 @@ fn pareto_front_multithread(
 
 /// From number of items, returns the associated unit lvl.
 #[must_use]
-fn lvl_from_number_of_items(
-    n_items: usize,
-    boots_slot: ItemSlot,
-    support_item_slot: ItemSlot,
-) -> u8 {
-    let xp_per_non_special_item: f32 = match (boots_slot, support_item_slot) {
+fn lvl_from_number_of_items(n_items: usize, boots_slot: ItemSlot, supp_item_slot: ItemSlot) -> u8 {
+    #[allow(clippy::cast_precision_loss)] //`MAX_UNIT_ITEMS` is well within f32 precision range
+    let xp_per_non_special_item: f32 = match (boots_slot, supp_item_slot) {
         (ItemSlot::Any, ItemSlot::Any) => {
             XP_PER_LEGENDARY_ITEM * ((MAX_UNIT_ITEMS - 2) as f32) / (MAX_UNIT_ITEMS as f32)
                 + XP_PER_BOOTS_ITEM / (MAX_UNIT_ITEMS as f32)
-                + XP_PER_SUPPORT_ITEM / (MAX_UNIT_ITEMS as f32)
+                + XP_PER_SUPP_ITEM / (MAX_UNIT_ITEMS as f32)
         }
         (ItemSlot::Any, _) => {
             XP_PER_LEGENDARY_ITEM * ((MAX_UNIT_ITEMS - 1) as f32) / (MAX_UNIT_ITEMS as f32)
@@ -1114,18 +1111,18 @@ fn lvl_from_number_of_items(
         }
         (_, ItemSlot::Any) => {
             XP_PER_LEGENDARY_ITEM * ((MAX_UNIT_ITEMS - 1) as f32) / (MAX_UNIT_ITEMS as f32)
-                + XP_PER_SUPPORT_ITEM / (MAX_UNIT_ITEMS as f32)
+                + XP_PER_SUPP_ITEM / (MAX_UNIT_ITEMS as f32)
         }
         (_, _) => XP_PER_LEGENDARY_ITEM,
     };
 
-    let boots_slot: usize = if let ItemSlot::Slot(slot) = boots_slot {
-        slot
+    let boots_slot: usize = if let ItemSlot::Slot(boots_slot_number) = boots_slot {
+        boots_slot_number
     } else {
         0
     };
-    let support_item_slot: usize = if let ItemSlot::Slot(slot) = support_item_slot {
-        slot
+    let supp_item_slot: usize = if let ItemSlot::Slot(supp_item_slot_number) = supp_item_slot {
+        supp_item_slot_number
     } else {
         0
     };
@@ -1134,14 +1131,14 @@ fn lvl_from_number_of_items(
     for i in 1..=n_items {
         if i == boots_slot {
             cum_xp += XP_PER_BOOTS_ITEM;
-        } else if i == support_item_slot {
-            cum_xp += XP_PER_SUPPORT_ITEM;
+        } else if i == supp_item_slot {
+            cum_xp += XP_PER_SUPP_ITEM;
         } else {
             cum_xp += xp_per_non_special_item;
         }
     }
 
-    let mut lvl: u8 = MIN_UNIT_LVL; //lvl cannot be below MIN_UNIT_LVL, so start at this value
+    let mut lvl: u8 = MIN_UNIT_LVL; //lvl cannot be below `MIN_UNIT_LVL`, so start at this value
     while usize::from(lvl - 1) < MAX_UNIT_LVL - 1
         && cum_xp >= CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL[usize::from(lvl - 1)]
     {
@@ -1226,20 +1223,15 @@ pub fn find_best_builds(
     let normalized_judgment_weights: (f32, f32, f32) =
         get_normalized_judgment_weights(settings.judgment_weights);
     //treat boots/support item as legendary items if no slot specified
-    let mut legendary_items_pool_maybe_extended: &[&Item] = &settings.legendary_items_pool;
-    let mut legendary_items_pool_extended: Vec<&Item>;
+    let mut legendary_items: &[&Item] = &settings.legendary_items_pool;
+    let mut extended_legendary_items_buffer: Vec<&Item>;
     if settings.boots_slot == ItemSlot::Any {
-        legendary_items_pool_extended =
-            [legendary_items_pool_maybe_extended, &settings.boots_pool].concat();
-        legendary_items_pool_maybe_extended = &legendary_items_pool_extended;
+        extended_legendary_items_buffer = [legendary_items, &settings.boots_pool].concat();
+        legendary_items = &extended_legendary_items_buffer;
     }
-    if settings.support_item_slot == ItemSlot::Any {
-        legendary_items_pool_extended = [
-            legendary_items_pool_maybe_extended,
-            &settings.support_items_pool,
-        ]
-        .concat();
-        legendary_items_pool_maybe_extended = &legendary_items_pool_extended;
+    if settings.supp_item_slot == ItemSlot::Any {
+        extended_legendary_items_buffer = [legendary_items, &settings.supp_items_pool].concat();
+        legendary_items = &extended_legendary_items_buffer;
     }
     let discard_percent: f32 = 1. - settings.search_threshold;
     let mut best_builds: Vec<BuildContainer> = vec![empty_build];
@@ -1249,38 +1241,38 @@ pub fn find_best_builds(
 
         //set champion & dummy lvl
         let lvl: u8 =
-            lvl_from_number_of_items(item_slot, settings.boots_slot, settings.support_item_slot);
+            lvl_from_number_of_items(item_slot, settings.boots_slot, settings.supp_item_slot);
         champ.set_lvl(lvl).expect("Failed to set lvl"); //no need to init (automatically done later when simulating fights)
         target.set_lvl(lvl).expect("Failed to set lvl");
         target.init_fight();
 
         //set item pool
         let mut pool: &[&Item] = &[settings.mandatory_items[item_idx]]; //need to assign temporary value outside of if else brackets
-        let pool_without_manaflow: Vec<&Item>;
+        let pool_without_manaflow_buffer: Vec<&Item>;
         if *settings.mandatory_items[item_idx] == Item::NULL_ITEM {
             pool = if let ItemSlot::Slot(boots_slot_number) = settings.boots_slot {
                 if item_slot == boots_slot_number {
                     &settings.boots_pool
                 } else {
-                    legendary_items_pool_maybe_extended
+                    legendary_items
                 }
-            } else if let ItemSlot::Slot(support_item_slot_number) = settings.support_item_slot {
-                if item_slot == support_item_slot_number {
-                    &settings.support_items_pool
+            } else if let ItemSlot::Slot(supp_item_slot_number) = settings.supp_item_slot {
+                if item_slot == supp_item_slot_number {
+                    &settings.supp_items_pool
                 } else {
-                    legendary_items_pool_maybe_extended
+                    legendary_items
                 }
             } else {
-                legendary_items_pool_maybe_extended
+                legendary_items
             };
 
             if item_slot == 1 && !settings.allow_manaflow_first_item {
-                pool_without_manaflow = pool
+                pool_without_manaflow_buffer = pool
                     .iter()
                     .filter(|item| !item.item_groups.contains(ItemGroups::Manaflow))
                     .copied()
                     .collect();
-                pool = &pool_without_manaflow;
+                pool = &pool_without_manaflow_buffer;
             }
         }
 
@@ -1293,7 +1285,7 @@ pub fn find_best_builds(
             return Err(format!("Can't reach requested item slot (stopped at slot {item_slot} because not enough items in pool/too much items incompatible with each other)"));
         }
 
-        //divide builds into chunks to process them in parralel
+        //divide builds into chunks and simulate them in parralel
         let chunk_size: usize = compute_chunk_size(best_builds.len(), n_threads);
         let mut pareto_space_points: Vec<ParetoSpacePoint> = best_builds
             .par_chunks(chunk_size)
@@ -1340,7 +1332,7 @@ pub fn find_best_builds(
             if item_slot == settings.n_items {
                 1.
             } else {
-                discard_percent.powf(1. / N_PARETO_SCORES) //heuristic criteria for N_PARETO_SCORES dimensions
+                discard_percent.powf(1. / N_PARETO_SCORES) //heuristic criteria for `N_PARETO_SCORES` dimensions
             },
             n_threads,
         );
@@ -1403,7 +1395,7 @@ pub fn find_best_runes_keystones(
             .unwrap_or(STARTING_GOLDS);
         let n_to_take: usize = usize::min(5, best_builds.len()); //in case too few generated builds
 
-        #[allow(clippy::cast_precision_loss)]
+        #[allow(clippy::cast_precision_loss)] //`n_to_take` is well within f32 precision range
         let avg_score: f32 = (best_builds
             .iter()
             .take(n_to_take)
@@ -1411,7 +1403,7 @@ pub fn find_best_runes_keystones(
                 container.get_avg_score(n_items, max_golds, test_settings.judgment_weights)
             })
             .sum::<f32>())
-            / (n_to_take as f32); //n_to_take is well within f32 precision
+            / (n_to_take as f32);
 
         best_keystones.push((keystone, avg_score));
     }

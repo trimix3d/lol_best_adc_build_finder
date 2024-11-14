@@ -278,12 +278,12 @@ pub const ALL_BOOTS: [&Item; 6] = [
 ];
 
 /// Lists support items.
-pub const ALL_SUPPORT_ITEMS: [&Item; 0] = [];
+pub const ALL_SUPP_ITEMS: [&Item; 0] = [];
 
 //set manually because f32 calcs are forbidden in constants :)))
 pub const AVG_LEGENDARY_ITEM_COST: f32 = 2979.;
 pub const AVG_BOOTS_COST: f32 = 1100.;
-pub const AVG_SUPPORT_ITEM_COST: f32 = 0.;
+pub const AVG_SUPP_ITEM_COST: f32 = 0.;
 
 /// Amount of experience gained farming for the average legendary item.
 /// We approximate that the gold income is only from cs golds and passive golds generation.
@@ -294,18 +294,17 @@ pub const XP_PER_LEGENDARY_ITEM: f32 =
 pub const XP_PER_BOOTS_ITEM: f32 = AVG_XP_PER_CS * CS_PER_MIN * AVG_BOOTS_COST / TOT_GOLDS_PER_MIN;
 /// Amount of experience gained farming for the average support item.
 /// We approximate that the gold income is only from cs golds and passive golds generation.
-pub const XP_PER_SUPPORT_ITEM: f32 =
-    AVG_XP_PER_CS * CS_PER_MIN * AVG_SUPPORT_ITEM_COST / TOT_GOLDS_PER_MIN;
-
-#[allow(clippy::cast_precision_loss)]
-const MAX_UNIT_ITEMS_F32: f32 = MAX_UNIT_ITEMS as f32; //`MAX_UNIT_ITEMS` is well whithin f32's range to avoid precision loss
+pub const XP_PER_SUPP_ITEM: f32 =
+    AVG_XP_PER_CS * CS_PER_MIN * AVG_SUPP_ITEM_COST / TOT_GOLDS_PER_MIN;
 
 /// Assumes 1 build slot for boots and the remaining slots for legendary items.
-pub const AVG_ITEM_COST_WITH_BOOTS: f32 =
-    ((MAX_UNIT_ITEMS_F32 - 1.) * AVG_LEGENDARY_ITEM_COST + AVG_BOOTS_COST) / MAX_UNIT_ITEMS_F32;
+#[allow(clippy::cast_precision_loss)] //`MAX_UNIT_ITEMS` is well whithin f32's range to avoid precision loss
+pub const AVG_ITEM_COST_WITH_BOOTS: f32 = (((MAX_UNIT_ITEMS - 1) as f32) * AVG_LEGENDARY_ITEM_COST
+    + AVG_BOOTS_COST)
+    / (MAX_UNIT_ITEMS as f32);
 /// Assumes 1 build slot for support item, 1 for boots and the remaining slots for legendary items.
 //pub const AVG_ITEM_COST_WITH_BOOTS_AND_SUPP_ITEM: f32 =
-//    ((MAX_UNIT_ITEMS_F32 - 2.) * AVG_LEGENDARY_ITEM_COST + AVG_BOOTS_COST + AVG_SUPPORT_ITEM_COST)
+//    ((MAX_UNIT_ITEMS_F32 - 2.) * AVG_LEGENDARY_ITEM_COST + AVG_BOOTS_COST + AVG_SUPP_ITEM_COST)
 //        / MAX_UNIT_ITEMS_F32;
 
 #[derive(Debug, Clone, Copy)]
@@ -415,9 +414,12 @@ mod tests {
         [&'static Item]:
         &ALL_LEGENDARY_ITEMS,
         &ALL_BOOTS,
-        &ALL_SUPPORT_ITEMS,
+        &ALL_SUPP_ITEMS,
         &[&Item::NULL_ITEM],
     );
+
+    /// Accepted difference between the real computed average item cost and the one entered manually when testing.
+    const ITEMS_AVG_COST_TOL: f32 = 1.;
 
     /// Check that there isn't any id collisions in any items of the crate.
     /// Panics if a collision is encountered.
@@ -453,7 +455,7 @@ mod tests {
             .sum::<f32>()
             / (ALL_LEGENDARY_ITEMS.len() as f32);
 
-        assert!(((AVG_LEGENDARY_ITEM_COST) - true_legendary_avg).abs() < 1.,
+        assert!(((AVG_LEGENDARY_ITEM_COST) - true_legendary_avg).abs() < ITEMS_AVG_COST_TOL,
             "Constant `AVG_LEGENDARY_ITEM_COST` of value {} is too far from the true average legendary item cost of {} (-> put its value to {:.0})",
             AVG_LEGENDARY_ITEM_COST,
             true_legendary_avg,
@@ -466,7 +468,7 @@ mod tests {
         let true_boots_avg: f32 =
             ALL_BOOTS.iter().map(|item| item.cost).sum::<f32>() / (ALL_BOOTS.len() as f32);
 
-        assert!(((AVG_BOOTS_COST) - true_boots_avg).abs() < 1.,
+        assert!(((AVG_BOOTS_COST) - true_boots_avg).abs() < ITEMS_AVG_COST_TOL,
             "Constant `AVG_BOOTS_COST` of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
             AVG_BOOTS_COST,
             true_boots_avg,
@@ -475,15 +477,15 @@ mod tests {
     }
 
     #[test]
-    pub fn test_average_support_item_cost() {
-        let true_support_avg: f32 = ALL_SUPPORT_ITEMS.iter().map(|item| item.cost).sum::<f32>()
-            / (ALL_SUPPORT_ITEMS.len() as f32);
+    pub fn test_average_supp_item_cost() {
+        let true_supp_avg: f32 = ALL_SUPP_ITEMS.iter().map(|item| item.cost).sum::<f32>()
+            / (ALL_SUPP_ITEMS.len() as f32);
 
-        assert!(((AVG_SUPPORT_ITEM_COST) - true_support_avg).abs() < 1.,
-            "Constant `AVG_SUPPORT_ITEM_COST` of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
-            AVG_SUPPORT_ITEM_COST,
-            true_support_avg,
-            true_support_avg
+        assert!(((AVG_SUPP_ITEM_COST) - true_supp_avg).abs() < ITEMS_AVG_COST_TOL,
+            "Constant `AVG_SUPP_ITEM_COST` of value {} is too far from the true average boots cost of {} (-> put its value to {:.0})",
+            AVG_SUPP_ITEM_COST,
+            true_supp_avg,
+            true_supp_avg
         );
     }
 }

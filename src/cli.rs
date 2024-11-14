@@ -43,7 +43,7 @@ pub fn launch_interface() {
         PATCH_NUMBER_MAJOR,
         PATCH_NUMBER_MINOR,
         Unit::ALL_CHAMPIONS.len(),
-        ALL_LEGENDARY_ITEMS.len() + ALL_BOOTS.len() + ALL_SUPPORT_ITEMS.len(),
+        ALL_LEGENDARY_ITEMS.len() + ALL_BOOTS.len() + ALL_SUPP_ITEMS.len(),
     );
 
     let champ_names: Vec<&str> = Unit::ALL_CHAMPIONS
@@ -362,7 +362,7 @@ fn get_user_item(
     }
     if item_pool_types.contains(ItemPoolType::Support) {
         //ensure to match lowercase inputs with lowercase strings
-        available_items.extend(items_data::ALL_SUPPORT_ITEMS.iter().copied().map(|item| {
+        available_items.extend(items_data::ALL_SUPP_ITEMS.iter().copied().map(|item| {
             (
                 item,
                 sanitize_item_name(item.full_name),
@@ -406,7 +406,7 @@ fn get_user_item(
 
             if item_pool_types.contains(ItemPoolType::Support) {
                 println!("\nSupport items in database:");
-                for item in items_data::ALL_SUPPORT_ITEMS {
+                for item in items_data::ALL_SUPP_ITEMS {
                     println!("- {item:#}");
                 }
             }
@@ -964,7 +964,7 @@ const ITEMS_POOLS_SETTINGS_HELP_MSG: &str = concat!(
     "\n\n-3) boots slot:\n",
     BOOTS_SLOT_HELP_MSG,
     "\n\n-4) support item slot:\n",
-    SUPPORT_ITEM_SLOT_HELP_MSG,
+    SUPP_ITEM_SLOT_HELP_MSG,
     "\n\n-5) change allowed legendary items",
     "\n\n-6) change allowed boots",
     "\n\n-7) change allowed support items",
@@ -985,7 +985,7 @@ fn handle_items_settings(
                 format!("number of items per build: {}", settings.n_items).as_str(),
                 format!("mandatory items: {}", settings.mandatory_items).as_str(),
                 format!("boots slot: {}", settings.boots_slot).as_str(),
-                format!("support item slot: {}", settings.support_item_slot).as_str(),
+                format!("support item slot: {}", settings.supp_item_slot).as_str(),
                 "change allowed legendary items ->",
                 "change allowed boots ->",
                 "change allowed support items ->",
@@ -1019,7 +1019,7 @@ fn handle_items_settings(
             }
             4 => {
                 //support_item_slot
-                change_support_item_slot(settings, champ_properties)?;
+                change_supp_item_slot(settings, champ_properties)?;
             }
             5 => {
                 //change legendary items pool
@@ -1031,7 +1031,7 @@ fn handle_items_settings(
             }
             7 => {
                 //change support items pool
-                change_items_pool(ItemPoolType::Support, &mut settings.support_items_pool)?;
+                change_items_pool(ItemPoolType::Support, &mut settings.supp_items_pool)?;
             }
             8 => {
                 //flip allow_manaflow_first_item
@@ -1045,10 +1045,10 @@ fn handle_items_settings(
                 settings.n_items = default.n_items;
                 settings.mandatory_items = default.mandatory_items;
                 settings.boots_slot = default.boots_slot;
-                settings.support_item_slot = default.support_item_slot;
+                settings.supp_item_slot = default.supp_item_slot;
                 settings.legendary_items_pool = default.legendary_items_pool;
                 settings.boots_pool = default.boots_pool;
-                settings.support_items_pool = default.support_items_pool;
+                settings.supp_items_pool = default.supp_items_pool;
 
                 println!("\nItem settings have been reset to default.");
             }
@@ -1201,30 +1201,30 @@ fn change_boots_slot(
     }
 }
 
-const SUPPORT_ITEM_SLOT_HELP_MSG: &str =
+const SUPP_ITEM_SLOT_HELP_MSG: &str =
     "Every generated build will have a support item at the selected slot.\n\
      If set to 'Any', you let the optimizer decide which slot is best\n\
      (it may even not pick any depending on your other settings).\n\
      If set to 'None', support items are disallowed.";
 
 /// This function never returns `Err(UserCommand::back)`.
-fn change_support_item_slot(
+fn change_supp_item_slot(
     settings: &mut BuildsGenerationSettings,
     champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
-        let support_item_slot: ItemSlot = match get_item_slot(SUPPORT_ITEM_SLOT_HELP_MSG) {
-            Ok(support_item_slot) => support_item_slot,
+        let supp_item_slot: ItemSlot = match get_item_slot(SUPP_ITEM_SLOT_HELP_MSG) {
+            Ok(supp_item_slot) => supp_item_slot,
             Err(UserCommand::Back) => return Ok(()),
             Err(command) => return Err(command),
         };
 
-        let old_support_item_slot: ItemSlot = settings.support_item_slot; //backup before checking validity
-        settings.support_item_slot = support_item_slot;
+        let old_supp_item_slot: ItemSlot = settings.supp_item_slot; //backup before checking validity
+        settings.supp_item_slot = supp_item_slot;
 
         if let Err(error_msg) = settings.check_settings(champ_properties) {
             println!("Failed to set support item slot: {error_msg}");
-            settings.support_item_slot = old_support_item_slot; //restore valid value
+            settings.supp_item_slot = old_supp_item_slot; //restore valid value
         } else {
             return Ok(());
         }
@@ -1238,7 +1238,7 @@ fn change_items_pool(
     let reference_pool: &[&Item] = match item_pool_types {
         ItemPoolType::Legendary => &items_data::ALL_LEGENDARY_ITEMS,
         ItemPoolType::Boots => &items_data::ALL_BOOTS,
-        ItemPoolType::Support => &items_data::ALL_SUPPORT_ITEMS,
+        ItemPoolType::Support => &items_data::ALL_SUPP_ITEMS,
     };
 
     loop {

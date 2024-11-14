@@ -144,7 +144,7 @@ pub const TARGET_DUMMY_PROPERTIES: UnitProperties = UnitProperties {
         skill_order: SkillOrder::const_default(), //does nothing since dummy has null abilities
         legendary_items_pool: &items_data::ALL_LEGENDARY_ITEMS,
         boots_pool: &items_data::ALL_BOOTS,
-        support_items_pool: &items_data::ALL_SUPPORT_ITEMS,
+        supp_items_pool: &items_data::ALL_SUPP_ITEMS,
     },
 };
 
@@ -491,7 +491,7 @@ pub struct UnitDefaults {
     pub skill_order: SkillOrder,
     pub legendary_items_pool: &'static [&'static Item],
     pub boots_pool: &'static [&'static Item],
-    pub support_items_pool: &'static [&'static Item],
+    pub supp_items_pool: &'static [&'static Item],
 }
 
 /// Holds properties that don't change at runtime for a given unit.

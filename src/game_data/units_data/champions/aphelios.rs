@@ -583,7 +583,7 @@ impl Unit {
                 //&Item::PLATED_STEELCAPS,
                 //&Item::SORCERERS_SHOES,
             ],
-            support_items_pool: &[],
+            supp_items_pool: &[],
         },
     };
 }

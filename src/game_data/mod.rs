@@ -1,7 +1,5 @@
 pub mod units_data;
 
-use units_data::items_data::{AVG_BOOTS_COST, AVG_LEGENDARY_ITEM_COST, AVG_SUPPORT_ITEM_COST};
-
 use core::{fmt, ops};
 
 //patch number
