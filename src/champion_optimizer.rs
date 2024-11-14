@@ -746,14 +746,14 @@ fn gold_weighted_average(values: &[f32], golds: &[f32], max_golds: f32) -> f32 {
 impl BuildContainer {
     /// Returns the build score at the given item count.
     #[allow(dead_code)]
-    pub fn get_item_slot_score(&self, item_count: usize, judgment_weights: (f32, f32, f32)) -> f32 {
+    pub fn get_item_slot_score(&self, item_slot: usize, judgment_weights: (f32, f32, f32)) -> f32 {
         let normalized_judgment_weights: (f32, f32, f32) =
             get_normalized_judgment_weights(judgment_weights);
         score_formula_with_normalized_weights(
-            self.golds[item_count],
-            self.dps[item_count],
-            self.defense[item_count],
-            self.ms[item_count],
+            self.golds[item_slot],
+            self.dps[item_slot],
+            self.defense[item_slot],
+            self.ms[item_slot],
             normalized_judgment_weights,
         )
     }
@@ -763,19 +763,20 @@ impl BuildContainer {
     #[inline]
     pub(crate) fn _get_item_slot_score_with_normalized_weights(
         &self,
-        item_count: usize,
+        item_slot: usize,
         normalized_judgment_weights: (f32, f32, f32),
     ) -> f32 {
         score_formula_with_normalized_weights(
-            self.golds[item_count],
-            self.dps[item_count],
-            self.defense[item_count],
-            self.ms[item_count],
+            self.golds[item_slot],
+            self.dps[item_slot],
+            self.defense[item_slot],
+            self.ms[item_slot],
             normalized_judgment_weights,
         )
     }
 
     /// Returns the build average score over the requested item slots.
+    #[allow(dead_code)]
     pub fn get_avg_score(
         &self,
         n_items: usize,
@@ -1380,6 +1381,8 @@ pub fn find_best_runes_keystones(
 
     let mut test_settings: BuildsGenerationSettings = settings.clone();
     test_settings.n_items = n_items;
+    test_settings.judgment_weights =
+        get_normalized_judgment_weights(test_settings.judgment_weights);
 
     let mut best_keystones: Vec<(&'static RuneKeystone, f32)> = Vec::new();
     for &keystone in runes_data::ALL_RUNES_KEYSTONES.iter() {
@@ -1400,7 +1403,11 @@ pub fn find_best_runes_keystones(
             .iter()
             .take(n_to_take)
             .map(|container| {
-                container.get_avg_score(n_items, max_golds, test_settings.judgment_weights)
+                container._get_avg_score_with_normalized_weights(
+                    n_items,
+                    max_golds,
+                    test_settings.judgment_weights,
+                )
             })
             .sum::<f32>())
             / (n_to_take as f32);
