@@ -584,7 +584,7 @@ fn confirm_builds_generation_settings(
                 .as_str(),
                 "go to items settings ->",
                 format!(
-                    "weights: DPS {}, defense {}, mobility {}",
+                    "weights: DPS {:.2}, defense {:.2}, mobility {:.2}",
                     settings.weights.0,
                     settings.weights.1,
                     settings.weights.2
