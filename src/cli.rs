@@ -477,7 +477,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
                     &format!("only show builds with survivability utility: {}", must_have_utils.contains(ItemUtils::Survivability)),
                     &format!("only show builds with special utility: {}", must_have_utils.contains(ItemUtils::Special)),
                     "choose the number of builds to show",
-                    "go back to build generation settings",
+                    "return to build generation settings",
                 ],
                 true,
             ) {
