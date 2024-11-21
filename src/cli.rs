@@ -15,9 +15,7 @@ use std::io;
 
 use io::Write;
 
-///Character that represents a check mark.
 pub(crate) const CHECK_MARK_CHAR: char = '●';
-///Character that represents an unchecked mark.
 pub(crate) const UNCHECKED_MARK_CHAR: char = ' ';
 /// Number of builds to be printed by default when displaying results.
 const DEFAULT_N_PRINTED_BUILDS: usize = 18;
