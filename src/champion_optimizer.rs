@@ -962,9 +962,11 @@ impl ParetoSpacePoint {
         avg_ms += 0.25 * ms;
 
         Self {
-            utils: build[1..]
+            utils: build
                 .iter()
-                .fold(build[0].utils, |acc, item| acc | item.utils),
+                .map(|item| item.utils)
+                .reduce(|acc, utils| acc | utils)
+                .unwrap(),
             golds: champ.get_build().cost(),
             dps: avg_dps,
             def: avg_def,
