@@ -1296,7 +1296,7 @@ const SEARCH_THRESHOLD_HELP_MSG: &str =
      may find better scaling builds but increases the computation time and memory usage.\n\
      Lower value -> a lower number of badly performing builds are explored,\n\
      may find worse scaling builds but decreases the computation time and memory usage.\n\
-     A search treshold percentage between 15-25% is generally sufficient to find most of the relevant builds.";
+     A search treshold percentage under 15-20% is generally sufficient to find most of the relevant builds.";
 
 #[allow(clippy::type_complexity)]
 fn get_user_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>), UserCommand> {

@@ -22,7 +22,7 @@ pub(crate) const MAX_FIGHT_DURATION: f32 = 60.;
 /// Value (in seconds) under which results may become inaccurate and that is not recommended to use.
 pub(crate) const LOW_FIGHT_DURATION_VALUE_WARNING: f32 = 2.;
 /// Value under which results may become inaccurate and that is not recommended to use.
-pub(crate) const LOW_SEARCH_THRESHOLD_VALUE_WARNING: f32 = 0.15;
+pub(crate) const LOW_SEARCH_THRESHOLD_VALUE_WARNING: f32 = 0.05;
 /// Value above which computation times may become very long and that is not recommended to use.
 pub(crate) const HIGH_SEARCH_THRESHOLD_VALUE_WARNING: f32 = 0.25;
 
