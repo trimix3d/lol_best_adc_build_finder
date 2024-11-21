@@ -43,7 +43,7 @@ const JINX_W_PHYS_DMG_BY_W_LVL: [f32; 5] = [10., 60., 110., 160., 210.];
 fn jinx_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 = JINX_W_PHYS_DMG_BY_W_LVL[w_lvl_idx] + 1.60 * champ.stats.ad();
+    let phys_dmg: f32 = JINX_W_PHYS_DMG_BY_W_LVL[w_lvl_idx] + 1.40 * champ.stats.ad();
 
     champ.dmg_on_target(
         target_stats,
@@ -181,7 +181,7 @@ impl Unit {
         growth_stats: UnitStats {
             hp: 105.,
             mana: 50.,
-            base_ad: 2.9,
+            base_ad: 3.15,
             bonus_ad: 0.,
             ap_flat: 0.,
             ap_percent: 0.,

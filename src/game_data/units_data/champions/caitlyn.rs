@@ -112,7 +112,7 @@ const CAITLYN_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [300., 500., 700.];
 fn caitlyn_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 = (CAITLYN_R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + 1.50 * champ.stats.bonus_ad)
+    let phys_dmg: f32 = (CAITLYN_R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad)
         * (1. + 0.5 * champ.stats.crit_chance);
 
     champ.dmg_on_target(

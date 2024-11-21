@@ -5742,7 +5742,7 @@ impl Item {
         id: ItemId::TheCollector,
         full_name: "The_collector",
         short_name: "Collector",
-        cost: 2950.,
+        cost: 3000.,
         item_groups: enum_set!(),
         utils: enum_set!(), //taxes passive not big enough and too situationnal
         stats: UnitStats {
@@ -6339,7 +6339,7 @@ const YOUMUUS_GHOSTBLADE_WRAITH_STEP: TemporaryEffect = TemporaryEffect {
     id: EffectId::YoumuusGhostbladeWraithStep,
     add_stack: youmuus_ghostblade_wraith_step_enable,
     remove_every_stack: youmuus_ghostblade_wraith_step_disable,
-    duration: 6.,
+    duration: 4.,
     cooldown: 45.,
 };
 
@@ -6437,8 +6437,8 @@ const YUN_TAL_WILDARROWS_FLURRY: TemporaryEffect = TemporaryEffect {
     id: EffectId::YunTalWildarrowsFlurry,
     add_stack: yun_tal_wildarrows_flurry_enable,
     remove_every_stack: yun_tal_wildarrows_flurry_disable,
-    duration: 4.,
-    cooldown: 40.,
+    duration: 6.,
+    cooldown: 30.,
 };
 
 fn yun_tal_flurry_on_basic_attack_cast(champ: &mut Unit) {
@@ -6471,7 +6471,7 @@ impl Item {
         id: ItemId::YunTalWildarrows,
         full_name: "Yun_Tal_wildarrows",
         short_name: "Yun_Tal",
-        cost: 3000.,
+        cost: 2900.,
         item_groups: enum_set!(),
         utils: enum_set!(),
         stats: UnitStats {

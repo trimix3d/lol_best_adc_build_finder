@@ -149,7 +149,7 @@ fn confirm_exit() -> Result<bool, UserCommand> {
             "yes" | "y" | "" => return Ok(true),
             "no" | "n" => return Ok(false),
             _ => {
-                println!("'{input}' is not a recognized input, press enter or type 'yes' to confirm/'no' to deny");
+                println!("'{input}' is not a recognized input, type 'y'/'n' to confirm or deny");
             }
         }
     }
