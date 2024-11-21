@@ -427,13 +427,22 @@ impl Default for BuildsGenerationSettings {
             supp_items_pool: Vec::from(ALL_SUPP_ITEMS),
             allow_manaflow_first_item: false, //may change this to true, idk
             weights: (1., 0.25, 0.5),
-            search_threshold: 0.20,
+            search_threshold: 0.15,
         }
     }
 }
 
 impl BuildsGenerationSettings {
     pub fn default_by_champion(properties: &UnitProperties) -> Self {
+        let settings: BuildsGenerationSettings = BuildsGenerationSettings {
+            runes_page: properties.defaults.runes_pages,
+            legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
+            boots_pool: Vec::from(properties.defaults.boots_pool),
+            supp_items_pool: Vec::from(properties.defaults.supp_items_pool),
+            ..Default::default()
+        };
+
+        //champions specific settings here
         /*
         '⠀⣞⢽⢪⢣⢣⢣⢫⡺⡵⣝⡮⣗⢷⢽⢽⢽⣮⡷⡽⣜⣜⢮⢺⣜⢷⢽⢝⡽⣝
          ⠸⡸⠜⠕⠕⠁⢁⢇⢏⢽⢺⣪⡳⡝⣎⣏⢯⢞⡿⣟⣷⣳⢯⡷⣽⢽⢯⣳⣫⠇
@@ -449,45 +458,12 @@ impl BuildsGenerationSettings {
          ⠀⠀⠀⡟⡾⣿⢿⢿⢵⣽⣾⣼⣘⢸⢸⣞⡟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
          ⠀⠀⠀⠀⠁⠇⠡⠩⡫⢿⣝⡻⡮⣒⢽⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
         No switches?
-        match doesn't work :,(
+        cannot match with string litterals inside constants :,(
         */
-        #[allow(clippy::if_same_then_else)]
-        if *properties == Unit::EZREAL_PROPERTIES {
-            BuildsGenerationSettings {
-                runes_page: properties.defaults.runes_pages,
-                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.defaults.boots_pool),
-                supp_items_pool: Vec::from(properties.defaults.supp_items_pool),
-                search_threshold: 0.15,
-                ..Default::default()
-            }
-        } else if *properties == Unit::KAISA_PROPERTIES {
-            BuildsGenerationSettings {
-                runes_page: properties.defaults.runes_pages,
-                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.defaults.boots_pool),
-                supp_items_pool: Vec::from(properties.defaults.supp_items_pool),
-                search_threshold: 0.15,
-                ..Default::default()
-            }
-        } else if *properties == Unit::VARUS_PROPERTIES {
-            BuildsGenerationSettings {
-                runes_page: properties.defaults.runes_pages,
-                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.defaults.boots_pool),
-                supp_items_pool: Vec::from(properties.defaults.supp_items_pool),
-                search_threshold: 0.15,
-                ..Default::default()
-            }
-        } else {
-            BuildsGenerationSettings {
-                runes_page: properties.defaults.runes_pages,
-                legendary_items_pool: Vec::from(properties.defaults.legendary_items_pool),
-                boots_pool: Vec::from(properties.defaults.boots_pool),
-                supp_items_pool: Vec::from(properties.defaults.supp_items_pool),
-                ..Default::default()
-            }
-        }
+        //if *properties == Unit::APHELIOS_PROPERTIES {
+        //    settings.search_threshold = 0.15;
+        //}
+        settings
     }
 
     pub fn check_settings(&self, champ_properties: &UnitProperties) -> Result<(), String> {
