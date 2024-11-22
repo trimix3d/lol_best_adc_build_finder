@@ -360,7 +360,7 @@ impl Unit {
             (lucian_fight_scenario_all_out, "all out"),
             (
                 lucian_fight_scenario_poke,
-                "all out but use basic attacks only when empowered (~= poke)",
+                "all out but basic attack only when empowered after an ability (~= poke)",
             ),
         ],
         defaults: UnitDefaults {
