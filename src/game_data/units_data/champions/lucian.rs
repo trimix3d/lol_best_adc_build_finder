@@ -358,7 +358,10 @@ impl Unit {
         },
         fight_scenarios: &[
             (lucian_fight_scenario_all_out, "all out"),
-            (lucian_fight_scenario_poke, "poke"),
+            (
+                lucian_fight_scenario_poke,
+                "all out but use basic attacks only when empowered (~= poke)",
+            ),
         ],
         defaults: UnitDefaults {
             runes_pages: RunesPage {
