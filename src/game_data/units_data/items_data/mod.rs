@@ -359,7 +359,7 @@ impl Build {
     /// Returns the build cost
     #[must_use]
     pub fn cost(&self) -> f32 {
-        self.iter().fold(0., |acc, item| acc + item.cost)
+        self.iter().map(|item| item.cost).sum()
     }
 
     /// Returns the build hash. Builds with same items but in different item order will produce the same hash.
