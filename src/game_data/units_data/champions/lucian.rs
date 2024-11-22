@@ -211,7 +211,7 @@ fn lucian_fight_scenario_poke(champ: &mut Unit, target_stats: &UnitStats, fight_
     while champ.time < fight_duration {
         //priority order: empowered basic attack, e, q, w (no unempowered basic attack)
         if champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] == 1 {
-            //wait for the basic basic_attackattack cooldown if there is one
+            //wait for the basic basic_attack cooldown if there is one
             if champ.basic_attack_cd != 0. {
                 champ.walk(champ.basic_attack_cd + F32_TOL);
             }
