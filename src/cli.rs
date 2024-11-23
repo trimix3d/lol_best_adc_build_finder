@@ -57,8 +57,8 @@ pub fn launch_interface() {
     loop {
         let properties: &UnitProperties = match get_user_matching_input(
             &greetings_msg,
-            "Enter the champion for which you want to find the best builds",
-            "Please enter a valid champion name (among those available)",
+            "\nEnter the champion for which you want to find the best builds",
+            "\nPlease enter a valid champion name (among those available)",
             WELCOME_HELP_MSG,
             champ_names.iter().copied(),
             false, //safety of a later expect() depends on this argument to be false
@@ -102,6 +102,7 @@ fn get_user_raw_input(input_line: &str) -> Option<String> {
     io::stdin()
         .read_line(&mut buffer)
         .expect("Failed to read user input from stdin");
+
     if buffer.is_empty() {
         None //means stdin is closed (otherwise buffer would contain newline characters)
     } else {
@@ -115,7 +116,6 @@ fn get_user_input(input_line: &str, help_msg: &str) -> Result<String, UserComman
     let mut line: String = String::from(input_line);
     line.push(':');
     loop {
-        println!();
         let input: String = get_user_raw_input(&line).ok_or(UserCommand::Exit)?;
 
         match input.as_str() {
@@ -155,9 +155,9 @@ fn confirm_exit() -> Result<bool, UserCommand> {
     }
 }
 
-/// Matches the user input with the provided `match_strs` and returns the corresponding index.
+/// Matches the user input with the provided &str in the `match_strs` iterator and returns the corresponding index.
 /// This function will either:
-///  - loop until the user provides a valid input and return `Ok(corresponding_index`).
+///  - loop until the user provides a valid input and returns it.
 ///  - return Err with the specific variant if the user performs one of the persistent command.
 ///
 /// This will return None only if `allow_no_input` is true and the user enters no input.
@@ -171,7 +171,7 @@ fn get_user_matching_input<'a>(
     allow_no_input: bool,
 ) -> Result<Option<usize>, UserCommand> {
     if !(greetings_msg.is_empty()) {
-        println!("\n{greetings_msg}");
+        println!("{greetings_msg}");
     }
 
     //ensure to match lowercase inputs with lowercase strings
@@ -251,7 +251,7 @@ fn get_user_usize(
     allow_no_input: bool,
 ) -> Result<Option<usize>, UserCommand> {
     if !(greetings_msg.is_empty()) {
-        println!("\n{greetings_msg}");
+        println!("{greetings_msg}");
     }
 
     loop {
@@ -292,7 +292,7 @@ fn get_user_f32(
     allow_no_input: bool,
 ) -> Result<Option<f32>, UserCommand> {
     if !(greetings_msg.is_empty()) {
-        println!("\n{greetings_msg}");
+        println!("{greetings_msg}");
     }
 
     loop {
@@ -370,7 +370,7 @@ fn get_user_item(
     }
 
     if !(greetings_msg.is_empty()) {
-        println!("\n{greetings_msg}");
+        println!("{greetings_msg}");
     }
 
     loop {
@@ -463,7 +463,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
             //prompt for what's next
             let choice: usize = match get_user_choice(
                 "",
-                "Select an action (press enter to return to champion selection)",
+                "\nSelect an action (press enter to return to champion selection)",
                 "How to interpret the columns from left to right:\n \
                     - score: the overall score of the build\n \
                     - !h/s : if the build has anti heal/shield utility\n \
@@ -491,7 +491,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
                 3 => must_have_utils ^= enum_set!(ItemUtils::Special),
                 4 => match get_user_usize(
                     "",
-                    "Enter the number of builds to show",
+                    "\nEnter the number of builds to show",
                     "",
                     1..,   //safety of a later unwrap depends on this range to exclude 0
                     false, //safety of a later expect() depends on this argument to be false
@@ -543,11 +543,11 @@ fn confirm_builds_generation_settings(
     loop {
         let choice: usize = match get_user_choice(
             format!(
-                "Build generation for {} will be launched with these settings:",
+                "\nBuild generation for {} will be launched with these settings:",
                 champ_properties.name
             )
             .as_str(),
-            "Select a setting to change (press enter to confirm current settings)",
+            "\nSelect a setting to change (press enter to confirm current settings)",
             BUILDS_GENERATION_SETTINGS_HELP_MSG,
             [
                 format!("target: {}", settings.target_properties.name).as_str(),
@@ -666,8 +666,8 @@ fn change_target(
 ) -> Result<(), UserCommand> {
     loop {
         let choice: usize = match get_user_choice(
-            "Available targets:",
-            "Select a target",
+            "\nAvailable targets:",
+            "\nSelect a target",
             TARGET_HELP_MSG,
             TARGET_OPTIONS.iter().map(|properties| properties.name),
             false,
@@ -701,10 +701,10 @@ fn change_fight_scenario_number(
     loop {
         let number: usize = match get_user_choice(
             &format!(
-                "Available fight scenarios for {} are:",
+                "\nAvailable fight scenarios for {} are:",
                 champ_properties.name
             ),
-            &format!("Select a fight scenario for {}", champ_properties.name),
+            &format!("\nSelect a fight scenario for {}", champ_properties.name),
             FIGHT_SCENARIO_HELP_MSG,
             champ_properties
                 .fight_scenarios
@@ -739,13 +739,17 @@ fn change_fight_duration(
     champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
     loop {
-        let number: f32 =
-            match get_user_f32("", "Enter a fight duration", FIGHT_DURATION_HELP_MSG, false) {
-                Ok(Some(number)) => number,
-                Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false
-                Err(UserCommand::Back) => return Ok(()),
-                Err(command) => return Err(command),
-            };
+        let number: f32 = match get_user_f32(
+            "",
+            "\nEnter a fight duration",
+            FIGHT_DURATION_HELP_MSG,
+            false,
+        ) {
+            Ok(Some(number)) => number,
+            Ok(None) => return Ok(()), //should never get here because `allow_no_input` is false
+            Err(UserCommand::Back) => return Ok(()),
+            Err(command) => return Err(command),
+        };
 
         let old_fight_duration: f32 = settings.fight_duration; //backup before checking validity
         settings.fight_duration = number;
@@ -771,7 +775,7 @@ fn change_phys_dmg_received_percent(
         let number: f32 = match get_user_f32(
             "",
             format!(
-                "Enter the percentage of physical dmg received by {}",
+                "\nEnter the percentage of physical dmg received by {}",
                 champ_properties.name
             )
             .as_str(),
@@ -802,9 +806,9 @@ fn handle_runes_settings(
 ) -> Result<(), UserCommand> {
     loop {
         let choice: usize = match get_user_choice(
-            "Runes settings:\n\
+            "\nRunes settings:\n\
             (/!\\ runes shard = runes bonus stats, not the runes slots under the keystone)",
-            "Select a setting to change (press enter to confirm current runes)",
+            "\nSelect a setting to change (press enter to confirm current runes)",
             "",
             [
                 format!("rune shard 1: {:?}", settings.runes_page.shard1).as_str(),
@@ -891,8 +895,8 @@ fn change_rune_keystone(
 
     loop {
         let choice: usize = match get_user_choice(
-            "Available rune keystones:",
-            "Select a rune keystone",
+            "\nAvailable rune keystones:",
+            "\nSelect a rune keystone",
             "",
             keystone_choices.iter().map(|keystone| keystone.full_name),
             false,
@@ -922,8 +926,8 @@ fn change_rune_shard(
 ) -> Result<(), UserCommand> {
     loop {
         let choice: RuneShard = match get_user_choice(
-            "Available rune shards:",
-            "Select a rune shard",
+            "\nAvailable rune shards:",
+            "\nSelect a rune shard",
             "",
             ["Left", "Middle", "Right"],
             false,
@@ -977,8 +981,8 @@ fn handle_items_settings(
 ) -> Result<(), UserCommand> {
     loop {
         let choice: usize = match get_user_choice(
-            "Item settings:",
-            "Select a setting to change (press enter to confirm current settings)",
+            "\nItem settings:",
+            "\nSelect a setting to change (press enter to confirm current settings)",
             ITEMS_POOLS_SETTINGS_HELP_MSG,
             [
                 format!("number of items per build: {}", settings.n_items).as_str(),
@@ -1066,7 +1070,7 @@ fn change_n_items(
     loop {
         let n_items: usize = match get_user_usize(
             "",
-            "Enter a number of item per build",
+            "\nEnter a number of item per build",
             N_ITEMS_HELP_MSG,
             1..=MAX_UNIT_ITEMS,
             false,
@@ -1102,7 +1106,7 @@ fn change_mandatory_items(
         let item_slot: usize = match get_user_usize(
             "",
             format!(
-                "Current mandatory items are: {}\n\
+                "\nCurrent mandatory items are: {}\n\
                 Enter an item slot where you want to impose an item (press enter to confirm current items)",
                 settings.mandatory_items
             )
@@ -1122,7 +1126,7 @@ fn change_mandatory_items(
         loop {
             let item: &Item = match get_user_item(
                 "",
-                &format!("Enter an item to impose at slot {item_slot} (press enter for none)"),
+                &format!("\nEnter an item to impose at slot {item_slot} (press enter for none)"),
                 EnumSet::all(),
             ) {
                 Ok(item) => item,
@@ -1150,7 +1154,7 @@ const BOOTS_SLOT_HELP_MSG: &str = "Every generated build will have boots at the 
 
 fn get_item_slot(help_msg: &str) -> Result<ItemSlot, UserCommand> {
     loop {
-        let input: String = get_user_input("Enter an item slot or 'any' or 'none'", help_msg)?;
+        let input: String = get_user_input("\nEnter an item slot or 'any' or 'none'", help_msg)?;
 
         if input.is_empty() {
             println!("Please enter a valid item slot");
@@ -1267,7 +1271,7 @@ fn change_items_pool(
         //get item
         let item: &Item = match get_user_item(
             "",
-            "Enter an item to switch its allowance status (press enter to confirm current settings)",
+            "\nEnter an item to switch its allowance status (press enter to confirm current settings)",
             enum_set!(item_pool_types)
         ) {
             Ok(item) => item,
@@ -1303,21 +1307,21 @@ const SEARCH_THRESHOLD_HELP_MSG: &str =
 fn get_user_weights() -> Result<(Option<f32>, Option<f32>, Option<f32>), UserCommand> {
     //get dps weight
     let dps_weight: Option<f32> = get_user_f32("",
-             "Enter the DPS weight (press enter to keep the previous value)",
+             "\nEnter the DPS weight (press enter to keep the previous value)",
              "The DPS weight is used to measure the importance of the champion's DPS when calculating the gold value of a build.\n\
              The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
              true)?;
 
     //get defense weight
     let def_weight: Option<f32> = get_user_f32("",
-             "Enter the defense weight (press enter to keep the previous value)",
+             "\nEnter the defense weight (press enter to keep the previous value)",
              "The defense weight is used to measure the importance of the champion's defensive stats, heals and hields when calculating the gold value of a build.\n\
              The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
              true)?;
 
     //get ms weight
     let ms_weight: Option<f32> = get_user_f32("",
-             "Enter the mobility weight (press enter to keep the previous value)",
+             "\nEnter the mobility weight (press enter to keep the previous value)",
              "The mobility weight is used to measure the importance of the champion's mobility when calculating the gold value of a build.\n\
              The absolute value of the weight is not relevant, what is important is its value relative to other weights.",
              true)?;
@@ -1365,7 +1369,7 @@ fn change_search_threshold(
     loop {
         let number: f32 = match get_user_f32(
             "",
-            "Enter the search threshold percentage",
+            "\nEnter the search threshold percentage",
             SEARCH_THRESHOLD_HELP_MSG,
             false,
         ) {
