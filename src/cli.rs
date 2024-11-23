@@ -1279,7 +1279,7 @@ fn change_items_pool(
         }
 
         //switch allowance status
-        if let Some(index) = pool.iter().copied().position(|x| *x == *item) {
+        if let Some(index) = pool.iter().position(|&x| *x == *item) {
             pool.swap_remove(index);
         } else {
             pool.push(item);

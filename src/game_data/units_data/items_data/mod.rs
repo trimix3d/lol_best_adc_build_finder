@@ -347,13 +347,9 @@ impl Build {
     /// Returns the item count in the build (ignoring `NULL_ITEMs`).
     #[must_use]
     pub fn item_count(&self) -> usize {
-        let mut item_count: usize = 0;
-        for item in self.iter().copied() {
-            if *item != Item::NULL_ITEM {
-                item_count += 1;
-            }
-        }
-        item_count
+        self.iter()
+            .filter(|&&item| *item != Item::NULL_ITEM)
+            .count()
     }
 
     /// Returns the build cost

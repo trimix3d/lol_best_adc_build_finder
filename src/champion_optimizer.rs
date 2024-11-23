@@ -469,8 +469,7 @@ impl BuildsGenerationSettings {
     pub fn check_settings(&self, champ_properties: &UnitProperties) -> Result<(), String> {
         if !TARGET_OPTIONS
             .iter()
-            .copied()
-            .any(|properties| *self.target_properties == *properties)
+            .any(|&properties| *self.target_properties == *properties)
         {
             return Err(format!(
                 "'{}' is not a recognized target",
@@ -620,18 +619,12 @@ impl BuildsGenerationSettings {
         if self
             .legendary_items_pool
             .iter()
-            .copied()
-            .any(|item| *item == Item::NULL_ITEM)
-            || self
-                .boots_pool
-                .iter()
-                .copied()
-                .any(|item| *item == Item::NULL_ITEM)
+            .any(|&item| *item == Item::NULL_ITEM)
+            || self.boots_pool.iter().any(|&item| *item == Item::NULL_ITEM)
             || self
                 .supp_items_pool
                 .iter()
-                .copied()
-                .any(|item| *item == Item::NULL_ITEM)
+                .any(|&item| *item == Item::NULL_ITEM)
         {
             return Err("Items pools cannot contain `NULL_ITEM`".to_string());
         }
@@ -820,7 +813,7 @@ fn generate_build_layer(
             let mut candidate: BuildContainer = container.clone();
 
             //candidate build must have no duplicates
-            if candidate.build.iter().copied().any(|x| *x == *pool_item) {
+            if candidate.build.iter().any(|&x| *x == *pool_item) {
                 continue;
             }
             //candidate build must have no item groups overlap
@@ -1040,8 +1033,7 @@ fn pareto_front_multithread(
 
         idx = pareto_mask[0..idx]
             .iter()
-            .copied()
-            .map(usize::from)
+            .map(|&x| usize::from(x))
             .sum::<usize>()
             + 1;
     }

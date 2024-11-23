@@ -1305,10 +1305,10 @@ impl Unit {
     /// This leads to redundant work when setting these in chain, but it's not a big deal.
     fn update_abilities_lvls(&mut self) {
         let lvl: usize = usize::from(self.lvl.get());
-        self.q_lvl = self.skill_order.q[..lvl].iter().copied().sum();
-        self.w_lvl = self.skill_order.w[..lvl].iter().copied().sum();
-        self.e_lvl = self.skill_order.e[..lvl].iter().copied().sum();
-        self.r_lvl = self.skill_order.r[..lvl].iter().copied().sum();
+        self.q_lvl = self.skill_order.q[..lvl].iter().sum();
+        self.w_lvl = self.skill_order.w[..lvl].iter().sum();
+        self.e_lvl = self.skill_order.e[..lvl].iter().sum();
+        self.r_lvl = self.skill_order.r[..lvl].iter().sum();
     }
 
     /// Clears the items on-action-fns from the unit, leaving only on-action-fns from the unit properties and runes.
@@ -1327,12 +1327,7 @@ impl Unit {
         self.clear_items_on_action_fns();
 
         //add items on-action-fns
-        for item in self
-            .build
-            .iter()
-            .copied()
-            .filter(|&item| *item != Item::NULL_ITEM)
-        {
+        for item in self.build.iter().filter(|&&item| *item != Item::NULL_ITEM) {
             self.on_action_fns_holder.extend(&item.on_action_fns);
         }
     }
@@ -1357,11 +1352,7 @@ impl Unit {
         self.clear_items_on_action_fns();
 
         //add items one by one to unit
-        for item in build
-            .iter()
-            .copied()
-            .filter(|&item| *item != Item::NULL_ITEM)
-        {
+        for item in build.iter().filter(|&&item| *item != Item::NULL_ITEM) {
             self.items_stats.add(&item.stats);
             self.on_action_fns_holder.extend(&item.on_action_fns);
         }
@@ -1394,8 +1385,7 @@ impl Unit {
             .q
             .base_cooldown_by_ability_lvl
             .iter()
-            .copied()
-            .any(|cooldown| cooldown < F32_TOL)
+            .any(|&cooldown| cooldown < F32_TOL)
         {
             return Err(format!(
                 "{} abilities cast time should be >= F32_TOL",
@@ -1406,8 +1396,7 @@ impl Unit {
             .w
             .base_cooldown_by_ability_lvl
             .iter()
-            .copied()
-            .any(|cooldown| cooldown < F32_TOL)
+            .any(|&cooldown| cooldown < F32_TOL)
         {
             return Err(format!(
                 "{} W ability cooldown should be >= F32_TOL",
@@ -1418,8 +1407,7 @@ impl Unit {
             .e
             .base_cooldown_by_ability_lvl
             .iter()
-            .copied()
-            .any(|cooldown| cooldown < F32_TOL)
+            .any(|&cooldown| cooldown < F32_TOL)
         {
             return Err(format!(
                 "{} E ability cooldown should be >= F32_TOL",
@@ -1430,8 +1418,7 @@ impl Unit {
             .r
             .base_cooldown_by_ability_lvl
             .iter()
-            .copied()
-            .any(|cooldown| cooldown < F32_TOL)
+            .any(|&cooldown| cooldown < F32_TOL)
         {
             return Err(format!(
                 "{} R ability cooldown should be >= F32_TOL",

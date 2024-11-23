@@ -6412,8 +6412,7 @@ fn yun_tal_wildarrows_init(champ: &mut Unit) {
     let yun_tal_idx: usize = champ
         .build
         .iter()
-        .copied()
-        .position(|item| *item == Item::YUN_TAL_WILDARROWS)
+        .position(|&item| *item == Item::YUN_TAL_WILDARROWS)
         .unwrap(); //will never panic as this function is only called when yun tal is in build
     if (yun_tal_idx + 1 < MAX_UNIT_ITEMS) && *champ.build[yun_tal_idx + 1] != Item::NULL_ITEM {
         champ.stats.crit_chance = f32::min(1., champ.stats.crit_chance + 0.25);
