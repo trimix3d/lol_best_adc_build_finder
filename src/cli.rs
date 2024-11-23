@@ -632,7 +632,7 @@ fn confirm_builds_generation_settings(
             }
             5 => {
                 //change runes
-                runes_settings_sreen(settings, champ_properties)?;
+                runes_settings_screen(settings, champ_properties)?;
             }
             6 => {
                 //items settings
@@ -800,7 +800,7 @@ fn change_phys_dmg_received_percent(
     }
 }
 
-fn runes_settings_sreen(
+fn runes_settings_screen(
     settings: &mut BuildsGenerationSettings,
     champ_properties: &'static UnitProperties,
 ) -> Result<(), UserCommand> {
