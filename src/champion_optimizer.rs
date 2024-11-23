@@ -1126,12 +1126,12 @@ pub fn find_best_builds(
         let bar: ProgressBar = ProgressBar::new(settings.n_items as u64)
             .with_style(
                 ProgressStyle::with_template(
-                    "{msg}\n[{elapsed_precise}] {bar} {pos}/{len} items {spinner}",
+                    "{msg} [{elapsed_precise}] {bar} {pos}/{len} items {spinner}",
                 )
                 .expect("Failed to create progress bar style"),
             )
             .with_message(format!(
-                "Calculating best builds for {}...",
+                "Generating best builds for {}",
                 champ_properties.name
             ));
         bar.enable_steady_tick(Duration::from_millis(200));
