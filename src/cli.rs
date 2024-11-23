@@ -91,7 +91,8 @@ enum UserCommand {
 }
 
 /// Get the user input, returns it in a lowercase String.
-/// doesn't catch user commands (go back, exit, etc) and returns the String directly
+/// doesn't catch user commands (go back, exit, etc) and returns the String directly.
+///
 /// Returns None if stdin is closed (-> must exit the program).
 fn get_user_raw_input(input_line: &str) -> Option<String> {
     print!("{input_line} ");
