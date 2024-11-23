@@ -92,8 +92,8 @@ enum UserCommand {
 
 /// Get the user input, returns it in a lowercase String.
 /// doesn't catch user commands (go back, exit, etc) and returns the String directly
-/// (can still returns `Err(UserCommand::Exit)`, but only when stdin is closed).
-fn get_user_raw_input(input_line: &str) -> Result<String, UserCommand> {
+/// Returns None if stdin is closed (-> must exit the program).
+fn get_user_raw_input(input_line: &str) -> Option<String> {
     print!("{input_line} ");
     io::stdout().flush().expect("Failed to flush stdout");
 
@@ -101,11 +101,11 @@ fn get_user_raw_input(input_line: &str) -> Result<String, UserCommand> {
     io::stdin()
         .read_line(&mut buffer)
         .expect("Failed to read user input from stdin");
-    //exit if stdin is closed
     if buffer.is_empty() {
-        return Err(UserCommand::Exit);
+        None //means stdin is closed (otherwise buffer would contain newline characters)
+    } else {
+        Some(buffer.trim().to_lowercase())
     }
-    Ok(buffer.trim().to_lowercase())
 }
 
 /// Get the user input, returns it in a lowercase String.
@@ -115,7 +115,8 @@ fn get_user_input(input_line: &str, help_msg: &str) -> Result<String, UserComman
     line.push(':');
     loop {
         println!();
-        let input: String = get_user_raw_input(&line)?;
+        let input: String = get_user_raw_input(&line).ok_or(UserCommand::Exit)?;
+
         match input.as_str() {
             "help" | "?" => println!(
                 "\n---[ HELP ]---\n\
@@ -142,7 +143,7 @@ fn get_user_input(input_line: &str, help_msg: &str) -> Result<String, UserComman
 /// Returns `Err(UserCommand::Exit)` if stdin is closed.
 fn confirm_exit() -> Result<bool, UserCommand> {
     loop {
-        let input: String = get_user_raw_input("Confirm exit? (y/n):")?;
+        let input: String = get_user_raw_input("Confirm exit? (y/n):").ok_or(UserCommand::Exit)?;
         match input.as_str() {
             "yes" | "y" | "" => return Ok(true),
             "no" | "n" => return Ok(false),
@@ -438,7 +439,7 @@ fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result
             Err(error_msg) => {
                 get_user_raw_input(&format!(
                         "\nFailed to generate builds: {error_msg} (press enter to return to settings screen)"
-                    ))?;
+                    )).ok_or(UserCommand::Exit)?;
                 continue;
             }
         };
@@ -848,7 +849,7 @@ fn handle_runes_settings(
                     Err(error_msg) => {
                         get_user_raw_input(&format!(
                             "\nFailed to find best runes keystones: {error_msg} (press enter to return to runes settings screen)"
-                        ))?;
+                        )).ok_or(UserCommand::Exit)?;
                         continue;
                     }
                 };
@@ -864,7 +865,8 @@ fn handle_runes_settings(
                     println!(" - {:#} (score: {:.0})", k.0, k.1);
                 }
 
-                get_user_raw_input("press enter to return to runes settings screen")?;
+                get_user_raw_input("press enter to return to runes settings screen")
+                    .ok_or(UserCommand::Exit)?;
             }
             6 => {
                 //reset to default runes page
