@@ -75,7 +75,7 @@ pub fn launch_interface() {
             Err(UserCommand::Exit) => break,
         };
 
-        if let Err(UserCommand::Exit) = handle_builds_generation(properties) {
+        if let Err(UserCommand::Exit) = builds_generation_screen(properties) {
             break;
         }
     }
@@ -416,7 +416,7 @@ fn get_user_item(
 
 /// Handle the whole build generation with the user.
 /// This function never returns `Err(UserCommand::back)` because cannot go further back.
-fn handle_builds_generation(champ_properties: &'static UnitProperties) -> Result<(), UserCommand> {
+fn builds_generation_screen(champ_properties: &'static UnitProperties) -> Result<(), UserCommand> {
     //create build generation settings
     let mut settings: BuildsGenerationSettings =
         BuildsGenerationSettings::default_by_champion(champ_properties);
@@ -632,11 +632,11 @@ fn confirm_builds_generation_settings(
             }
             5 => {
                 //change runes
-                handle_runes_settings(settings, champ_properties)?;
+                runes_settings_sreen(settings, champ_properties)?;
             }
             6 => {
                 //items settings
-                handle_items_settings(settings, champ_properties)?;
+                items_settings_screen(settings, champ_properties)?;
             }
             7 => {
                 //weights
@@ -800,7 +800,7 @@ fn change_phys_dmg_received_percent(
     }
 }
 
-fn handle_runes_settings(
+fn runes_settings_sreen(
     settings: &mut BuildsGenerationSettings,
     champ_properties: &'static UnitProperties,
 ) -> Result<(), UserCommand> {
@@ -975,7 +975,7 @@ const ITEMS_POOLS_SETTINGS_HELP_MSG: &str = concat!(
     ALLOW_MANAFLOW_FIRST_ITEM_HELP_MSG,
 );
 
-fn handle_items_settings(
+fn items_settings_screen(
     settings: &mut BuildsGenerationSettings,
     champ_properties: &UnitProperties,
 ) -> Result<(), UserCommand> {
