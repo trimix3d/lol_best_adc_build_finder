@@ -526,16 +526,9 @@ impl BuildsGenerationSettings {
             if (1..=self.n_items).contains(&boots_slot_number) {
                 additional_items += 1;
             }
-
             if !(1..=MAX_UNIT_ITEMS).contains(&boots_slot_number) {
                 return Err(format!(
                     "Boots slot must be between 1 and {MAX_UNIT_ITEMS} (got {})",
-                    boots_slot_number
-                ));
-            }
-            if *self.mandatory_items[boots_slot_number - 1] != Item::NULL_ITEM {
-                return Err(format!(
-                    "Cannot have a mandatory item at the boots slot (slot {})",
                     boots_slot_number
                 ));
             }
@@ -575,12 +568,6 @@ impl BuildsGenerationSettings {
             if !(1..=MAX_UNIT_ITEMS).contains(&supp_item_slot_number) {
                 return Err(format!(
                     "Support item slot must be between 1 and {MAX_UNIT_ITEMS} (got {})",
-                    supp_item_slot_number
-                ));
-            }
-            if *self.mandatory_items[supp_item_slot_number - 1] != Item::NULL_ITEM {
-                return Err(format!(
-                    "Cannot have a mandatory item at the support item slot (slot {})",
                     supp_item_slot_number
                 ));
             }

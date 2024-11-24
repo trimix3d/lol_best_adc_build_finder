@@ -397,14 +397,12 @@ fn get_user_item(
                     println!("- {item:#}");
                 }
             }
-
             if item_pool_types.contains(ItemPoolType::Boots) {
                 println!("\nBoots in database:");
                 for item in items_data::ALL_BOOTS {
                     println!("- {item:#}");
                 }
             }
-
             if item_pool_types.contains(ItemPoolType::Support) {
                 println!("\nSupport items in database:");
                 for item in items_data::ALL_SUPP_ITEMS {
