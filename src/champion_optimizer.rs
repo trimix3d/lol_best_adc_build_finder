@@ -792,6 +792,7 @@ fn score_formula_with_normalized_weights(
 }
 
 /// Generate the next 'layer' of builds from current builds, returns None if next layer is empty (never returns an empty Vec).
+#[must_use]
 fn generate_build_layer(
     current_builds: Vec<BuildContainer>,
     pool: &[&'static Item],

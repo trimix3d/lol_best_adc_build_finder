@@ -11,6 +11,7 @@ use runes_data::*;
 /// Sorts the slice and compares adjacent elements to find if there are duplicates.
 /// Return a reference to the first duplicate found, if any.
 /// The slice given to this function will be modified, if you don't want to modify the given slice, pass a clone.
+#[must_use]
 fn find_dupes_in_slice<T: Ord>(slice: &mut [T]) -> Option<&T> {
     slice.sort_unstable();
     for window in slice.windows(2) {

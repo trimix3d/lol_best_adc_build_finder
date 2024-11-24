@@ -94,6 +94,7 @@ enum UserCommand {
 /// doesn't catch user commands (go back, exit, etc) and returns the String directly.
 ///
 /// Returns None if stdin is closed (-> must exit the program).
+#[must_use]
 fn get_user_raw_input(input_line: &str) -> Option<String> {
     print!("{input_line} ");
     io::stdout().flush().expect("Failed to flush stdout");
