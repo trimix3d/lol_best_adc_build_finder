@@ -266,21 +266,23 @@ fn get_user_usize(
                 continue;
             }
         }
-        match input.parse::<usize>() {
-            Ok(number) => {
-                if range.contains(&number) {
-                    return Ok(Some(number));
-                } else {
-                    println!(
-                        "{} is outside of range: {:?} to {:?}",
-                        number,
-                        range.start_bound(),
-                        range.end_bound()
-                    );
-                }
+        let number: usize = match input.parse::<usize>() {
+            Ok(number) => number,
+            Err(error) => {
+                println!("'{input}' is not a valid integer: {}", error);
+                continue;
             }
-            Err(error) => println!("'{input}' is not a valid integer: {}", error),
+        };
+        if !range.contains(&number) {
+            println!(
+                "{} is outside of range: {:?} to {:?}",
+                number,
+                range.start_bound(),
+                range.end_bound()
+            );
+            continue;
         }
+        return Ok(Some(number));
     }
 }
 
@@ -1164,19 +1166,23 @@ fn get_item_slot(help_msg: &str) -> Result<ItemSlot, UserCommand> {
         match input.as_str() {
             "any" => return Ok(ItemSlot::Any),
             "none" => return Ok(ItemSlot::None),
-            input => match input.parse::<usize>() {
-                Ok(number) => {
-                    if (1..=MAX_UNIT_ITEMS).contains(&number) {
-                        return Ok(ItemSlot::Slot(number));
-                    } else {
-                        println!(
-                            "Item slot must be between 1 and {MAX_UNIT_ITEMS} (got {})",
-                            number,
-                        );
+            input => {
+                let number: usize = match input.parse::<usize>() {
+                    Ok(number) => number,
+                    Err(error) => {
+                        println!("'{input}' is not a valid integer: {}", error);
+                        continue;
                     }
+                };
+                if !(1..=MAX_UNIT_ITEMS).contains(&number) {
+                    println!(
+                        "Item slot must be between 1 and {MAX_UNIT_ITEMS} (got {})",
+                        number,
+                    );
+                    continue;
                 }
-                Err(error) => println!("'{input}' is not a valid integer: {}", error),
-            },
+                return Ok(ItemSlot::Slot(number));
+            }
         }
     }
 }
