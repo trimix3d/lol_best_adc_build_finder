@@ -195,13 +195,13 @@ fn get_user_matching_input<'a>(
     }
 }
 
-/// Matches the user input with the provided choices and returns the corresponding number.
+/// Matches the user input with the provided choices and returns the corresponding choice number.
 /// This function will either:
-///  - loop until the user provides a valid input and return Ok(number).
+///  - loop until the user provides a valid input and return `Ok(number)`.
 ///  - return Err with the specific variant if the user performs one of the persistent command.
 ///
-/// The number returned is the index of the corresponding choice + 1,
-/// This will return None only if `allow_no_input` is true and the user enters no input.
+/// Choice count starts at 1, so the number returned is the index of the corresponding choice + 1,
+/// This will return `None` only if `allow_no_input` is true and the user enters no input.
 fn get_user_choice<'a>(
     greetings_msg: &str,
     input_line: &str,
