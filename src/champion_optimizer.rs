@@ -8,7 +8,7 @@ use runes_data::*;
 use units_data::*;
 
 use enumset::{enum_set, EnumSet};
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{ProgressBar, ProgressFinish, ProgressIterator, ProgressStyle};
 use rayon::prelude::*;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
@@ -1114,13 +1114,16 @@ pub fn find_best_builds(
         let bar: ProgressBar = ProgressBar::new(settings.n_items as u64)
             .with_style(
                 ProgressStyle::with_template(
-                    "{msg} [{elapsed_precise}] {bar} {pos}/{len} items {spinner}",
+                    "{msg} {spinner} [{elapsed_precise}] {bar} {pos}/{len} items",
                 )
                 .expect("Failed to create progress bar style"),
             )
             .with_message(format!(
                 "Generating best builds for {}",
                 champ_properties.name
+            ))
+            .with_finish(ProgressFinish::AbandonWithMessage(
+                format!("Done generating builds for {}", champ_properties.name).into(),
             ));
         bar.enable_steady_tick(Duration::from_millis(200));
         bar
@@ -1174,7 +1177,7 @@ pub fn find_best_builds(
     let discard_percent: f32 = 1. - settings.search_threshold;
     let mut best_builds: Vec<BuildContainer> = vec![init_build];
     //start iterating on each item slot
-    for item_idx in 0..settings.n_items {
+    for item_idx in (0..settings.n_items).progress_with(progress_bar) {
         let item_slot: usize = item_idx + 1;
 
         //set champion & dummy lvl
@@ -1283,18 +1286,6 @@ pub fn find_best_builds(
             container.def[item_slot] = scores.def;
             container.ms[item_slot] = scores.ms;
         }
-
-        //update progress bar
-        progress_bar.inc(1);
-    }
-    //finish progress bar
-    progress_bar.finish();
-    if !silent {
-        println!(
-            "Found {} optimized builds for {}",
-            best_builds.len(),
-            champ_properties.name
-        );
     }
 
     //return builds
