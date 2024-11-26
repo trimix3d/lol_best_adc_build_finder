@@ -431,7 +431,7 @@ fn builds_generation_screen(champ_properties: &'static UnitProperties) -> Result
         };
 
         //compute best builds
-        println!();
+        println!(" ");
         let mut pareto_builds: Vec<BuildContainer> = match find_best_builds(
             champ_properties,
             &settings,
@@ -452,7 +452,7 @@ fn builds_generation_screen(champ_properties: &'static UnitProperties) -> Result
             .expect("Failed to create NonZeroUsize from DEFAULT_N_PRINTED_BUILDS");
         let mut must_have_utils: EnumSet<ItemUtils> = enum_set!();
         loop {
-            println!();
+            println!(" ");
             print_builds_scores(
                 &pareto_builds,
                 champ_properties.name,
@@ -463,7 +463,7 @@ fn builds_generation_screen(champ_properties: &'static UnitProperties) -> Result
 
             //prompt for what's next
             let choice: usize = match get_user_choice(
-                "",
+                " ",
                 "\nSelect an action (press enter to return to champion selection)",
                 "How to interpret the columns from left to right:\n \
                     - score: the overall score of the build\n \
