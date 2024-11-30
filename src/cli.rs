@@ -23,10 +23,10 @@ const DEFAULT_N_PRINTED_BUILDS: usize = 18;
 const N_ITEMS_WHEN_FINDING_BEST_RUNES: usize = 2;
 
 const WELCOME_HELP_MSG: &str = "At any time, you can enter:\n\
-                                -back/b : to go back to the previous menu.\n\
-                                -help   : to show help info on the current menu.\n\
-                                -home   : to return to the champion selection page (this page).\n\
-                                -exit   : to exit the program.";
+                                back/b : to go back to the previous menu.\n\
+                                help   : to show help info on the current menu.\n\
+                                home   : to return to the champion selection page (this page).\n\
+                                exit   : to exit the program.";
 
 pub fn launch_interface() {
     println!(
