@@ -47,7 +47,7 @@ pub fn launch_interface() {
         .map(|champ_properties| champ_properties.name)
         .collect();
 
-    let mut greetings_msg: String = String::from("Available champions: ");
+    let mut greetings_msg: String = String::from("\nAvailable champions: ");
     greetings_msg.push_str(champ_names[0]);
     for name in champ_names[1..].iter() {
         greetings_msg.push_str(", ");
