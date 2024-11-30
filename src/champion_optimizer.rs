@@ -479,8 +479,10 @@ impl BuildsGenerationSettings {
 
         if self.fight_scenario_number.get() > champ_properties.fight_scenarios.len() {
             return Err(format!(
-                "Fight scenario number must be lower than the number of available fight scenarios for {} which is {} (got {})",
-                champ_properties.name, champ_properties.fight_scenarios.len(), self.fight_scenario_number.get(),
+                "Fight scenario number for {} must be lower than {} (got {})",
+                champ_properties.name,
+                champ_properties.fight_scenarios.len(),
+                self.fight_scenario_number.get(),
             ));
         }
 
@@ -589,7 +591,10 @@ impl BuildsGenerationSettings {
                 .iter()
                 .any(|item| item.item_groups.contains(ItemGroups::Support))
             {
-                return Err("Cannot have a support item in mandatory items if the support item slot is already set".to_string());
+                return Err(
+                    "Cannot have a support item in mandatory items if the support item slot is already set"
+                    .to_string()
+                );
             }
             if self.supp_items_pool.is_empty() {
                 return Err("Support items pool is empty".to_string());
@@ -990,7 +995,7 @@ fn pareto_compare_chunk_to_point(
 fn pareto_front_multithread(
     points: &mut Vec<ParetoSpacePoint>,
     discard_percent: f32,
-    n_threads: NonZeroUsize,
+    thread_count: NonZeroUsize,
 ) -> Vec<bool> {
     let input_len: usize = points.len();
     let mut pareto_mask: Vec<bool> = Vec::with_capacity(input_len);
@@ -1001,7 +1006,7 @@ fn pareto_front_multithread(
         let current_point: &ParetoSpacePoint = &points[idx];
 
         //update pareto mask, divide points into chunks to process them in parralel
-        let chunk_size: usize = compute_chunk_size(points.len(), n_threads);
+        let chunk_size: usize = compute_chunk_size(points.len(), thread_count);
         pareto_mask.clear();
         pareto_mask = points
             .par_chunks(chunk_size)
@@ -1104,7 +1109,7 @@ pub fn find_best_builds(
     champ.set_runes(settings.runes_page)?;
 
     //get number of available threads
-    let n_threads: NonZeroUsize =
+    let thread_count: NonZeroUsize =
         std::thread::available_parallelism().expect("Failed to get amount of available threads");
 
     //start progress bar
@@ -1223,11 +1228,13 @@ pub fn find_best_builds(
         {
             best_builds = new_builds;
         } else {
-            return Err(format!("Can't reach requested item slot (stopped at slot {item_slot} because not enough items in pool/too much items incompatible with each other)"));
+            return Err(format!(
+                "Can't reach requested item slot (stopped at slot {item_slot} because not enough items in pool/too much items incompatible with each other)"
+            ));
         }
 
         //divide builds into chunks and simulate them in parralel
-        let chunk_size: usize = compute_chunk_size(best_builds.len(), n_threads);
+        let chunk_size: usize = compute_chunk_size(best_builds.len(), thread_count);
         let mut pareto_space_points: Vec<ParetoSpacePoint> = best_builds
             .par_chunks(chunk_size)
             .flat_map_iter(|chunk| {
@@ -1273,7 +1280,7 @@ pub fn find_best_builds(
             } else {
                 discard_percent.powf(1. / N_PARETO_SCORES) //heuristic criteria for `N_PARETO_SCORES` dimensions
             },
-            n_threads,
+            thread_count,
         );
         let mut to_keep = pareto_mask.into_iter();
         best_builds.retain(|_| to_keep.next().unwrap()); //will never panic as to_keep has the same length

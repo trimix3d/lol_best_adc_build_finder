@@ -472,9 +472,18 @@ fn builds_generation_screen(champ_properties: &'static UnitProperties) -> Result
                     - spec : if the build has special utility (e.g. RFC bonus range, black cleaver armor reduction, ...)\n \
                     - build: the build in item order (with the score at each item slot in brackets)",
                 [
-                    &format!("only show builds with anti heal/shield utility: {}", must_have_utils.contains(ItemUtils::AntiHealShield)),
-                    &format!("only show builds with survivability utility: {}", must_have_utils.contains(ItemUtils::Survivability)),
-                    &format!("only show builds with special utility: {}", must_have_utils.contains(ItemUtils::Special)),
+                    &format!(
+                        "only show builds with anti heal/shield utility: {}",
+                        must_have_utils.contains(ItemUtils::AntiHealShield)
+                    ),
+                    &format!(
+                        "only show builds with survivability utility: {}",
+                        must_have_utils.contains(ItemUtils::Survivability)
+                    ),
+                    &format!(
+                        "only show builds with special utility: {}",
+                        must_have_utils.contains(ItemUtils::Special)
+                    ),
                     "choose the number of builds to show",
                     "return to build generation settings",
                 ],
@@ -691,8 +700,9 @@ fn change_target(
     }
 }
 
-const FIGHT_SCENARIO_HELP_MSG: &str = "Each generated build will go through a fight simulation according to the selected scenario in order\n\
-                                       to evaluate its performance. Therefore, the builds found will perform best for the selected scenario.";
+const FIGHT_SCENARIO_HELP_MSG: &str =
+"Each generated build will go through a fight simulation according to the selected scenario in order\n\
+to evaluate its performance. Therefore, the builds found will perform best for the selected scenario.";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_fight_scenario_number(
@@ -732,7 +742,8 @@ fn change_fight_scenario_number(
     }
 }
 
-const FIGHT_DURATION_HELP_MSG: &str = "Every build will be evaluated based on a fight simulation of the selected duration (in seconds).";
+const FIGHT_DURATION_HELP_MSG: &str =
+"Every build will be evaluated based on a fight simulation of the selected duration (in seconds).";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_fight_duration(
@@ -764,8 +775,9 @@ fn change_fight_duration(
     }
 }
 
-const PHYS_DMG_RECEIVED_PERCENT_HELP_MSG: &str = "The selected percentage of physical dmg received will be considered when evaluating the defensive value\n\
-                                                  of different builds. The percentage of magic dmg received is deducted from this (assuming no true dmg received).";
+const PHYS_DMG_RECEIVED_PERCENT_HELP_MSG: &str =
+"The selected percentage of physical dmg received will be considered when evaluating the defensive value\n\
+of different builds. The percentage of magic dmg received is deducted from this (assuming no true dmg received).";
 
 /// This function never returns `Err(UserCommand::back)`.
 fn change_phys_dmg_received_percent(

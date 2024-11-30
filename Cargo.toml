@@ -18,13 +18,8 @@ redundant_closure_for_method_calls = "warn"
 semicolon_if_nothing_returned = "warn"
 single_match_else = "warn"
 
-# build with: cargo build --release --target=<target>
-# common targets: - x86_64-pc-windows-msvc
-#                 - x86_64-apple-darwin
-#                 - x86_64-unknown-linux-gnu
-#                 - aarch64-pc-windows-msvc
-#                 - aarch64-apple-darwin
-#                 - aarch64-unknown-linux-gnu
+# re-build for all profiles: cargo clean ; cargo build ; cargo build --release ; cargo build --profile profiling
+
 [profile.release]
 opt-level = 3
 debug = false
@@ -35,7 +30,7 @@ lto = "fat"
 incremental = false
 codegen-units = 1
 
-# run flamegraph with the command: cargo flamegraph --profile profiling
+# run flamegraph: cargo flamegraph --profile profiling
 [profile.profiling]
 inherits = "release"
 debug = "full"

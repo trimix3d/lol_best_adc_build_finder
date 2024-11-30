@@ -2,6 +2,8 @@
 
 A command line program that automatically finds the best combinations of items for ADCs in League of Legends.
 
+![screenshot](welcome_screen.png)
+
 Upon running the program, you will be prompted to choose the champion for which you want to find the best builds. It will generate multiple combinations of items for this champion and test each one by simulating fights against a target dummy (taking into account champions/items effects, ...). The combinations that gives the best results are then shown to you.
 
 If needed, you can customize some settings related to the builds generation and the fights simulations (target tankiness, fight duration, force a specified item in the generated builds, and more).
