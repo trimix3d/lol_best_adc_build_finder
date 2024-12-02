@@ -23,7 +23,7 @@ You have 2 options:
 
 ### 1) Download the lastest release
 
-Go to the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) and download the executable (compatible only with windows on x86_64 CPUs), then run it.
+Go to the lastest [release](https://github.com/trimix3d/lol_best_adc_build_finder/releases) and download the executable (only for windows on x86_64 CPUs), then run it.
 
 ### 2) Compile from source
 
