@@ -71,7 +71,7 @@ pub fn print_builds_scores(
 
     let n_to_print: usize = usize::min(n_to_print.get(), filtered_len);
     println!(
-        "Showing the {n_to_print} best {champ_name} builds found (out of {filtered_len}):\n\
+        "Showing the best {champ_name} builds found ({n_to_print}/{filtered_len}):\n\
          score | !h/s | surv | spec | build\n\
          ---------------------------------------------------"
     );
