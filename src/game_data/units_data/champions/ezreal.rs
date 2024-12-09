@@ -7,16 +7,15 @@ use units_data::*;
 use enumset::enum_set;
 
 //champion parameters (constants):
-const EZREAL_Q_HIT_PERCENT: f32 = 0.9;
-const EZREAL_W_HIT_PERCENT: f32 = 0.8;
+const Q_HIT_PERCENT: f32 = 0.9;
+const W_HIT_PERCENT: f32 = 0.8;
 /// Number of targets hit by ezreal R.
-const EZREAL_R_N_TARGETS: f32 = 1.;
-const EZREAL_R_HIT_PERCENT: f32 = 0.85;
+const R_N_TARGETS: f32 = 1.;
+const R_HIT_PERCENT: f32 = 0.85;
 
 fn ezreal_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::EzrealEssenceFluxMark] = 0;
-    champ.effects_values[EffectValueId::EzrealEssenceFluxHitTime] =
-        -(EZREAL_W_MARK_DURATION + F32_TOL); //to allow for effect at time == 0
+    champ.effects_values[EffectValueId::EzrealEssenceFluxHitTime] = -(W_MARK_DURATION + F32_TOL); //to allow for effect at time == 0
     champ.effects_stacks[EffectStackId::EzrealRisingSpellForceStacks] = 0;
     champ.effects_values[EffectValueId::EzrealRisingSpellForceBonusAS] = 0.;
 }
@@ -50,8 +49,8 @@ const EZREAL_RISING_SPELL_FORCE: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-const EZREAL_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [20., 45., 70., 95., 120.];
-const EZREAL_Q_CD_REFUND: f32 = 1.5;
+const Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [20., 45., 70., 95., 120.];
+const Q_CD_REFUND: f32 = 1.5;
 
 fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let w_mark_dmg: PartDmg = ezreal_detonate_w_mark_if_any(champ, target_stats);
@@ -59,13 +58,13 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
     let phys_dmg: f32 =
-        EZREAL_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx] + 1.30 * champ.stats.ad() + 0.15 * champ.stats.ap();
+        Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx] + 1.30 * champ.stats.ad() + 0.15 * champ.stats.ap();
 
     //q hit reduces abilities cooldown
-    champ.q_cd = f32::max(0., champ.q_cd - EZREAL_Q_HIT_PERCENT * EZREAL_Q_CD_REFUND);
-    champ.w_cd = f32::max(0., champ.w_cd - EZREAL_Q_HIT_PERCENT * EZREAL_Q_CD_REFUND);
-    champ.e_cd = f32::max(0., champ.e_cd - EZREAL_Q_HIT_PERCENT * EZREAL_Q_CD_REFUND);
-    champ.r_cd = f32::max(0., champ.r_cd - EZREAL_Q_HIT_PERCENT * EZREAL_Q_CD_REFUND);
+    champ.q_cd = f32::max(0., champ.q_cd - Q_HIT_PERCENT * Q_CD_REFUND);
+    champ.w_cd = f32::max(0., champ.w_cd - Q_HIT_PERCENT * Q_CD_REFUND);
+    champ.e_cd = f32::max(0., champ.e_cd - Q_HIT_PERCENT * Q_CD_REFUND);
+    champ.r_cd = f32::max(0., champ.r_cd - Q_HIT_PERCENT * Q_CD_REFUND);
 
     //add passive stack
     champ.add_temporary_effect(&EZREAL_RISING_SPELL_FORCE, 0.);
@@ -74,23 +73,23 @@ fn ezreal_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     w_mark_dmg
         + champ.dmg_on_target(
             target_stats,
-            PartDmg(EZREAL_Q_HIT_PERCENT * phys_dmg, 0., 0.),
+            PartDmg(Q_HIT_PERCENT * phys_dmg, 0., 0.),
             (1, 1),
             enum_set!(DmgTag::Ability | DmgTag::BasicAttack),
             1.,
         )
 }
 
-const EZREAL_W_MARK_MAGIC_DMG_BY_W_LVL: [f32; 5] = [80., 135., 190., 245., 300.];
-const EZREAL_W_MARK_AP_RATIO_BY_W_LVL: [f32; 5] = [0.70, 0.75, 0.80, 0.85, 0.90];
-const EZREAL_W_MARK_DURATION: f32 = 4.;
+const W_MARK_MAGIC_DMG_BY_W_LVL: [f32; 5] = [80., 135., 190., 245., 300.];
+const W_MARK_AP_RATIO_BY_W_LVL: [f32; 5] = [0.70, 0.75, 0.80, 0.85, 0.90];
+const W_MARK_DURATION: f32 = 4.;
 
 fn ezreal_detonate_w_mark_if_any(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     if champ.effects_stacks[EffectStackId::EzrealEssenceFluxMark] == 0 {
         //if no mark, do nothing
         PartDmg(0., 0., 0.)
     } else if champ.time - champ.effects_values[EffectValueId::EzrealEssenceFluxHitTime]
-        >= EZREAL_W_MARK_DURATION
+        >= W_MARK_DURATION
     {
         //if mark from too long ago, reset
         champ.effects_stacks[EffectStackId::EzrealEssenceFluxMark] = 0; //reset mark
@@ -101,13 +100,13 @@ fn ezreal_detonate_w_mark_if_any(champ: &mut Unit, target_stats: &UnitStats) -> 
 
         let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
-        let magic_dmg: f32 = EZREAL_W_MARK_MAGIC_DMG_BY_W_LVL[w_lvl_idx]
+        let magic_dmg: f32 = W_MARK_MAGIC_DMG_BY_W_LVL[w_lvl_idx]
             + champ.stats.bonus_ad
-            + EZREAL_W_MARK_AP_RATIO_BY_W_LVL[w_lvl_idx] * champ.stats.ap();
+            + W_MARK_AP_RATIO_BY_W_LVL[w_lvl_idx] * champ.stats.ap();
 
         champ.dmg_on_target(
             target_stats,
-            PartDmg(0., EZREAL_W_HIT_PERCENT * magic_dmg, 0.),
+            PartDmg(0., W_HIT_PERCENT * magic_dmg, 0.),
             (1, 1),
             enum_set!(DmgTag::Ability),
             1.,
@@ -125,7 +124,7 @@ fn ezreal_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     PartDmg(0., 0., 0.)
 }
 
-const EZREAL_E_MAGIC_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
+const E_MAGIC_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
 
 fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.units_travelled += 475.; //blink range
@@ -137,9 +136,8 @@ fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
 
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
-    let magic_dmg: f32 = EZREAL_E_MAGIC_DMG_BY_E_LVL[e_lvl_idx]
-        + 0.5 * champ.stats.bonus_ad
-        + 0.75 * champ.stats.ap();
+    let magic_dmg: f32 =
+        E_MAGIC_DMG_BY_E_LVL[e_lvl_idx] + 0.5 * champ.stats.bonus_ad + 0.75 * champ.stats.ap();
 
     w_mark_dmg
         + champ.dmg_on_target(
@@ -151,7 +149,7 @@ fn ezreal_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         )
 }
 
-const EZREAL_R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [350., 550., 750.];
+const R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [350., 550., 750.];
 
 fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let w_mark_dmg: PartDmg = ezreal_detonate_w_mark_if_any(champ, target_stats);
@@ -161,16 +159,16 @@ fn ezreal_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
 
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let magic_dmg: f32 = EZREAL_R_N_TARGETS
-        * (EZREAL_R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad + 0.9 * champ.stats.ap());
+    let magic_dmg: f32 = R_N_TARGETS
+        * (R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad + 0.9 * champ.stats.ap());
 
     w_mark_dmg
         + champ.dmg_on_target(
             target_stats,
-            PartDmg(0., EZREAL_R_HIT_PERCENT * magic_dmg, 0.),
+            PartDmg(0., R_HIT_PERCENT * magic_dmg, 0.),
             (1, 1),
             enum_set!(DmgTag::Ability | DmgTag::Ultimate),
-            EZREAL_R_N_TARGETS,
+            R_N_TARGETS,
         )
 }
 
@@ -246,7 +244,7 @@ impl Unit {
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: EZREAL_BASE_AS,
         windup_percent: 0.18839,
-        windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
+        windup_modifier: 1., //"mod" next to attack windup, 1 by default
         base_stats: UnitStats {
             hp: 600.,
             mana: 375.,

@@ -8,17 +8,17 @@ use enumset::enum_set;
 
 //champion parameters (constants):
 /// 1 proc = 2 basic attacks (gains 1 proc per activation).
-const LUCIAN_N_VIGILANCE_PROCS: u8 = 1;
+const N_VIGILANCE_PROCS: u8 = 1;
 /// Percentage of the r that hits its target, must be between 0. and 1.
-const LUCIAN_R_HIT_PERCENT: f32 = 0.75;
+const R_HIT_PERCENT: f32 = 0.75;
 
 fn lucian_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 0;
-    champ.effects_stacks[EffectStackId::LucianVigilanceProcsRemaning] = LUCIAN_N_VIGILANCE_PROCS;
+    champ.effects_stacks[EffectStackId::LucianVigilanceProcsRemaning] = N_VIGILANCE_PROCS;
     champ.effects_values[EffectValueId::LucianArdentBlazeMsFlat] = 0.;
 }
 
-const LUCIAN_LIGHTSLINGER_BASIC_ATTACKS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const LIGHTSLINGER_BASIC_ATTACKS_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
     0.50, //lvl 1
     0.50, //lvl 2
     0.50, //lvl 3
@@ -67,7 +67,7 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
                 target_stats,
                 PartDmg(
                     basic_attack_phys_dmg
-                        * LUCIAN_LIGHTSLINGER_BASIC_ATTACKS_AD_RATIO_BY_LVL
+                        * LIGHTSLINGER_BASIC_ATTACKS_AD_RATIO_BY_LVL
                             [usize::from(champ.lvl.get() - 1)],
                     vigilance_dmg,
                     0.,
@@ -81,12 +81,12 @@ fn lucian_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     }
 }
 
-const LUCIAN_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [85., 115., 145., 175., 205.];
-const LUCIAN_Q_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.60, 0.75, 0.90, 1.05, 1.20];
+const Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [85., 115., 145., 175., 205.];
+const Q_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.60, 0.75, 0.90, 1.05, 1.20];
 fn lucian_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
-    let phys_dmg: f32 = LUCIAN_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
-        + LUCIAN_Q_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx] * champ.stats.bonus_ad;
+    let phys_dmg: f32 = Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
+        + Q_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx] * champ.stats.bonus_ad;
 
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
 
@@ -99,11 +99,11 @@ fn lucian_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     )
 }
 
-const LUCIAN_ARDENT_BLAZE_MS_BY_W_LVL: [f32; 5] = [60., 65., 70., 75., 80.];
+const ARDENT_BLAZE_MS_BY_W_LVL: [f32; 5] = [60., 65., 70., 75., 80.];
 
 fn lucian_ardent_blaze_ms_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::LucianArdentBlazeMsFlat] == 0. {
-        let flat_ms_buff: f32 = LUCIAN_ARDENT_BLAZE_MS_BY_W_LVL[usize::from(champ.w_lvl - 1)];
+        let flat_ms_buff: f32 = ARDENT_BLAZE_MS_BY_W_LVL[usize::from(champ.w_lvl - 1)];
         champ.stats.ms_flat += flat_ms_buff;
         champ.effects_values[EffectValueId::LucianArdentBlazeMsFlat] = flat_ms_buff;
     }
@@ -122,10 +122,10 @@ const LUCIAN_ARDENT_BLAZE_MS: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-const LUCIAN_W_MAGIC_DMG_BY_W_LVL: [f32; 5] = [75., 110., 145., 180., 215.];
+const W_MAGIC_DMG_BY_W_LVL: [f32; 5] = [75., 110., 145., 180., 215.];
 fn lucian_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
-    let magic_dmg: f32 = LUCIAN_W_MAGIC_DMG_BY_W_LVL[w_lvl_idx] + 0.9 * champ.stats.ap();
+    let magic_dmg: f32 = W_MAGIC_DMG_BY_W_LVL[w_lvl_idx] + 0.9 * champ.stats.ap();
 
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
 
@@ -147,15 +147,13 @@ fn lucian_e(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     PartDmg(0., 0., 0.)
 }
 
-const LUCIAN_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [15., 30., 45.]; //dmg on champions
+const R_PHYS_DMG_BY_R_LVL: [f32; 3] = [15., 30., 45.]; //dmg on champions
 fn lucian_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let n_hits: f32 = LUCIAN_R_HIT_PERCENT * (22. + champ.stats.crit_chance / 0.04);
+    let n_hits: f32 = R_HIT_PERCENT * (22. + champ.stats.crit_chance / 0.04);
     let phys_dmg: f32 = n_hits
-        * (LUCIAN_R_PHYS_DMG_BY_R_LVL[r_lvl_idx]
-            + 0.25 * champ.stats.ad()
-            + 0.15 * champ.stats.ap());
+        * (R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + 0.25 * champ.stats.ad() + 0.15 * champ.stats.ap());
 
     champ.effects_stacks[EffectStackId::LucianLightslingerEmpowered] = 1;
 
@@ -166,7 +164,7 @@ fn lucian_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
         1.,
     );
-    champ.walk(LUCIAN_R_HIT_PERCENT * 3.);
+    champ.walk(R_HIT_PERCENT * 3.);
     r_dmg
 }
 
@@ -249,7 +247,7 @@ impl Unit {
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: LUCIAN_BASE_AS, //if not specified, same as base AS
         windup_percent: 0.15,
-        windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
+        windup_modifier: 1., //"mod" next to attack windup, 1 by default
         base_stats: UnitStats {
             hp: 641.,
             mana: 320.,

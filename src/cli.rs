@@ -540,7 +540,7 @@ const BUILDS_GENERATION_SETTINGS_HELP_MSG: &str = concat!(
          3 values, first for DPS, second for defense and third for mobility. These vales are\n\
          used to weight the relative importance of DPS, defense and mobility of the champion\n\
          in a single score value given to a build. The weights are relative to each other,\n\
-         i.e. DPS 3, defense 2, mobility 1 is the same as DPS 1, defense 0.66, mobility 0.33",
+         i.e. DPS 3, defense 2, mobility 1 is the same as DPS 1, defense 0.67, mobility 0.33",
     "\n\n-8) search threshold:\n",
     SEARCH_THRESHOLD_HELP_MSG
 );

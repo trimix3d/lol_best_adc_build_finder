@@ -7,34 +7,32 @@ use units_data::*;
 use enumset::enum_set;
 
 //champion parameters (constants):
-const ASHE_Q_MAX_STACKS: u8 = 4;
-const ASHE_W_N_TARGETS: f32 = 1.2;
+const Q_MAX_STACKS: u8 = 4;
+const W_N_TARGETS: f32 = 1.2;
 
 fn ashe_init_abilities(champ: &mut Unit) {
-    champ.effects_values[EffectValueId::AsheLastFrostTime] = -(ASHE_FROST_DELAY + F32_TOL);
+    champ.effects_values[EffectValueId::AsheLastFrostTime] = -(FROST_DELAY + F32_TOL);
     //to allow for effect at time == 0
     champ.effects_stacks[EffectStackId::AsheFocusStacks] = 0;
     champ.effects_values[EffectValueId::AsheRangersFocusBonusAS] = 0.;
 }
 
-const ASHE_FROST_DELAY: f32 = 2.;
+const FROST_DELAY: f32 = 2.;
 fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //check if target is frosted
-    let special_crit_coef: f32 = if champ.time
-        - champ.effects_values[EffectValueId::AsheLastFrostTime]
-        >= ASHE_FROST_DELAY
-    {
-        1.
-    } else {
-        1.15 + champ.stats.crit_chance * (0.75 + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)
-    };
+    let special_crit_coef: f32 =
+        if champ.time - champ.effects_values[EffectValueId::AsheLastFrostTime] >= FROST_DELAY {
+            1.
+        } else {
+            1.15 + champ.stats.crit_chance * (0.75 + champ.stats.crit_dmg - Unit::BASE_CRIT_DMG)
+        };
 
     //apply frost
     champ.effects_values[EffectValueId::AsheLastFrostTime] = champ.time;
 
     //check if q buff is active (max stacks + 1 indicates that q buff is active)
-    if champ.effects_stacks[EffectStackId::AsheFocusStacks] == ASHE_Q_MAX_STACKS + 1 {
-        let phys_dmg: f32 = ASHE_Q_AD_RATIO_BY_Q_LVL[usize::from(champ.q_lvl - 1)]
+    if champ.effects_stacks[EffectStackId::AsheFocusStacks] == Q_MAX_STACKS + 1 {
+        let phys_dmg: f32 = Q_AD_RATIO_BY_Q_LVL[usize::from(champ.q_lvl - 1)]
             * champ.stats.ad()
             * special_crit_coef;
         champ.dmg_on_target(
@@ -46,7 +44,7 @@ fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         )
     } else {
         //add focus stack if not maxed
-        if champ.effects_stacks[EffectStackId::AsheFocusStacks] < ASHE_Q_MAX_STACKS {
+        if champ.effects_stacks[EffectStackId::AsheFocusStacks] < Q_MAX_STACKS {
             champ.effects_stacks[EffectStackId::AsheFocusStacks] += 1;
         }
         let phys_dmg: f32 = champ.stats.ad() * special_crit_coef;
@@ -60,13 +58,13 @@ fn ashe_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     }
 }
 
-const ASHE_Q_BONUS_AS_BY_Q_LVL: [f32; 5] = [0.25, 0.325, 0.40, 0.475, 0.55];
-const ASHE_Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.05, 1.10, 1.15, 1.20, 1.25];
+const Q_BONUS_AS_BY_Q_LVL: [f32; 5] = [0.25, 0.325, 0.40, 0.475, 0.55];
+const Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.05, 1.10, 1.15, 1.20, 1.25];
 
 fn ashe_rangers_focus_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::AsheRangersFocusBonusAS] == 0. {
-        champ.effects_stacks[EffectStackId::AsheFocusStacks] = ASHE_Q_MAX_STACKS + 1; //max stacks + 1 indicates that q buff is active
-        let bonus_as_buff: f32 = ASHE_Q_BONUS_AS_BY_Q_LVL[usize::from(champ.q_lvl - 1)];
+        champ.effects_stacks[EffectStackId::AsheFocusStacks] = Q_MAX_STACKS + 1; //max stacks + 1 indicates that q buff is active
+        let bonus_as_buff: f32 = Q_BONUS_AS_BY_Q_LVL[usize::from(champ.q_lvl - 1)];
         champ.stats.bonus_as += bonus_as_buff;
         champ.effects_values[EffectValueId::AsheRangersFocusBonusAS] = bonus_as_buff;
     }
@@ -78,7 +76,7 @@ fn ashe_rangers_focus_disable(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::AsheFocusStacks] = 0;
 }
 
-const ASHE_RANGERS_FOCUS_BUFF: TemporaryEffect = TemporaryEffect {
+const RANGERS_FOCUS_BUFF: TemporaryEffect = TemporaryEffect {
     id: EffectId::AsheRangersFocus,
     add_stack: ashe_rangers_focus_enable,
     remove_every_stack: ashe_rangers_focus_disable,
@@ -87,12 +85,12 @@ const ASHE_RANGERS_FOCUS_BUFF: TemporaryEffect = TemporaryEffect {
 };
 
 fn ashe_q(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
-    champ.add_temporary_effect(&ASHE_RANGERS_FOCUS_BUFF, 0.);
+    champ.add_temporary_effect(&RANGERS_FOCUS_BUFF, 0.);
     champ.basic_attack_cd = 0.; //q resets basic attack cd
     PartDmg(0., 0., 0.)
 }
 
-const ASHE_W_PHYS_DMG_BY_W_LVL: [f32; 5] = [20., 35., 50., 65., 80.];
+const W_PHYS_DMG_BY_W_LVL: [f32; 5] = [20., 35., 50., 65., 80.];
 
 fn ashe_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //apply frost
@@ -100,14 +98,14 @@ fn ashe_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
 
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 = ASHE_W_N_TARGETS * (ASHE_W_PHYS_DMG_BY_W_LVL[w_lvl_idx] + champ.stats.ad());
+    let phys_dmg: f32 = W_N_TARGETS * (W_PHYS_DMG_BY_W_LVL[w_lvl_idx] + champ.stats.ad());
 
     champ.dmg_on_target(
         target_stats,
         PartDmg(phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        ASHE_W_N_TARGETS,
+        W_N_TARGETS,
     )
 }
 
@@ -116,7 +114,7 @@ fn ashe_e(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     PartDmg(0., 0., 0.)
 }
 
-const ASHE_R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [200., 400., 600.];
+const R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [200., 400., 600.];
 
 fn ashe_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //apply frost
@@ -124,7 +122,7 @@ fn ashe_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
 
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let magic_dmg: f32 = ASHE_R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + 1.20 * champ.stats.ap();
+    let magic_dmg: f32 = R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + 1.20 * champ.stats.ap();
 
     champ.dmg_on_target(
         target_stats,
@@ -143,7 +141,7 @@ fn ashe_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_duratio
         //priority order: w, q, basic attack
         if champ.w_cd == 0. {
             champ.w(target_stats);
-        } else if champ.effects_stacks[EffectStackId::AsheFocusStacks] == ASHE_Q_MAX_STACKS {
+        } else if champ.effects_stacks[EffectStackId::AsheFocusStacks] == Q_MAX_STACKS {
             //ashe q has no cd
             champ.q(target_stats);
             //basic attack directly after
@@ -178,7 +176,7 @@ impl Unit {
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: ASHE_BASE_AS, //if not specified, same as base AS
         windup_percent: 0.2193,
-        windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
+        windup_modifier: 1., //"mod" next to attack windup, 1 by default
         base_stats: UnitStats {
             hp: 610.,
             mana: 280.,

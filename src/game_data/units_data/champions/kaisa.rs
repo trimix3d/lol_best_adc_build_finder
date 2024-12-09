@@ -9,13 +9,13 @@ use enumset::enum_set;
 //champion parameters (constants):
 /// Percentage of target missing hp when second skin 5 stacks procs.
 /// The missing hp taken for the calculation is the value AFTER base dmg from the basic attack/w hits,
-const KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT: f32 = 0.5;
-const KAISA_W_HIT_PERCENT: f32 = 0.85;
+const SECOND_SKIN_TARGET_MISSING_HP_PERCENT: f32 = 0.5;
+const W_HIT_PERCENT: f32 = 0.85;
 
 fn kaisa_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] = 0;
     champ.effects_values[EffectValueId::KaisaSecondSkinLastStackTime] =
-        -(KAISA_SECOND_SKIN_DELAY + F32_TOL); //to allow for effect at time == 0
+        -(SECOND_SKIN_DELAY + F32_TOL); //to allow for effect at time == 0
     champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] = 0.;
 
     //Q evolve, items bonus ad + base_ad from lvls must be >= 100
@@ -44,7 +44,7 @@ fn kaisa_init_abilities(champ: &mut Unit) {
     //}
 }
 
-const KAISA_SECOND_SKIN_BASE_MAGIC_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const SECOND_SKIN_BASE_MAGIC_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     4.,    //lvl 1
     5.18,  //lvl 2
     6.35,  //lvl 3
@@ -65,7 +65,7 @@ const KAISA_SECOND_SKIN_BASE_MAGIC_DMG_BY_LVL: [f32; MAX_UNIT_LVL] = [
     24.,   //lvl 18
 ];
 
-const KAISA_SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
     1.,   //lvl 1
     1.29, //lvl 2
     1.59, //lvl 3
@@ -86,11 +86,11 @@ const KAISA_SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL: [f32; MAX_UNIT_LVL] = [
     6.,   //lvl 18
 ];
 
-const KAISA_SECOND_SKIN_MAX_STACKS: u8 = 5;
-const KAISA_SECOND_SKIN_AP_COEF_BY_STACK: [f32; KAISA_SECOND_SKIN_MAX_STACKS as usize] =
+const SECOND_SKIN_MAX_STACKS: u8 = 5;
+const SECOND_SKIN_AP_COEF_BY_STACK: [f32; SECOND_SKIN_MAX_STACKS as usize] =
     [0.12, 0.15, 0.18, 0.21, 0.24];
 
-const KAISA_SECOND_SKIN_DELAY: f32 = 4.; //stack duration
+const SECOND_SKIN_DELAY: f32 = 4.; //stack duration
 fn kaisa_second_skin(
     champ: &mut Unit,
     target_stats: &UnitStats,
@@ -99,7 +99,7 @@ fn kaisa_second_skin(
 ) -> PartDmg {
     //if last hit from too long ago, reset stacks
     if champ.time - champ.effects_values[EffectValueId::KaisaSecondSkinLastStackTime]
-        >= KAISA_SECOND_SKIN_DELAY
+        >= SECOND_SKIN_DELAY
     {
         champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] = 0;
     }
@@ -108,16 +108,15 @@ fn kaisa_second_skin(
 
     //calculate dmg (before increasing stacks count)
     let mut magic_dmg: f32 = n_targets
-        * (KAISA_SECOND_SKIN_BASE_MAGIC_DMG_BY_LVL[lvl_idx]
+        * (SECOND_SKIN_BASE_MAGIC_DMG_BY_LVL[lvl_idx]
             + f32::from(champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks])
-                * KAISA_SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL[lvl_idx]
+                * SECOND_SKIN_MAGIC_DMG_PER_STACK_BY_LVL[lvl_idx]
             + champ.stats.ap()
-                * KAISA_SECOND_SKIN_AP_COEF_BY_STACK
+                * SECOND_SKIN_AP_COEF_BY_STACK
                     [usize::from(champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks])]);
 
     //update stack count
-    if champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] < KAISA_SECOND_SKIN_MAX_STACKS - 1
-    {
+    if champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] < SECOND_SKIN_MAX_STACKS - 1 {
         champ.effects_stacks[EffectStackId::KaisaSecondSkinStacks] += 1;
         champ.effects_values[EffectValueId::KaisaSecondSkinLastStackTime] = champ.time;
     } else {
@@ -130,7 +129,7 @@ fn kaisa_second_skin(
         //(the idea is that no item should be artificially "buffed", but they can be "nerfed" so when it's picked by the optimiser, it's guaranteed to be good).
         //With the current dmg system I basically have to choose which between guinsoos and runaans work with the second skin passive.
         //I chose guinsoos because its interaction with the second skin passive seems more important than runaan's.
-        magic_dmg += KAISA_SECOND_SKIN_TARGET_MISSING_HP_PERCENT
+        magic_dmg += SECOND_SKIN_TARGET_MISSING_HP_PERCENT
             * target_stats.hp
             * (0.15 + 0.06 / 100. * champ.stats.ap());
     }
@@ -144,9 +143,9 @@ fn kaisa_on_basic_attack_cast(champ: &mut Unit) {
 }
 
 /// Assumes single target dmg.
-const KAISA_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [90., 123.75, 157.5, 191.25, 225.];
+const Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [90., 123.75, 157.5, 191.25, 225.];
 /// Assumes single target dmg.
-const KAISA_EVOLVED_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [150., 206.25, 262.5, 318.75, 375.];
+const EVOLVED_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [150., 206.25, 262.5, 318.75, 375.];
 
 fn kaisa_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
@@ -157,14 +156,14 @@ fn kaisa_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     if champ.effects_stacks[EffectStackId::KaisaQEvolved] == 0 {
         //not evolved
         n_missiles = 6;
-        phys_dmg = KAISA_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
+        phys_dmg = Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
             + 1.2375 * champ.stats.bonus_ad
             + 0.45 * champ.stats.ap();
     //assumes single target dmg
     } else {
         //evolved
         n_missiles = 12;
-        phys_dmg = KAISA_EVOLVED_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
+        phys_dmg = EVOLVED_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
             + 2.0625 * champ.stats.bonus_ad
             + 0.75 * champ.stats.ap(); //assumes single target dmg
     };
@@ -179,42 +178,42 @@ fn kaisa_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
 }
 
 /// Used to calculate the average travel time of the projectile.
-const KAISA_W_PROJECTILE_SPEED: f32 = 1750.;
+const W_PROJECTILE_SPEED: f32 = 1750.;
 /// Has an impact on evolved w cd refund (greater travel time -> cd refund is less relevant).
-const KAISA_W_TRAVEL_TIME: f32 = 1000. / KAISA_W_PROJECTILE_SPEED;
+const W_TRAVEL_TIME: f32 = 1000. / W_PROJECTILE_SPEED;
 
-const KAISA_W_MAGIC_DMG_BY_W_LVL: [f32; 5] = [30., 55., 80., 105., 130.];
+const W_MAGIC_DMG_BY_W_LVL: [f32; 5] = [30., 55., 80., 105., 130.];
 
 fn kaisa_w(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let w_lvl_idx: usize = usize::from(champ.w_lvl - 1); //to index ability ratios by lvl
 
     let magic_dmg: f32 =
-        KAISA_W_MAGIC_DMG_BY_W_LVL[w_lvl_idx] + 1.3 * champ.stats.ad() + 0.45 * champ.stats.ap();
+        W_MAGIC_DMG_BY_W_LVL[w_lvl_idx] + 1.3 * champ.stats.ad() + 0.45 * champ.stats.ap();
     let mut second_skin_dmg: PartDmg = kaisa_second_skin(champ, target_stats, 1., false)
         + kaisa_second_skin(champ, target_stats, 1., false); //applies proc one by one
 
     if champ.effects_stacks[EffectStackId::KaisaWEvolved] == 1 {
         //if evolved
-        champ.w_cd -= KAISA_W_HIT_PERCENT * 0.75 * f32::max(0., champ.w_cd - KAISA_W_TRAVEL_TIME); //account for w travel time (otherwise cd is instantly refunded after casting and that can be op)
+        champ.w_cd -= W_HIT_PERCENT * 0.75 * f32::max(0., champ.w_cd - W_TRAVEL_TIME); //account for w travel time (otherwise cd is instantly refunded after casting and that can be op)
         second_skin_dmg += kaisa_second_skin(champ, target_stats, 1., false);
     }
 
     champ.dmg_on_target(
         target_stats,
-        KAISA_W_HIT_PERCENT * (PartDmg(0., magic_dmg, 0.) + second_skin_dmg),
+        W_HIT_PERCENT * (PartDmg(0., magic_dmg, 0.) + second_skin_dmg),
         (1, 1),
         enum_set!(DmgTag::Ability),
         1.,
     )
 }
 
-const KAISA_E_MS_PERCENT_BY_E_LVL: [f32; 5] = [0.55, 0.60, 0.65, 0.70, 0.75];
+const E_MS_PERCENT_BY_E_LVL: [f32; 5] = [0.55, 0.60, 0.65, 0.70, 0.75];
 
-const KAISA_E_BONUS_AS_BY_E_LVL: [f32; 5] = [0.40, 0.50, 0.60, 0.70, 0.80];
+const E_BONUS_AS_BY_E_LVL: [f32; 5] = [0.40, 0.50, 0.60, 0.70, 0.80];
 
 fn kaisa_supercharge_as_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] == 0. {
-        let bonus_as_buff: f32 = KAISA_E_BONUS_AS_BY_E_LVL[usize::from(champ.e_lvl - 1)];
+        let bonus_as_buff: f32 = E_BONUS_AS_BY_E_LVL[usize::from(champ.e_lvl - 1)];
         champ.stats.bonus_as += bonus_as_buff;
         champ.effects_values[EffectValueId::KaisaSuperchargeBonusAS] = bonus_as_buff;
     }
@@ -241,7 +240,7 @@ fn kaisa_e(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
         champ.items_stats.bonus_as + champ.lvl_stats.bonus_as
             - champ.properties.base_stats.bonus_as,
     );
-    let percent_ms_buff: f32 = KAISA_E_MS_PERCENT_BY_E_LVL[e_lvl_idx] * (1. + capped_bonus_as);
+    let percent_ms_buff: f32 = E_MS_PERCENT_BY_E_LVL[e_lvl_idx] * (1. + capped_bonus_as);
     champ.stats.ms_percent += percent_ms_buff;
     champ.walk(1.2 / (1. + capped_bonus_as));
     champ.stats.ms_percent -= percent_ms_buff;
@@ -250,13 +249,13 @@ fn kaisa_e(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     PartDmg(0., 0., 0.)
 }
 
-const KAISA_R_SHIELD_BY_R_LVL: [f32; 3] = [70., 90., 110.];
-const KAISA_R_SHIELD_AD_RATIO_BY_R_LVL: [f32; 3] = [0.90, 1.35, 1.8];
+const R_SHIELD_BY_R_LVL: [f32; 3] = [70., 90., 110.];
+const R_SHIELD_AD_RATIO_BY_R_LVL: [f32; 3] = [0.90, 1.35, 1.8];
 
 fn kaisa_r(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
-    champ.single_use_heals_shields += KAISA_R_SHIELD_BY_R_LVL[r_lvl_idx]
-        + KAISA_R_SHIELD_AD_RATIO_BY_R_LVL[r_lvl_idx] * champ.stats.ad()
+    champ.single_use_heals_shields += R_SHIELD_BY_R_LVL[r_lvl_idx]
+        + R_SHIELD_AD_RATIO_BY_R_LVL[r_lvl_idx] * champ.stats.ad()
         + 1.2 * champ.stats.ap();
     champ.units_travelled += 425.; //assumed dash range (max r radius around the ennemy - champion width)
     PartDmg(0., 0., 0.)
@@ -300,7 +299,7 @@ impl Unit {
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: KAISA_BASE_AS, //if not specified, same as base AS
         windup_percent: 0.16108,
-        windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
+        windup_modifier: 1., //"mod" next to attack windup, 1 by default
         base_stats: UnitStats {
             hp: 640.,
             mana: 345.,

@@ -9,26 +9,25 @@ use enumset::enum_set;
 //champion parameters (constants):
 const VARUS_ABILITIES_HIT_PERCENT: f32 = 0.9;
 /// Average arrow charge considered to calculate dmg.
-const VARUS_Q_CHARGE_PERCENT: f32 = 0.67;
+const Q_CHARGE_PERCENT: f32 = 0.67;
 /// Number of targets hit by q arrow.
-const VARUS_Q_N_TARGETS: f32 = 1.0;
+const Q_N_TARGETS: f32 = 1.0;
 /// Percentage of the target missing hp for the q arrow empowered by w.
 /// The missing hp taken for the calculation is the value AFTER the usual phys dmg from the arrow hits,
 /// So don't put the value before the arrow hits in this constant, but a higher value to account for the usual arrow dmg.
-const VARUS_W_TARGET_MISSING_HP_PERCENT: f32 = 0.4;
+const W_TARGET_MISSING_HP_PERCENT: f32 = 0.4;
 /// Number of targets hit by e.
-const VARUS_E_N_TARGETS: f32 = 1.0;
+const E_N_TARGETS: f32 = 1.0;
 
 fn varus_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::VarusBlightStacks] = 0;
-    champ.effects_values[EffectValueId::VarusBlightLastStackTime] =
-        -(VARUS_BLIGH_STACK_DELAY + F32_TOL); //to allow for effect at time == 0
+    champ.effects_values[EffectValueId::VarusBlightLastStackTime] = -(BLIGH_STACK_DELAY + F32_TOL); //to allow for effect at time == 0
     champ.effects_stacks[EffectStackId::VarusBlightedQuiverEmpowered] = 0;
 }
 
 //passive effect on kill not implemented (too situationnal)
 
-const VARUS_BLIGH_STACK_DELAY: f32 = 6.; //stacks duration
+const BLIGH_STACK_DELAY: f32 = 6.; //stacks duration
 fn varus_blighted_quiver_on_basic_attack_hit(
     champ: &mut Unit,
     _target_stats: &UnitStats,
@@ -37,33 +36,33 @@ fn varus_blighted_quiver_on_basic_attack_hit(
 ) -> PartDmg {
     //if last hit from too long ago, reset stacks and add 1
     if champ.time - champ.effects_values[EffectValueId::VarusBlightLastStackTime]
-        >= VARUS_BLIGH_STACK_DELAY
+        >= BLIGH_STACK_DELAY
     {
         champ.effects_values[EffectValueId::VarusBlightLastStackTime] = champ.time;
         champ.effects_stacks[EffectStackId::VarusBlightStacks] = 1;
-    } else if champ.effects_stacks[EffectStackId::VarusBlightStacks] < VARUS_MAX_BLIGHT_STACKS {
+    } else if champ.effects_stacks[EffectStackId::VarusBlightStacks] < MAX_BLIGHT_STACKS {
         //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
         champ.effects_stacks[EffectStackId::VarusBlightStacks] += 1;
         champ.effects_values[EffectValueId::VarusBlightLastStackTime] = champ.time;
     }
 
-    let magic_dmg: f32 = VARUS_BLIGHT_ON_HIT_MAGIC_DMG_BY_W_LVL[usize::from(champ.w_lvl - 1)]
-        + 0.35 * champ.stats.ap();
+    let magic_dmg: f32 =
+        BLIGHT_ON_HIT_MAGIC_DMG_BY_W_LVL[usize::from(champ.w_lvl - 1)] + 0.35 * champ.stats.ap();
     PartDmg(0., n_targets * magic_dmg, 0.)
 }
 
-const VARUS_Q_CHARGE_SLOW_PERCENT: f32 = 0.20;
-const VARUS_Q_MAX_CHARGE_COEF: f32 = 0.50; //bonus dmg coef when arrow is fully charged
-const VARUS_Q_MAX_PHYS_DMG_BY_Q_LVL: [f32; 5] = [90., 160., 230., 300., 370.];
-const VARUS_Q_MAX_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.30, 1.40, 1.50, 1.60, 1.70];
+const Q_CHARGE_SLOW_PERCENT: f32 = 0.20;
+const Q_MAX_CHARGE_COEF: f32 = 0.50; //bonus dmg coef when arrow is fully charged
+const Q_MAX_PHYS_DMG_BY_Q_LVL: [f32; 5] = [90., 160., 230., 300., 370.];
+const Q_MAX_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.30, 1.40, 1.50, 1.60, 1.70];
 
 fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
-    const ARROW_CHARGE_WAIT_TIME: f32 = 1.25 * VARUS_Q_CHARGE_PERCENT;
+    const ARROW_CHARGE_WAIT_TIME: f32 = 1.25 * Q_CHARGE_PERCENT;
 
     //approximate self slow by reducing ms_percent (current code doesn't handle slows)
     //approximating slows by reducing ms_percent is exact only when ms_percent is not modified by other effects during the duration of the self slow.
     let eq_charge_ms_percent: f32 =
-        (1. + champ.stats.ms_percent) * (1. - VARUS_Q_CHARGE_SLOW_PERCENT) - 1.; //equivalent ms_percent during arrow charge
+        (1. + champ.stats.ms_percent) * (1. - Q_CHARGE_SLOW_PERCENT) - 1.; //equivalent ms_percent during arrow charge
     let eq_ms_percent_debuff: f32 = champ.stats.ms_percent - eq_charge_ms_percent;
 
     champ.stats.ms_percent -= eq_ms_percent_debuff;
@@ -73,13 +72,12 @@ fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
     //arrow dmg
-    const ARROW_CHARGE_DMG_COEF: f32 = 1. + VARUS_Q_MAX_CHARGE_COEF * VARUS_Q_CHARGE_PERCENT;
-    const N_TARGET_COEF: f32 =
-        VARUS_Q_N_TARGETS - 0.15 * (VARUS_Q_N_TARGETS * (VARUS_Q_N_TARGETS - 1.) / 2.); //dmg of arrow on all targets (diminishing returns)
+    const ARROW_CHARGE_DMG_COEF: f32 = 1. + Q_MAX_CHARGE_COEF * Q_CHARGE_PERCENT;
+    const N_TARGET_COEF: f32 = Q_N_TARGETS - 0.15 * (Q_N_TARGETS * (Q_N_TARGETS - 1.) / 2.); //dmg of arrow on all targets (diminishing returns)
     let phys_dmg: f32 = N_TARGET_COEF
-        * (ARROW_CHARGE_DMG_COEF / (1. + VARUS_Q_MAX_CHARGE_COEF))
-        * (VARUS_Q_MAX_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
-            + champ.stats.bonus_ad * VARUS_Q_MAX_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx]); // dmg of arrow on 1 target
+        * (ARROW_CHARGE_DMG_COEF / (1. + Q_MAX_CHARGE_COEF))
+        * (Q_MAX_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
+            + champ.stats.bonus_ad * Q_MAX_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx]); // dmg of arrow on 1 target
 
     //blight stacks
     let mut magic_dmg: f32 =
@@ -91,8 +89,8 @@ fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         magic_dmg += N_TARGET_COEF
             * ARROW_CHARGE_DMG_COEF
             * target_stats.hp
-            * VARUS_W_TARGET_MISSING_HP_PERCENT
-            * VARUS_W_TARGET_MISSING_HP_COEF_BY_W_LVL[usize::from(champ.w_lvl - 1)];
+            * W_TARGET_MISSING_HP_PERCENT
+            * W_TARGET_MISSING_HP_COEF_BY_W_LVL[usize::from(champ.w_lvl - 1)];
     }
 
     champ.dmg_on_target(
@@ -104,14 +102,14 @@ fn varus_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         ),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        VARUS_Q_N_TARGETS,
+        Q_N_TARGETS,
     )
 }
 
-const VARUS_MAX_BLIGHT_STACKS: u8 = 3;
-const VARUS_BLIGHT_ON_HIT_MAGIC_DMG_BY_W_LVL: [f32; 5] = [8., 13., 18., 23., 28.];
+const MAX_BLIGHT_STACKS: u8 = 3;
+const BLIGHT_ON_HIT_MAGIC_DMG_BY_W_LVL: [f32; 5] = [8., 13., 18., 23., 28.];
 
-const VARUS_W_TARGET_MISSING_HP_COEF_BY_W_LVL: [f32; 5] = [0.06, 0.08, 0.10, 0.12, 0.14];
+const W_TARGET_MISSING_HP_COEF_BY_W_LVL: [f32; 5] = [0.06, 0.08, 0.10, 0.12, 0.14];
 
 fn varus_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     //w passive is implemented inside varus basic attacks
@@ -119,8 +117,8 @@ fn varus_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     PartDmg(0., 0., 0.)
 }
 
-const VARUS_TARGET_HP_COEF_PER_BLIGHT_STACK_BY_W_LVL: [f32; 5] = [0.03, 0.035, 0.04, 0.045, 0.05];
-const VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK: f32 = 0.13;
+const TARGET_HP_COEF_PER_BLIGHT_STACK_BY_W_LVL: [f32; 5] = [0.03, 0.035, 0.04, 0.045, 0.05];
+const TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK: f32 = 0.13;
 
 /// Consumes blights stacks and return proc dmg.
 /// Always assumes blight stacks are applied on one target only.
@@ -133,7 +131,7 @@ fn varus_consume_blight_stacks_magic_dmg(champ: &mut Unit, target_stats: &UnitSt
         champ.q_cd
             - n_stacks
                 * VARUS_ABILITIES_HIT_PERCENT
-                * VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
+                * TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
                 * champ.properties.q.base_cooldown_by_ability_lvl[usize::from(champ.q_lvl - 1)],
     );
     champ.w_cd = f32::max(
@@ -141,7 +139,7 @@ fn varus_consume_blight_stacks_magic_dmg(champ: &mut Unit, target_stats: &UnitSt
         champ.w_cd
             - n_stacks
                 * VARUS_ABILITIES_HIT_PERCENT
-                * VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
+                * TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
                 * champ.properties.w.base_cooldown_by_ability_lvl[usize::from(champ.w_lvl - 1)],
     );
     champ.e_cd = f32::max(
@@ -149,23 +147,22 @@ fn varus_consume_blight_stacks_magic_dmg(champ: &mut Unit, target_stats: &UnitSt
         champ.e_cd
             - n_stacks
                 * VARUS_ABILITIES_HIT_PERCENT
-                * VARUS_TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
+                * TOT_CD_REFUND_PERCENT_PER_BLIGHT_STACK
                 * champ.properties.e.base_cooldown_by_ability_lvl[usize::from(champ.e_lvl - 1)],
     );
 
     n_stacks
         * target_stats.hp
-        * (VARUS_TARGET_HP_COEF_PER_BLIGHT_STACK_BY_W_LVL[usize::from(champ.w_lvl - 1)]
+        * (TARGET_HP_COEF_PER_BLIGHT_STACK_BY_W_LVL[usize::from(champ.w_lvl - 1)]
             + 0.00015 * champ.stats.ap())
 }
 
-const VARUS_E_PHYS_DMG_BY_E_LVL: [f32; 5] = [60., 100., 140., 180., 220.];
+const E_PHYS_DMG_BY_E_LVL: [f32; 5] = [60., 100., 140., 180., 220.];
 
 fn varus_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 =
-        VARUS_E_N_TARGETS * VARUS_E_PHYS_DMG_BY_E_LVL[e_lvl_idx] + champ.stats.bonus_ad;
+    let phys_dmg: f32 = E_N_TARGETS * E_PHYS_DMG_BY_E_LVL[e_lvl_idx] + champ.stats.bonus_ad;
     let magic_dmg: f32 = varus_consume_blight_stacks_magic_dmg(champ, target_stats); //assumes only one target has blights stacks
 
     champ.dmg_on_target(
@@ -177,7 +174,7 @@ fn varus_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
         ),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        VARUS_E_N_TARGETS,
+        E_N_TARGETS,
     )
 }
 
@@ -186,7 +183,7 @@ fn varus_r_add_delayed_blight_stack_enable(_champ: &mut Unit, _availability_coef
 fn varus_r_add_delayed_blight_stack_disable(champ: &mut Unit) {
     //add blight stack after a set duration
     champ.effects_stacks[EffectStackId::VarusBlightStacks] = u8::min(
-        VARUS_MAX_BLIGHT_STACKS,
+        MAX_BLIGHT_STACKS,
         champ.effects_stacks[EffectStackId::VarusBlightStacks] + 1,
     );
 }
@@ -195,7 +192,7 @@ const VARUS_R_ADD_DELAYED_BLIGHT_STACKS_0_5: TemporaryEffect = TemporaryEffect {
     id: EffectId::VarusRAddDelayedBlightStacks05,
     add_stack: varus_r_add_delayed_blight_stack_enable,
     remove_every_stack: varus_r_add_delayed_blight_stack_disable,
-    duration: 0.5 + VARUS_R_TRAVEL_TIME,
+    duration: 0.5 + R_TRAVEL_TIME,
     cooldown: 0.,
 };
 
@@ -203,7 +200,7 @@ const VARUS_R_ADD_DELAYED_BLIGHT_STACKS_1_0: TemporaryEffect = TemporaryEffect {
     id: EffectId::VarusRAddDelayedBlightStacks10,
     add_stack: varus_r_add_delayed_blight_stack_enable,
     remove_every_stack: varus_r_add_delayed_blight_stack_disable,
-    duration: 1. + VARUS_R_TRAVEL_TIME,
+    duration: 1. + R_TRAVEL_TIME,
     cooldown: 0.,
 };
 
@@ -211,20 +208,20 @@ const VARUS_R_ADD_DELAYED_BLIGHT_STACKS_1_5: TemporaryEffect = TemporaryEffect {
     id: EffectId::VarusRAddDelayedBlightStacks15,
     add_stack: varus_r_add_delayed_blight_stack_enable,
     remove_every_stack: varus_r_add_delayed_blight_stack_disable,
-    duration: 1.5 + VARUS_R_TRAVEL_TIME,
+    duration: 1.5 + R_TRAVEL_TIME,
     cooldown: 0.,
 };
 
 /// Used to calculate the average travel time of the projectile.
-const VARUS_R_PROJECTILE_SPEED: f32 = 1500.;
+const R_PROJECTILE_SPEED: f32 = 1500.;
 /// Affects how fast the blight stacks are applied after cast.
-const VARUS_R_TRAVEL_TIME: f32 = 600. / VARUS_R_PROJECTILE_SPEED;
-const VARUS_R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [150., 250., 350.];
+const R_TRAVEL_TIME: f32 = 600. / R_PROJECTILE_SPEED;
+const R_MAGIC_DMG_BY_R_LVL: [f32; 3] = [150., 250., 350.];
 
 fn varus_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let mut magic_dmg: f32 = VARUS_R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.ap();
+    let mut magic_dmg: f32 = R_MAGIC_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.ap();
     magic_dmg += varus_consume_blight_stacks_magic_dmg(champ, target_stats); //assumes only one target has blights stacks
 
     //add delayed blights stacks
@@ -320,7 +317,7 @@ impl Unit {
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: VARUS_BASE_AS,
         windup_percent: 0.17544,
-        windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
+        windup_modifier: 1., //"mod" next to attack windup, 1 by default
         base_stats: UnitStats {
             hp: 600.,
             mana: 360.,

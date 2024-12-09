@@ -142,7 +142,7 @@ impl Unit {
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: 0.9 * JINX_BASE_AS, //rocket launcher scales with 90% of bonus as
         windup_percent: 0.16875,
-        windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
+        windup_modifier: 1., //"mod" next to attack windup, 1 by default
         base_stats: UnitStats {
             hp: 630.,
             mana: 260.,

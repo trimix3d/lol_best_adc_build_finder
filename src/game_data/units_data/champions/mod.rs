@@ -8,13 +8,14 @@ mod draven;
 mod ezreal;
 mod jinx;
 mod kaisa;
+mod kindred;
 mod lucian;
 mod sivir;
 mod varus;
 mod xayah;
 
 impl Unit {
-    pub const ALL_CHAMPIONS: [&'static UnitProperties; 11] = [
+    pub const ALL_CHAMPIONS: [&'static UnitProperties; 12] = [
         &Unit::APHELIOS_PROPERTIES,
         &Unit::ASHE_PROPERTIES,
         &Unit::CAITLYN_PROPERTIES,
@@ -22,6 +23,7 @@ impl Unit {
         &Unit::EZREAL_PROPERTIES,
         &Unit::JINX_PROPERTIES,
         &Unit::KAISA_PROPERTIES,
+        &Unit::KINDRED_PROPERTIES,
         &Unit::LUCIAN_PROPERTIES,
         &Unit::SIVIR_PROPERTIES,
         &Unit::VARUS_PROPERTIES,

@@ -9,10 +9,10 @@ use enumset::enum_set;
 //champion parameters (constants):
 /// Number of feathers that must be on the ground before pressing e in fight simulation.
 /// Must be less or equal to 8 (max number of feathers on the ground on 1 combo, more is unrealistic except with r).
-const XAYAH_N_FEATHERS_BEFORE_RECALL: u8 = 6;
+const N_FEATHERS_BEFORE_RECALL: u8 = 6;
 /// Average number of targets hit by feathers recall (e).
-const XAYAH_FEATHERS_N_TARGETS: f32 = 1.1;
-const XAYAH_Q_HIT_PERCENT: f32 = 0.9;
+const FEATHERS_N_TARGETS: f32 = 1.1;
+const Q_HIT_PERCENT: f32 = 0.9;
 
 fn xayah_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::XayahNFeathersOnGround] = 0;
@@ -46,27 +46,26 @@ fn xayah_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     )
 }
 
-const XAYAH_CLEAN_CUTS_MAX_STACKS: u8 = 5;
-const XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY: u8 = 3;
+const CLEAN_CUTS_MAX_STACKS: u8 = 5;
+const CLEAN_CUTS_STACKS_PER_ABILITY: u8 = 3;
 
-const XAYAH_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [45., 60., 75., 90., 105.];
+const Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [45., 60., 75., 90., 105.];
 
 fn xayah_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
-        XAYAH_CLEAN_CUTS_MAX_STACKS,
-        champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
-            + XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY,
+        CLEAN_CUTS_MAX_STACKS,
+        champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] + CLEAN_CUTS_STACKS_PER_ABILITY,
     );
 
     //put two feathers on ground
     champ.effects_stacks[EffectStackId::XayahNFeathersOnGround] += 2;
 
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
-    let phys_dmg: f32 = 2. * (XAYAH_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx] + 0.5 * champ.stats.bonus_ad);
+    let phys_dmg: f32 = 2. * (Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx] + 0.5 * champ.stats.bonus_ad);
 
     champ.dmg_on_target(
         target_stats,
-        PartDmg(XAYAH_Q_HIT_PERCENT * phys_dmg, 0., 0.),
+        PartDmg(Q_HIT_PERCENT * phys_dmg, 0., 0.),
         (2, 1),
         enum_set!(DmgTag::Ability),
         1.,
@@ -94,12 +93,12 @@ const XAYAH_DEADLY_PLUMAGE_MS: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-const XAYAH_W_BONUS_AS_BY_W_LVL: [f32; 5] = [0.35, 0.40, 0.45, 0.50, 0.55];
+const W_BONUS_AS_BY_W_LVL: [f32; 5] = [0.35, 0.40, 0.45, 0.50, 0.55];
 
 fn xayah_deadly_plumage_as_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::XayahDeadlyPlumageBonusAS] == 0. {
         champ.effects_values[EffectValueId::XayahWBasicAttackCoef] = 1.25; //empower basic attacks
-        let bonus_as_buff: f32 = XAYAH_W_BONUS_AS_BY_W_LVL[usize::from(champ.w_lvl - 1)];
+        let bonus_as_buff: f32 = W_BONUS_AS_BY_W_LVL[usize::from(champ.w_lvl - 1)];
         champ.stats.bonus_as += bonus_as_buff;
         champ.effects_values[EffectValueId::XayahDeadlyPlumageBonusAS] = bonus_as_buff;
     }
@@ -121,55 +120,52 @@ const XAYAH_DEADLY_PLUMAGE_AS: TemporaryEffect = TemporaryEffect {
 
 fn xayah_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
-        XAYAH_CLEAN_CUTS_MAX_STACKS,
-        champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
-            + XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY,
+        CLEAN_CUTS_MAX_STACKS,
+        champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] + CLEAN_CUTS_STACKS_PER_ABILITY,
     );
     champ.add_temporary_effect(&XAYAH_DEADLY_PLUMAGE_AS, 0.);
     PartDmg(0., 0., 0.)
 }
 
-const XAYAH_E_PHYS_DMG_PER_FEATHER_BY_E_LVL: [f32; 5] = [55., 65., 75., 85., 95.];
+const E_PHYS_DMG_PER_FEATHER_BY_E_LVL: [f32; 5] = [55., 65., 75., 85., 95.];
 
 fn xayah_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
-        XAYAH_CLEAN_CUTS_MAX_STACKS,
-        champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
-            + XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY,
+        CLEAN_CUTS_MAX_STACKS,
+        champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] + CLEAN_CUTS_STACKS_PER_ABILITY,
     );
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
     //recall feathers
     let n: f32 = f32::from(champ.effects_stacks[EffectStackId::XayahNFeathersOnGround]); //number of feathers
     champ.effects_stacks[EffectStackId::XayahNFeathersOnGround] = 0;
-    let mut phys_dmg: f32 = (XAYAH_E_PHYS_DMG_PER_FEATHER_BY_E_LVL[e_lvl_idx]
+    let mut phys_dmg: f32 = (E_PHYS_DMG_PER_FEATHER_BY_E_LVL[e_lvl_idx]
         + 0.6 * champ.stats.bonus_ad)
         * (1. + 0.75 * champ.stats.crit_chance); //dmg for 1 feather
     phys_dmg *= n - 0.05 * (0.5 * n * (n - 1.)); //dmg formula for n feathers (diminishing returns)
 
     champ.dmg_on_target(
         target_stats,
-        PartDmg(XAYAH_FEATHERS_N_TARGETS * phys_dmg, 0., 0.),
+        PartDmg(FEATHERS_N_TARGETS * phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        XAYAH_FEATHERS_N_TARGETS,
+        FEATHERS_N_TARGETS,
     )
 }
 
-const XAYAH_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [200., 300., 400.];
+const R_PHYS_DMG_BY_R_LVL: [f32; 3] = [200., 300., 400.];
 
 fn xayah_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] = u8::min(
-        XAYAH_CLEAN_CUTS_MAX_STACKS,
-        champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
-            + XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY,
+        CLEAN_CUTS_MAX_STACKS,
+        champ.effects_stacks[EffectStackId::XayahCleanCutsStacks] + CLEAN_CUTS_STACKS_PER_ABILITY,
     );
     champ.walk(1.5);
     champ.effects_stacks[EffectStackId::XayahNFeathersOnGround] += 5;
 
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 = XAYAH_R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad;
+    let phys_dmg: f32 = R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad;
 
     champ.dmg_on_target(
         target_stats,
@@ -184,7 +180,7 @@ fn xayah_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durati
     while champ.time < fight_duration {
         //priority order: basic attack when too much clean cuts stacks, e when enough feathers on ground, q, w, basic attack
         if champ.effects_stacks[EffectStackId::XayahCleanCutsStacks]
-            > XAYAH_CLEAN_CUTS_MAX_STACKS - XAYAH_CLEAN_CUTS_STACKS_PER_ABILITY
+            > CLEAN_CUTS_MAX_STACKS - CLEAN_CUTS_STACKS_PER_ABILITY
         {
             //wait for the basic attack cooldown if there is one
             if champ.basic_attack_cd != 0. {
@@ -193,7 +189,7 @@ fn xayah_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durati
             champ.basic_attack(target_stats);
         } else if champ.e_cd == 0.
             && champ.effects_stacks[EffectStackId::XayahNFeathersOnGround]
-                >= XAYAH_N_FEATHERS_BEFORE_RECALL
+                >= N_FEATHERS_BEFORE_RECALL
         {
             champ.e(target_stats);
         } else if champ.q_cd == 0. {
@@ -209,7 +205,7 @@ fn xayah_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durati
                         champ.q_cd,
                         champ.w_cd,
                         if champ.effects_stacks[EffectStackId::XayahNFeathersOnGround]
-                            >= XAYAH_N_FEATHERS_BEFORE_RECALL
+                            >= N_FEATHERS_BEFORE_RECALL
                         {
                             champ.e_cd
                         } else {
@@ -235,7 +231,7 @@ impl Unit {
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: XAYAH_BASE_AS, //if not specified, same as base AS
         windup_percent: 0.17687,
-        windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
+        windup_modifier: 1., //"mod" next to attack windup, 1 by default
         base_stats: UnitStats {
             hp: 630.,
             mana: 340.,

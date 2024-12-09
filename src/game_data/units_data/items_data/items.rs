@@ -15,12 +15,6 @@ use enumset::{enum_set, EnumSet};
 const SHADOWFLAME_CINDERBLOOM_COEF: f32 = 0.40 * 0.40;
 ///x*x, where x is the % of hp under which the passive activates.
 const STORMSURGE_STORMRAIDER_COEF: f32 = 0.75 * 0.75;
-/// Percentage of target missing hp to account for the average dmg calculation.
-const KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT: f32 = 0.33;
-/// % of missing HP used to calculate the heal from Sundered sky lightshield strike
-const SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP: f32 = 0.33;
-/// Average hp % considered for mists edge dmg.
-const BLADE_OF_THE_RUINED_KING_MISTS_EDGE_AVG_TARGET_HP_PERCENT: f32 = 0.67;
 /// Percentage of dmg that is done in the passive range and profit from mr reduction.
 const ABYSSAL_MASK_UNMAKE_PERCENT_OF_DMG_IN_RANGE: f32 = 0.70;
 /// Percentage of abilities that benefits from the increased dmg modifier.
@@ -705,8 +699,7 @@ fn blade_of_the_ruined_king_mists_edge(
         return PartDmg(0., 0., 0.);
     }
     PartDmg(
-        n_targets
-            * (BLADE_OF_THE_RUINED_KING_MISTS_EDGE_AVG_TARGET_HP_PERCENT * 0.05 * target_stats.hp),
+        n_targets * (0.05 * ((1. - MEAN_MISSING_HP_PERCENT) * target_stats.hp)),
         0.,
         0.,
     ) //value for ranged champions
@@ -1755,7 +1748,7 @@ fn guinsoos_rageblade_on_basic_attack_hit(
         return PartDmg(0., wrath_ap_dmg, 0.);
     }
     //if seething strike is fully stacked (previous condition) but phantom stacks are not fully stacked, add 1 phantom stack
-    if champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] < 2 {
+    if champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] < 3 - 1 {
         champ.effects_stacks[EffectStackId::GuinsoosRagebladePhantomStacks] += 1;
         return PartDmg(0., wrath_ap_dmg, 0.);
     }
@@ -2058,7 +2051,7 @@ fn hullbreaker_skipper(
         return PartDmg(0., 0., 0.);
     }
     //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
-    if champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] < 4 {
+    if champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] < 5 - 1 {
         champ.effects_stacks[EffectStackId::HullbreakerSkipperStacks] += 1;
         champ.effects_values[EffectValueId::HullbreakerSkipperLastStackTime] = champ.time;
         return PartDmg(0., 0., 0.);
@@ -2549,14 +2542,14 @@ fn kraken_slayer_bring_it_down(
         return PartDmg(0., 0., 0.);
     }
     //if last hit is recent enough (previous condition) but not fully stacked, add 1 stack
-    if champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] < 2 {
+    if champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] < 3 - 1 {
         champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] += 1;
         champ.effects_values[EffectValueId::KrakenSlayerBringItDownLastStackTime] = champ.time;
         return PartDmg(0., 0., 0.);
     }
     //if fully stacked (previous conditions), reset stacks, return bring it down dmg
     champ.effects_stacks[EffectStackId::KrakenSlayerBringItDownStacks] = 0;
-    let phys_dmg: f32 = (1. + 0.5 * KRAKEN_SLAYER_BRING_IT_DOWN_AVG_TARGET_MISSING_HP_PERCENT)
+    let phys_dmg: f32 = (1. + 0.5 * MEAN_MISSING_HP_PERCENT)
         * KRAKEN_SLAYER_BRING_IT_DOWN_PHYS_DMG_BY_LVL[usize::from(champ.lvl.get() - 1)];
     PartDmg(phys_dmg, 0., 0.) //value for ranged champions
 }
@@ -5464,7 +5457,7 @@ fn sundered_sky_lightshield_strike(
     //if not on cooldown, put on cooldown and trigger effect
     champ.effects_values[EffectValueId::SunderedSkyLastTriggerTime] = champ.time;
     champ.periodic_heals_shields +=
-        champ.stats.base_ad + SUNDERED_SKY_LIGHTSHIELD_STRIKE_MISSING_HP * 0.06 * champ.stats.hp;
+        champ.stats.base_ad + 0.06 * (MEAN_MISSING_HP_PERCENT * champ.stats.hp);
     let phys_dmg: f32 =
         champ.stats.ad() * (1. - champ.stats.crit_chance) * (champ.stats.crit_dmg - 1.); //bonus dmg from a basic attack with 100% crit chance compared to an average basic_attack
     PartDmg(phys_dmg, 0., 0.)

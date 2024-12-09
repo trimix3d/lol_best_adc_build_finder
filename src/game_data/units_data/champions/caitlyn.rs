@@ -7,15 +7,15 @@ use units_data::*;
 use enumset::enum_set;
 
 //champion parameters (constants):
-const CAITLYN_Q_N_TARGETS: f32 = 1.0;
-const CAITLYN_Q_HIT_PERCENT: f32 = 0.85;
+const Q_N_TARGETS: f32 = 1.0;
+const Q_HIT_PERCENT: f32 = 0.85;
 
 fn caitlyn_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::CaitlynHeadshotStacks] = 0;
     champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] = 0;
 }
 
-const CAITLYN_HEADSHOT_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const HEADSHOT_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
     0.60, //lvl 1
     0.60, //lvl 2
     0.60, //lvl 3
@@ -38,7 +38,7 @@ const CAITLYN_HEADSHOT_AD_RATIO_BY_LVL: [f32; MAX_UNIT_LVL] = [
 
 fn caitlyn_heatshot_phys_dmg(champ: &Unit) -> f32 {
     champ.stats.ad()
-        * (CAITLYN_HEADSHOT_AD_RATIO_BY_LVL[usize::from(champ.lvl.get() - 1)]
+        * (HEADSHOT_AD_RATIO_BY_LVL[usize::from(champ.lvl.get() - 1)]
             + champ.stats.crit_dmg * 0.85 * champ.stats.crit_chance)
 }
 
@@ -64,22 +64,21 @@ fn caitlyn_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     )
 }
 
-const CAITLYN_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [50., 90., 130., 170., 210.];
-const CAITLYN_Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.25, 1.45, 1.65, 1.85, 2.05];
+const Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [50., 90., 130., 170., 210.];
+const Q_AD_RATIO_BY_Q_LVL: [f32; 5] = [1.25, 1.45, 1.65, 1.85, 2.05];
 
 fn caitlyn_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 = (1. + 0.6 * f32::max(0., CAITLYN_Q_N_TARGETS - 1.))
-        * (CAITLYN_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
-            + champ.stats.ad() * CAITLYN_Q_AD_RATIO_BY_Q_LVL[q_lvl_idx]);
+    let phys_dmg: f32 = (1. + 0.6 * f32::max(0., Q_N_TARGETS - 1.))
+        * (Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx] + champ.stats.ad() * Q_AD_RATIO_BY_Q_LVL[q_lvl_idx]);
 
     champ.dmg_on_target(
         target_stats,
-        PartDmg(CAITLYN_Q_HIT_PERCENT * phys_dmg, 0., 0.),
+        PartDmg(Q_HIT_PERCENT * phys_dmg, 0., 0.),
         (1, 1),
         enum_set!(DmgTag::Ability),
-        CAITLYN_Q_N_TARGETS,
+        Q_N_TARGETS,
     )
 }
 
@@ -88,14 +87,14 @@ fn caitlyn_w(_champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     PartDmg(0., 0., 0.)
 }
 
-const CAITLYN_E_MAGIC_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
+const E_MAGIC_DMG_BY_E_LVL: [f32; 5] = [80., 130., 180., 230., 280.];
 
 fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.units_travelled += 390.;
 
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
-    let magic_dmg: f32 = CAITLYN_E_MAGIC_DMG_BY_E_LVL[e_lvl_idx] + 0.80 * champ.stats.ap();
+    let magic_dmg: f32 = E_MAGIC_DMG_BY_E_LVL[e_lvl_idx] + 0.80 * champ.stats.ap();
     champ.effects_stacks[EffectStackId::CaitlynBonusHeadshot] = 1;
 
     champ.dmg_on_target(
@@ -107,12 +106,12 @@ fn caitlyn_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     )
 }
 
-const CAITLYN_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [300., 500., 700.];
+const R_PHYS_DMG_BY_R_LVL: [f32; 3] = [300., 500., 700.];
 
 fn caitlyn_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 = (CAITLYN_R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad)
+    let phys_dmg: f32 = (R_PHYS_DMG_BY_R_LVL[r_lvl_idx] + champ.stats.bonus_ad)
         * (1. + 0.5 * champ.stats.crit_chance);
 
     champ.dmg_on_target(
@@ -159,7 +158,7 @@ impl Unit {
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: 0.625,
         windup_percent: 0.17708,
-        windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
+        windup_modifier: 1., //"mod" next to attack windup, 1 by default
         base_stats: UnitStats {
             hp: 580.,
             mana: 315.,

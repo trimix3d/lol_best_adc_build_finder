@@ -8,10 +8,10 @@ use enumset::enum_set;
 
 //champion parameters (constants):
 /// Number of basic attacks to be performed before pressing w again, must be at least 1.
-const DRAVEN_BASIC_ATTACKS_PER_W: u8 = 2;
-const DRAVEN_R_N_TARGETS: f32 = 1.;
+const BASIC_ATTACKS_PER_W: u8 = 2;
+const R_N_TARGETS: f32 = 1.;
 /// Percentage of the time the q return hit its targets.
-const DRAVEN_R_RETURN_PERCENT: f32 = 0.75;
+const R_RETURN_PERCENT: f32 = 0.75;
 
 fn draven_init_abilities(champ: &mut Unit) {
     champ.effects_stacks[EffectStackId::DravenAxesInHand] = 0;
@@ -20,7 +20,7 @@ fn draven_init_abilities(champ: &mut Unit) {
     champ.effects_values[EffectValueId::DravenBloodRushBonusMsPercent] = 0.;
 }
 
-const DRAVEN_AXE_TIME_SPENT_IN_AIR: f32 = 2.; //axe travel time before hitting the target not accounted in this duration
+const AXE_TIME_SPENT_IN_AIR: f32 = 2.; //axe travel time before hitting the target not accounted in this duration
 
 fn draven_throw_axe(champ: &mut Unit, _availability_coef: f32) {
     champ.effects_stacks[EffectStackId::DravenAxesInHand] -= 1;
@@ -38,7 +38,7 @@ const DRAVEN_THROW_AXE1: TemporaryEffect = TemporaryEffect {
     id: EffectId::DravenThrowAxe1,
     add_stack: draven_throw_axe,
     remove_every_stack: draven_catch_axe, //effect assumes draven catches every axe
-    duration: DRAVEN_AXE_TIME_SPENT_IN_AIR,
+    duration: AXE_TIME_SPENT_IN_AIR,
     cooldown: 0.,
 };
 
@@ -47,17 +47,17 @@ const DRAVEN_THROW_AXE2: TemporaryEffect = TemporaryEffect {
     id: EffectId::DravenThrowAxe2,
     add_stack: draven_throw_axe,
     remove_every_stack: draven_catch_axe, //effect assumes draven catches every axe
-    duration: DRAVEN_AXE_TIME_SPENT_IN_AIR,
+    duration: AXE_TIME_SPENT_IN_AIR,
     cooldown: 0.,
 };
 
-const DRAVEN_SPINNING_AXE_PHYS_DMG_BY_Q_LVL: [f32; 5] = [40., 45., 50., 55., 60.];
-const DRAVEN_SPINNING_AXE_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.75, 0.85, 0.95, 1.05, 1.15];
+const SPINNING_AXE_PHYS_DMG_BY_Q_LVL: [f32; 5] = [40., 45., 50., 55., 60.];
+const SPINNING_AXE_BONUS_AD_RATIO_BY_Q_LVL: [f32; 5] = [0.75, 0.85, 0.95, 1.05, 1.15];
 
 fn draven_q_axe_bonus_dmg(champ: &Unit) -> f32 {
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1);
-    DRAVEN_SPINNING_AXE_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
-        + champ.stats.bonus_ad * DRAVEN_SPINNING_AXE_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx]
+    SPINNING_AXE_PHYS_DMG_BY_Q_LVL[q_lvl_idx]
+        + champ.stats.bonus_ad * SPINNING_AXE_BONUS_AD_RATIO_BY_Q_LVL[q_lvl_idx]
 }
 
 fn draven_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
@@ -97,15 +97,15 @@ fn draven_q(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     PartDmg(0., 0., 0.)
 }
 
-const DRAVEN_BLOOD_RUSH_BONUS_AS_BY_W_LVL: [f32; 5] = [0.20, 0.25, 0.30, 0.35, 0.40];
-const DRAVEN_BLOOD_RUSH_MS_PERCENT_BY_W_LVL: [f32; 5] =
+const BLOOD_RUSH_BONUS_AS_BY_W_LVL: [f32; 5] = [0.20, 0.25, 0.30, 0.35, 0.40];
+const BLOOD_RUSH_MS_PERCENT_BY_W_LVL: [f32; 5] =
     [0.50 / 2., 0.55 / 2., 0.60 / 2., 0.65 / 2., 0.70 / 2.]; //halved because decaying buff
 
 fn draven_blood_rush_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::DravenBloodRushBonusAS] == 0. {
         let w_lvl_idx: usize = usize::from(champ.w_lvl - 1);
-        let bonus_as: f32 = DRAVEN_BLOOD_RUSH_BONUS_AS_BY_W_LVL[w_lvl_idx];
-        let ms_percent: f32 = DRAVEN_BLOOD_RUSH_MS_PERCENT_BY_W_LVL[w_lvl_idx];
+        let bonus_as: f32 = BLOOD_RUSH_BONUS_AS_BY_W_LVL[w_lvl_idx];
+        let ms_percent: f32 = BLOOD_RUSH_MS_PERCENT_BY_W_LVL[w_lvl_idx];
         champ.stats.bonus_as += bonus_as;
         champ.stats.ms_percent += ms_percent;
         champ.effects_values[EffectValueId::DravenBloodRushBonusAS] = bonus_as;
@@ -133,12 +133,12 @@ fn draven_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     PartDmg(0., 0., 0.)
 }
 
-const DRAVEN_E_PHYS_DMG_BY_E_LVL: [f32; 5] = [75., 110., 145., 180., 215.];
+const E_PHYS_DMG_BY_E_LVL: [f32; 5] = [75., 110., 145., 180., 215.];
 
 fn draven_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let e_lvl_idx: usize = usize::from(champ.e_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 = DRAVEN_E_PHYS_DMG_BY_E_LVL[e_lvl_idx] + 0.5 * champ.stats.bonus_ad;
+    let phys_dmg: f32 = E_PHYS_DMG_BY_E_LVL[e_lvl_idx] + 0.5 * champ.stats.bonus_ad;
 
     champ.dmg_on_target(
         target_stats,
@@ -149,23 +149,23 @@ fn draven_e(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     )
 }
 
-const DRAVEN_R_PHYS_DMG_BY_R_LVL: [f32; 3] = [175., 275., 375.];
-const DRAVEN_R_BONUS_AD_RATIO_BY_R_LVL: [f32; 3] = [1.10, 1.30, 1.50];
+const R_PHYS_DMG_BY_R_LVL: [f32; 3] = [175., 275., 375.];
+const R_BONUS_AD_RATIO_BY_R_LVL: [f32; 3] = [1.10, 1.30, 1.50];
 
 fn draven_r(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     let r_lvl_idx: usize = usize::from(champ.r_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 = DRAVEN_R_N_TARGETS
-        * (1. + DRAVEN_R_RETURN_PERCENT)
-        * (DRAVEN_R_PHYS_DMG_BY_R_LVL[r_lvl_idx]
-            + champ.stats.bonus_ad * DRAVEN_R_BONUS_AD_RATIO_BY_R_LVL[r_lvl_idx]);
+    let phys_dmg: f32 = R_N_TARGETS
+        * (1. + R_RETURN_PERCENT)
+        * (R_PHYS_DMG_BY_R_LVL[r_lvl_idx]
+            + champ.stats.bonus_ad * R_BONUS_AD_RATIO_BY_R_LVL[r_lvl_idx]);
 
     champ.dmg_on_target(
         target_stats,
         PartDmg(phys_dmg, 0., 0.),
-        ((1. + DRAVEN_R_RETURN_PERCENT) as u8, 1),
+        ((1. + R_RETURN_PERCENT) as u8, 1),
         enum_set!(DmgTag::Ability | DmgTag::Ultimate),
-        DRAVEN_R_N_TARGETS,
+        R_N_TARGETS,
     )
 }
 
@@ -173,7 +173,7 @@ fn draven_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durat
     //e once at the begginning
     champ.e(target_stats);
 
-    let mut basic_attacks_count: u8 = DRAVEN_BASIC_ATTACKS_PER_W - 1;
+    let mut basic_attacks_count: u8 = BASIC_ATTACKS_PER_W - 1;
     while champ.time < fight_duration {
         //priority order: q before basic attacking if less than 2 axes in hand, basic attack if at least one axe and less than 2 axes in air, w every x basic attack
         if champ.basic_attack_cd == 0. && champ.effects_stacks[EffectStackId::DravenAxesInAir] < 2 {
@@ -183,7 +183,7 @@ fn draven_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durat
             }
             champ.basic_attack(target_stats);
             basic_attacks_count += 1;
-        } else if champ.w_cd == 0. && basic_attacks_count >= DRAVEN_BASIC_ATTACKS_PER_W {
+        } else if champ.w_cd == 0. && basic_attacks_count >= BASIC_ATTACKS_PER_W {
             champ.w(target_stats);
             basic_attacks_count = 0;
         } else {
@@ -197,7 +197,7 @@ fn draven_fight_scenario(champ: &mut Unit, target_stats: &UnitStats, fight_durat
                         } else {
                             f32::max(champ.basic_attack_cd, TIME_BETWEEN_CLICKS)
                         },
-                        if basic_attacks_count >= DRAVEN_BASIC_ATTACKS_PER_W {
+                        if basic_attacks_count >= BASIC_ATTACKS_PER_W {
                             champ.w_cd
                         } else {
                             fight_duration - champ.time
@@ -230,7 +230,7 @@ impl Unit {
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: DRAVEN_BASE_AS, //if not specified, same as base AS
         windup_percent: 0.15614,
-        windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
+        windup_modifier: 1., //"mod" next to attack windup, 1 by default
         base_stats: UnitStats {
             hp: 675.,
             mana: 361.,

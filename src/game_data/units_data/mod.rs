@@ -16,6 +16,8 @@ use rustc_hash::FxBuildHasher;
 use core::fmt;
 use core::num::NonZeroU8;
 
+//todo: lvls NonZeroU8?
+
 //units constants
 /// Maximum lvl value of a Unit.
 pub const MAX_UNIT_LVL: usize = 18;
@@ -23,6 +25,8 @@ pub const MAX_UNIT_LVL: usize = 18;
 pub const MIN_UNIT_LVL: u8 = 6;
 /// Maximum number of items an Unit can hold.
 pub(crate) const MAX_UNIT_ITEMS: usize = 6;
+/// Mean missing hp% for a champion, assuming the probability density function for the hp% is 2*x (from x=0 to x=1).
+const MEAN_MISSING_HP_PERCENT: f32 = 1. / 3.;
 
 /// Amount of cumulative xp required to reach the given lvl.
 pub const CUM_XP_NEEDED_FOR_LVL_UP_BY_LVL: [f32; MAX_UNIT_LVL - 1] = [
@@ -399,7 +403,7 @@ impl UnitStats {
     }
 
     /// Returns the average damage amplification for crit hits. i.e. if a basic attack does 100 dmg without crit,
-    /// it will do on average 100 * `self.crit_formula()` when taking crits into account.
+    /// it will do on average 100 * `self.crit_coef()` when taking crits into account.
     #[must_use]
     #[inline]
     pub fn crit_coef(&self) -> f32 {
@@ -583,10 +587,10 @@ impl SkillOrder {
             r_sum += self.r[i];
         }
         let max_ability_lvl: u8 = if is_aphelios { 6 } else { 5 };
-        if q_sum != max_ability_lvl
-            || w_sum != max_ability_lvl
-            || e_sum != max_ability_lvl
-            || r_sum != 3
+        if (q_sum != max_ability_lvl)
+            || (w_sum != max_ability_lvl)
+            || (e_sum != max_ability_lvl)
+            || (r_sum != 3)
         {
             return Err("Wrong number of skill points distributed across abilities".to_string());
         }
@@ -1584,35 +1588,35 @@ impl Unit {
         self.r_cd = f32::max(0., self.r_cd - dt);
 
         //update effects cooldowns
-        let mut i: usize = 0;
-        while i < self.temporary_effects_cooldowns.len() {
+        let mut idx: usize = self.temporary_effects_cooldowns.len();
+        while idx > 0 {
+            idx -= 1;
+
             //update effect cooldown
-            let (_, cooldown_ref) = self.temporary_effects_cooldowns.get_index_mut(i).unwrap();
+            let (_, cooldown_ref) = self.temporary_effects_cooldowns.get_index_mut(idx).unwrap();
             *cooldown_ref -= dt;
 
             //remove effect from storage if its cooldown ends
             if *cooldown_ref < F32_TOL {
-                self.temporary_effects_cooldowns.swap_remove_index(i);
-            } else {
-                i += 1;
+                self.temporary_effects_cooldowns.swap_remove_index(idx);
             }
         }
 
-        //todo: traverse hash map in reverse order to allow for effects to re add themselves when removed? (e.g.: varus ult giving stacks)
         //update effects durations, must be done after effects cooldowns to not interfere when effects re-add themselves when removed
-        let mut i: usize = 0;
-        while i < self.temporary_effects_durations.len() {
+        //traverse hash map in reverse index order to allow for effects to re-add themselves when removed (e.g.: kindred wolf's frenzy)
+        let mut idx: usize = self.temporary_effects_durations.len();
+        while idx > 0 {
+            idx -= 1;
+
             //update effect duration
             let (&effect_ref, duration_ref) =
-                self.temporary_effects_durations.get_index_mut(i).unwrap();
+                self.temporary_effects_durations.get_index_mut(idx).unwrap();
             *duration_ref -= dt;
 
             //remove effect from the unit if its duration ends
             if *duration_ref < F32_TOL {
-                (effect_ref.remove_every_stack)(self);
-                self.temporary_effects_durations.swap_remove_index(i);
-            } else {
-                i += 1;
+                self.temporary_effects_durations.swap_remove_index(idx);
+                (effect_ref.remove_every_stack)(self); //call after removing effect from hashmap so it can re-add itself
             }
         }
     }

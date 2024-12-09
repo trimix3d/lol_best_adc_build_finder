@@ -7,11 +7,12 @@ use units_data::*;
 use enumset::enum_set;
 
 //champion parameters (constants):
-const SIVIR_Q_N_TARGETS: f32 = 1.0;
+const Q_N_TARGETS: f32 = 1.0;
 /// Percentage of the time the q return hit its targets.
-const SIVIR_Q_RETURN_PERCENT: f32 = 0.67;
+const Q_RETURN_PERCENT: f32 = 0.67;
 /// Number of targets hit by sivir ricochets (adds to the basic attack that launched the ricochet).
-const SIVIR_W_N_RICOCHETS: f32 = 1.0;
+/// Must be less or equal to 9.
+const W_N_RICOCHETS: f32 = 1.0;
 
 fn sivir_init_abilities(champ: &mut Unit) {
     champ.effects_values[EffectValueId::SivirRicochetBonusAS] = 0.;
@@ -19,7 +20,7 @@ fn sivir_init_abilities(champ: &mut Unit) {
     champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] = 0.;
 }
 
-const SIVIR_FLEET_OF_FOOT_MS_FLAT_BY_LVL: [f32; MAX_UNIT_LVL] = [
+const FLEET_OF_FOOT_MS_FLAT_BY_LVL: [f32; MAX_UNIT_LVL] = [
     55., //lvl 1
     55., //lvl 2
     55., //lvl 3
@@ -42,8 +43,7 @@ const SIVIR_FLEET_OF_FOOT_MS_FLAT_BY_LVL: [f32; MAX_UNIT_LVL] = [
 
 fn sivir_fleet_of_foot_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::SivirFleetOfFootMsFlat] == 0. {
-        let ms_flat: f32 =
-            0.5 * SIVIR_FLEET_OF_FOOT_MS_FLAT_BY_LVL[usize::from(champ.lvl.get() - 1)]; //halved because decaying effect
+        let ms_flat: f32 = 0.5 * FLEET_OF_FOOT_MS_FLAT_BY_LVL[usize::from(champ.lvl.get() - 1)]; //halved because decaying effect
         champ.stats.ms_flat += ms_flat;
         champ.effects_values[EffectValueId::SivirFleetOfFootMsFlat] = ms_flat;
     }
@@ -67,9 +67,9 @@ fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
 
     //if buffed by r, basic attacks reduces abilities cooldown
     if champ.effects_values[EffectValueId::SivirOnTheHuntMsPercent] != 0. {
-        champ.q_cd = f32::max(0., champ.q_cd - SIVIR_R_ABILITIES_CD_REFUND_TIME);
-        champ.w_cd = f32::max(0., champ.w_cd - SIVIR_R_ABILITIES_CD_REFUND_TIME);
-        champ.e_cd = f32::max(0., champ.e_cd - SIVIR_R_ABILITIES_CD_REFUND_TIME);
+        champ.q_cd = f32::max(0., champ.q_cd - R_ABILITIES_CD_REFUND_TIME);
+        champ.w_cd = f32::max(0., champ.w_cd - R_ABILITIES_CD_REFUND_TIME);
+        champ.e_cd = f32::max(0., champ.e_cd - R_ABILITIES_CD_REFUND_TIME);
     }
 
     //basic attack dmg
@@ -78,8 +78,8 @@ fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     //w ricochets dmg, instance of dmg must be done after basic attack
     if champ.effects_values[EffectValueId::SivirRicochetBonusAS] != 0. {
         let w_lvl_idx: usize = usize::from(champ.w_lvl - 1);
-        let ricochet_phys_dmg: f32 = SIVIR_W_N_RICOCHETS
-            * SIVIR_W_AD_RATIO_BY_W_LVL[w_lvl_idx]
+        let ricochet_phys_dmg: f32 = W_N_RICOCHETS
+            * W_AD_RATIO_BY_W_LVL[w_lvl_idx]
             * champ.stats.ad()
             * champ.stats.crit_coef();
 
@@ -95,33 +95,33 @@ fn sivir_basic_attack(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     tot_dmg
 }
 
-const SIVIR_Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [60., 85., 110., 135., 160.];
+const Q_PHYS_DMG_BY_Q_LVL: [f32; 5] = [60., 85., 110., 135., 160.];
 
 fn sivir_q(champ: &mut Unit, target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&SIVIR_FLEET_OF_FOOT, 0.);
 
     let q_lvl_idx: usize = usize::from(champ.q_lvl - 1); //to index ability ratios by lvl
 
-    let phys_dmg: f32 = SIVIR_Q_N_TARGETS
-        * (1. + SIVIR_Q_RETURN_PERCENT)
+    let phys_dmg: f32 = Q_N_TARGETS
+        * (1. + Q_RETURN_PERCENT)
         * (1. + 0.5 * champ.stats.crit_chance)
-        * (SIVIR_Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx] + champ.stats.bonus_ad + 0.6 * champ.stats.ap());
+        * (Q_PHYS_DMG_BY_Q_LVL[q_lvl_idx] + champ.stats.bonus_ad + 0.6 * champ.stats.ap());
 
     champ.dmg_on_target(
         target_stats,
         PartDmg(phys_dmg, 0., 0.),
-        (1 + (SIVIR_Q_RETURN_PERCENT as u8), 1),
+        (1 + (Q_RETURN_PERCENT as u8), 1),
         enum_set!(DmgTag::Ability),
-        SIVIR_Q_N_TARGETS,
+        Q_N_TARGETS,
     )
 }
 
-const SIVIR_W_BONUS_AS_BY_W_LVL: [f32; 5] = [0.20, 0.25, 0.30, 0.35, 0.40];
+const W_BONUS_AS_BY_W_LVL: [f32; 5] = [0.20, 0.25, 0.30, 0.35, 0.40];
 
 fn sivir_ricochet_enable(champ: &mut Unit, _availability_coef: f32) {
     if champ.effects_values[EffectValueId::SivirRicochetBonusAS] == 0. {
         let w_lvl_idx: usize = usize::from(champ.w_lvl - 1);
-        let bonus_as: f32 = SIVIR_W_BONUS_AS_BY_W_LVL[w_lvl_idx];
+        let bonus_as: f32 = W_BONUS_AS_BY_W_LVL[w_lvl_idx];
         champ.stats.bonus_as += bonus_as;
         champ.effects_values[EffectValueId::SivirRicochetBonusAS] = bonus_as;
     }
@@ -140,7 +140,7 @@ const SIVIR_RICOCHET: TemporaryEffect = TemporaryEffect {
     cooldown: 0.,
 };
 
-const SIVIR_W_AD_RATIO_BY_W_LVL: [f32; 5] = [0.30, 0.35, 0.40, 0.45, 0.50];
+const W_AD_RATIO_BY_W_LVL: [f32; 5] = [0.30, 0.35, 0.40, 0.45, 0.50];
 
 fn sivir_w(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     champ.add_temporary_effect(&SIVIR_RICOCHET, 0.);
@@ -211,7 +211,7 @@ const SIVIR_ON_THE_HUNT_MS_LVL_3: TemporaryEffect = TemporaryEffect {
 };
 
 /// Basic abilities cooldown refunded by each basic attack when under r effect
-const SIVIR_R_ABILITIES_CD_REFUND_TIME: f32 = 0.5;
+const R_ABILITIES_CD_REFUND_TIME: f32 = 0.5;
 
 fn sivir_r(champ: &mut Unit, _target_stats: &UnitStats) -> PartDmg {
     match champ.r_lvl {
@@ -277,7 +277,7 @@ impl Unit {
         as_limit: Unit::DEFAULT_AS_LIMIT,
         as_ratio: SIVIR_BASE_AS,
         windup_percent: 0.12,
-        windup_modifier: 1., //get it from https://leagueoflegends.fandom.com/wiki/List_of_champions/Basic_attacks, 1 by default
+        windup_modifier: 1., //"mod" next to attack windup, 1 by default
         base_stats: UnitStats {
             hp: 600.,
             mana: 340.,
@@ -487,19 +487,4 @@ impl Unit {
             supp_items_pool: &[],
         },
     };
-}
-
-#[cfg(test)]
-mod tests {
-    #[cfg(test)]
-    use super::*;
-
-    #[test]
-    pub fn test_constant_parameters() {
-        assert!(
-            SIVIR_W_N_RICOCHETS <= 9.,
-            "Number of sivir's W ricochets must be less or equal to 9 (got {})",
-            SIVIR_W_N_RICOCHETS
-        )
-    }
 }
