@@ -19,6 +19,9 @@ semicolon_if_nothing_returned = "warn"
 single_match_else = "warn"
 
 # re-build for all profiles: cargo clean ; cargo build ; cargo build --release ; cargo build --profile profiling
+# build for specific target: cargo build --release --target=x86_64-pc-windows-gnu
+#                            cargo build --release --target=x86_64-pc-windows-gnullvm
+#                            cargo build --release --target=x86_64-pc-windows-msvc
 
 [profile.release]
 opt-level = 3
