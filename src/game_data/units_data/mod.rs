@@ -1200,6 +1200,7 @@ impl Unit {
 
     /// Returns true if adaptive force for the unit is physical, false if it is magic (alternative version, for electrocute, sumon aery, ...).
     /// Adaptive force doesn't count in champions passives, so it only depends on items stats in practise.
+    #[allow(dead_code)]
     #[must_use]
     #[inline]
     fn adaptive_is_phys_alternate(&self) -> bool {

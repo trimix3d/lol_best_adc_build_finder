@@ -848,10 +848,7 @@ fn generate_build_layer(
 /// Get the size of the chunks needed to process a given amount of elements in parallel with the specified amount of workers.
 /// The number of elements per chunk will be the most evenly distributed possible.
 fn compute_chunk_size(n_elements: usize, thread_count: NonZeroUsize) -> usize {
-    usize::max(
-        1,
-        (n_elements + (thread_count.get() - 1)) / thread_count.get(),
-    )
+    usize::max(1, n_elements.div_ceil(thread_count.get()))
 }
 
 fn get_scores_from_sim_results(champ: &Unit, phys_dmg_received_percent: f32) -> (f32, f32, f32) {
